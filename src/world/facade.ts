@@ -1,0 +1,162 @@
+import {
+  BufferAttribute, CanvasTexture, RepeatWrapping, SRGBColorSpace, Vector2,
+  type BufferGeometry, type Color, type ExtrudeGeometry, type UVGenerator,
+} from 'three';
+import type { BuildingKind } from './cityData';
+
+/**
+ * 타일 한 장 = 4칸 x 4칸. 한 칸이 창 하나 + 그 층의 슬래브다.
+ *
+ * 4칸인 이유: 건물마다 **다른 칸에서 시작**시켜 불 켜진 창 배치를 흩기 위해서다.
+ * 1칸이면 모든 건물이 같은 자리에 불이 켜진다. 8칸이면 텍스처가 4배 무거워지는데
+ * 그만큼 다양해지지는 않는다 — 어차피 색·층고·베이폭이 따로 흔들리고 있다.
+ */
+const GRID = 4;
+const CELL = 64;
+const SIZE = GRID * CELL; // 256px
+
+/**
+ * 벽 바탕색. 흰색(1.0)이 아니라 살짝 낮춘다.
+ *
+ * 텍스처는 정점색에 **곱해진다.** 바탕이 1.0이면 어떤 텍셀도 벽보다 밝을 수 없어서
+ * "불 켜진 창"을 만들 방법이 없다. 0.94로 깔아두면 창 하나를 1.0 근처로 올릴 여지가 생긴다.
+ * 대신 건물 전체가 6% 어두워지는데, KIND_COLOR가 원래 밝은 쪽이라 보정하지 않는다.
+ */
+const WALL = '#efece6';
+
+/**
+ * 건물 외벽 한 장. 가로세로 모두 이어붙는다(RepeatWrapping).
+ *
+ * `fillStyle`과 `fillRect`만 쓴다 — `tools/citycheck.ts`의 document 스텁이 그 둘만
+ * 흉내내기 때문이다. 그라데이션이나 path를 쓰면 헤드리스 도구가 죽는다.
+ * `World.ts`의 지면 텍스처가 같은 제약 아래 같은 수법을 쓴다.
+ */
+export function buildFacadeTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = SIZE;
+  const cx = cv.getContext('2d')!;
+  cx.fillStyle = WALL;
+  cx.fillRect(0, 0, SIZE, SIZE);
+
+  for (let j = 0; j < GRID; j++) {
+    for (let i = 0; i < GRID; i++) {
+      const x = i * CELL;
+      const y = j * CELL;
+      // 층 경계 슬래브. 이 줄 하나가 멀리서 층수를 읽히게 한다 —
+      // 창은 거리가 멀어지면 뭉개지는데 가로줄은 끝까지 남는다.
+      cx.fillStyle = '#c8c3bb';
+      cx.fillRect(x, y + CELL - 5, CELL, 5);
+
+      // 불 켜진 창 8%. 결정적 수열이라 새로고침해도 같은 창에 불이 켜진다.
+      // World.ts 지면 얼룩과 같은 수법.
+      const lit = ((i * 7 + j * 13) * 7919) % 100 < 8;
+      cx.fillStyle = lit ? '#fffbef' : '#454c58';
+      cx.fillRect(x + 8, y + 11, CELL - 16, CELL - 27);
+      // 세로 창틀. 없으면 창 하나가 통유리 한 장으로 뭉개져서 창이 아니라 얼룩이 된다.
+      cx.fillStyle = lit ? '#e6dcc4' : '#69707c';
+      cx.fillRect(x + CELL / 2 - 1, y + 11, 2, CELL - 27);
+    }
+  }
+
+  const tex = new CanvasTexture(cv);
+  // 이걸 빼면 three가 캔버스의 sRGB 값을 **선형값으로 착각**해서 두 배 가까이 밝게 그린다.
+  // World.ts:325가 같은 이유로 같은 줄을 갖고 있다.
+  tex.colorSpace = SRGBColorSpace;
+  tex.wrapS = tex.wrapT = RepeatWrapping;
+  // 눈높이에서 벽이 비스듬히 보일 때 창이 죽처럼 뭉개지는 걸 막는다.
+  // NearestFilter는 쓰지 않는다 — 지면과 달리 건물은 먼 거리가 대부분이라 지글거린다.
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/**
+ * 종류별 층고·베이폭(m).
+ *
+ * **같은 텍스처인데 밀도가 달라 다른 건물로 읽힌다.** 이게 팔레트 다음가는 변주 장치다.
+ * 오피스는 층고가 높고 창이 촘촘하고(커튼월), 빌라는 층고가 낮고 창이 성기다.
+ * 실제 값에서 크게 벗어나지 않게 잡았다 — 주거 층고 2.8~2.9m, 업무 3.8m가 표준이다.
+ */
+export const FACADE_SCALE: Record<BuildingKind, { readonly floor: number; readonly bay: number }> = {
+  apartment: { floor: 2.9, bay: 3.4 },
+  lowrise: { floor: 2.8, bay: 3.7 },
+  commercial: { floor: 3.8, bay: 2.8 },
+  civic: { floor: 3.6, bay: 4.2 },
+  retail: { floor: 3.4, bay: 3.2 },
+};
+
+/**
+ * 창이 없는 텍셀 한 점. 옥상·옥탑·상가 띠처럼 창 격자가 깔리면 안 되는 면이 쓴다.
+ *
+ * 좌표를 눈으로 고른 게 아니다. three는 기본이 `flipY = true`라 v=0이 캔버스 **아래쪽**이다.
+ * v=0.98이 캔버스 y≈5 → 칸 위쪽 벽 여백, u=0.008이 캔버스 x≈2 → 창 왼쪽 여백.
+ * 즉 창에서 가장 먼 구석이다. v=0.004를 쓰면 슬래브 줄에 얹혀서 옥상이 회색으로 나온다.
+ */
+export const FLAT_UV = new Vector2(0.008, 0.98);
+
+/**
+ * ExtrudeGeometry용 UV 생성기. 건물 한 채마다 새로 만든다.
+ *
+ * three 기본 `WorldUVGenerator`는 월드 좌표를 그대로 uv로 쓴다 — 창 크기가 건물이 서 있는
+ * **위치**에 따라 달라진다. 원점에서 먼 건물일수록 창이 잘게 쪼개진다. 그래서 직접 만든다.
+ *
+ * **창을 딱 떨어지게 넣는다.** 벽 길이를 베이폭으로 나눠 반올림한 개수로 다시 나눈다.
+ * 그래서 모서리에서 창이 반토막 나지 않는다. 층도 같은 방식이다 —
+ * 대신 실제 층고가 종류별 기준값에서 조금씩 어긋나는데, 잘린 창보다 그게 낫다.
+ *
+ * @param uCell 0~3. 건물마다 타일의 다른 칸에서 시작하게 해 **불 켜진 창 배치를 흩는다.**
+ *              타일이 4칸 주기로 이어지므로 정수 칸만큼 밀면 이음매가 생기지 않는다.
+ */
+export function facadeUV(
+  height: number, floorM: number, bayM: number, uCell: number, vCell: number,
+): UVGenerator {
+  const floors = Math.max(1, Math.round(height / floorM));
+  const vScale = floors / Math.max(height, 0.01) / GRID;
+  const uBase = uCell / GRID;
+  const vBase = vCell / GRID;
+
+  return {
+    // 캡(옥상·바닥)은 창이 아니다. 세 꼭짓점을 무지 텍셀 한 점으로 보낸다.
+    // 세 점이 같으므로 삼각형 전체가 그 한 텍셀 색이 된다.
+    generateTopUV: (): Vector2[] => [FLAT_UV, FLAT_UV, FLAT_UV],
+
+    generateSideWallUV: (
+      _geometry: ExtrudeGeometry, vertices: number[],
+      ia: number, ib: number, ic: number, id: number,
+    ): Vector2[] => {
+      // a, b는 벽 아래 모서리 두 점. c, d는 그 위. a→b가 벽이 뻗는 방향이다.
+      const ax = vertices[ia * 3], ay = vertices[ia * 3 + 1];
+      const dx = vertices[ib * 3] - ax, dy = vertices[ib * 3 + 1] - ay;
+      const len = Math.hypot(dx, dy) || 1;
+      const uScale = Math.max(1, Math.round(len / bayM)) / len / GRID;
+      // z가 압출 축이다. 회전(rotateX)은 압출이 끝난 뒤라 여기서는 y가 아니라 z가 높이다.
+      const at = (i: number): Vector2 => new Vector2(
+        ((vertices[i * 3] - ax) * dx + (vertices[i * 3 + 1] - ay) * dy) / len * uScale + uBase,
+        vertices[i * 3 + 2] * vScale + vBase,
+      );
+      return [at(ia), at(ib), at(ic), at(id)];
+    },
+  };
+}
+
+/** 창 격자를 지운다. 물탱크·상가 유리처럼 벽이 아닌 면에 쓴다. */
+export function flattenUV(geo: BufferGeometry): void {
+  const n = geo.attributes.position.count;
+  const uv = new Float32Array(n * 2);
+  for (let i = 0; i < n; i++) {
+    uv[i * 2] = FLAT_UV.x;
+    uv[i * 2 + 1] = FLAT_UV.y;
+  }
+  geo.setAttribute('uv', new BufferAttribute(uv, 2));
+}
+
+/** 지오메트리 전체를 한 색으로 칠한다. 청크 병합은 정점색을 요구한다. */
+export function paint(geo: BufferGeometry, color: Color): void {
+  const n = geo.attributes.position.count;
+  const c = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    c[i * 3] = color.r;
+    c[i * 3 + 1] = color.g;
+    c[i * 3 + 2] = color.b;
+  }
+  geo.setAttribute('color', new BufferAttribute(c, 3));
+}
