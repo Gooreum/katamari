@@ -4,7 +4,10 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
-import { buildFacadeTexture, FACADE_SCALE, facadeUV, flattenUV, paint } from './facade';
+import {
+  buildFacadeTexture, FACADE_SCALE, facadeUV, flattenUV, paint,
+  PODIUM_STONE, SHOP_GLASS, SIGN_HUE,
+} from './facade';
 import { buildRoadGeometry } from './Roads';
 
 /**
@@ -303,16 +306,19 @@ export class City {
     // 옥탑을 얹을 만큼 본체를 낮춘다. 총높이는 h 그대로다.
     const clutterH = clutterHeight(h, e.cx * 41 + e.cz * 19);
     const mass = h - clutterH;
+    // 1층 띠. 본체를 이만큼 올려서 시작한다 — 덧붙이는 게 아니라 떼어내는 것이다.
+    // 저층 건물에서 띠가 건물을 통째로 잡아먹지 않도록 h의 35%로 묶는다.
+    const groundH = Math.min(4.2, h * 0.35);
 
     const kind = displayKind(b);
     const fs = FACADE_SCALE[kind];
     // 건물마다 타일의 다른 칸에서 시작한다. 안 하면 불 켜진 창이 전 도시에서
     // 같은 자리에 박혀 격자무늬가 보인다.
     const geo = new ExtrudeGeometry(shape, {
-      depth: mass,
+      depth: mass - groundH,
       bevelEnabled: false,
       UVGenerator: facadeUV(
-        mass, fs.floor, fs.bay,
+        mass - groundH, fs.floor, fs.bay,
         Math.floor(hash01(e.cx * 7 + e.cz * 3) * 4),
         Math.floor(hash01(e.cx * 5 + e.cz * 11) * 4),
       ),
@@ -324,6 +330,8 @@ export class City {
       if (!Number.isFinite(pos.array[i]!)) { (pos.array as Float32Array)[i] = 0; }
     }
     geo.rotateX(-Math.PI / 2);
+    // 본체는 1층 띠 위에서 시작한다. 바닥 캡이 띠 안에 묻혀 안 보인다.
+    geo.translate(0, groundH, 0);
     if (centered) geo.translate(0, -h / 2, 0);
     // uv를 지우지 않는다 — 창 격자가 거기 실려 있다.
     // 정점당 8바이트가 늘지만(도시 전체 2.6MB) 창을 지오메트리로 만드는 것보다 훨씬 싸다.
@@ -383,8 +391,8 @@ export class City {
         cr = color.r * 0.5; cg = color.g * 0.5; cb = color.b * 0.5;
       } else {
         // 위로 갈수록 밝게 — 평면 조명만으로는 층이 안 읽힌다
-        const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3 - yBase;
-        const k = 0.82 + Math.min(cy / Math.max(mass, 1), 1) * 0.24;
+        const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3 - yBase - groundH;
+        const k = 0.82 + Math.min(cy / Math.max(mass - groundH, 1), 1) * 0.24;
         cr = color.r * k; cg = color.g * k; cb = color.b * k;
       }
       for (let v = 0; v < 3; v++) {
@@ -394,27 +402,34 @@ export class City {
       }
     }
     geo.setAttribute('color', new BufferAttribute(colors, 3));
-    if (clutterH === 0 || caps.length < 2) return geo;
+
+    const parts: BufferGeometry[] = [geo];
+
+    // 1층. 5cm 공으로 시작하는 게임이라 초반 내내 보는 게 여기다.
+    const band = this.groundBand(b, kind, ox, oz, groundH, yBase, color, e.cx, e.cz);
+    if (band) parts.push(band);
 
     // 옥탑. 지붕 삼각형 무게중심 중 해시로 골라 얹는다.
     //
     // 상자 하나가 12삼각형이라 도시 전체로 7만 삼각형쯤 는다. 그 값으로 사는 건
     // **실루엣**이다 — 옥상선이 칼같이 평평한 게 "판때기" 인상의 나머지 절반이었다.
-    const parts: BufferGeometry[] = [geo];
-    const roomy = Math.min(e.width, e.depth) > 14;
-    // 큰 옥상이면 물탱크를 하나 더. 작은 옥상에 둘을 얹으면 옥상이 꽉 차서 부자연스럽다.
-    for (let k = 0; k < (roomy ? 2 : 1); k++) {
-      const pick = Math.floor(hash01(e.cx * 17 + e.cz * 23 + k * 7) * (caps.length / 2)) * 2;
-      const ch = k === 0 ? clutterH : clutterH * 0.6;
-      const w = Math.min(3.0, Math.min(e.width, e.depth) * 0.28) * (k === 0 ? 1 : 0.62);
-      // ExtrudeGeometry는 인덱스가 없다. 섞어서 병합하면 mergeGeometries가 null을 뱉는다.
-      const box = new BoxGeometry(w, ch, w).toNonIndexed();
-      box.translate(caps[pick]!, yBase + mass + ch / 2, caps[pick + 1]!);
-      flattenUV(box);  // 물탱크에 창 격자가 깔리면 안 된다
-      paint(box, roof);
-      parts.push(box);
+    if (clutterH > 0 && caps.length >= 2) {
+      const roomy = Math.min(e.width, e.depth) > 14;
+      // 큰 옥상이면 물탱크를 하나 더. 작은 옥상에 둘을 얹으면 옥상이 꽉 차서 부자연스럽다.
+      for (let k = 0; k < (roomy ? 2 : 1); k++) {
+        const pick = Math.floor(hash01(e.cx * 17 + e.cz * 23 + k * 7) * (caps.length / 2)) * 2;
+        const ch = k === 0 ? clutterH : clutterH * 0.6;
+        const w = Math.min(3.0, Math.min(e.width, e.depth) * 0.28) * (k === 0 ? 1 : 0.62);
+        // ExtrudeGeometry는 인덱스가 없다. 섞어서 병합하면 mergeGeometries가 null을 뱉는다.
+        const box = new BoxGeometry(w, ch, w).toNonIndexed();
+        box.translate(caps[pick]!, yBase + mass + ch / 2, caps[pick + 1]!);
+        flattenUV(box);  // 물탱크에 창 격자가 깔리면 안 된다
+        paint(box, roof);
+        parts.push(box);
+      }
     }
 
+    if (parts.length === 1) return geo;
     const merged = mergeGeometries(parts, false);
     if (!merged) {
       // 병합 실패 시 본체만 돌려준다 — 옥탑이 없을 뿐 안전하다.
@@ -424,6 +439,78 @@ export class City {
     }
     for (const p of parts) p.dispose();
     return merged;
+  }
+
+  /**
+   * 1층 띠. 외곽선 변마다 사각형을 직접 깐다.
+   *
+   * `ExtrudeGeometry`를 한 번 더 쓰지 않는 이유는 **캡** 때문이다. 압출은 언제나
+   * 위아래 뚜껑을 만드는데, 여기서는 둘 다 안 보이는 자리(지면과 본체 바닥)라
+   * 순수한 낭비다. 변당 사각형만 깔면 캡이 없다.
+   *
+   * 종류로 갈린다:
+   *   상가·점포·빌라 → 어두운 유리 + 그 위 간판 띠 (변당 4삼각형)
+   *   아파트·공공     → 화강암 저층부, 간판 없음 (변당 2삼각형)
+   *
+   * 아파트 1층에 간판을 붙이면 거짓말이다. 실제로 잠실 아파트 1층은 상가가 아니다.
+   */
+  private groundBand(
+    b: CityBuilding, kind: BuildingKind,
+    ox: number, oz: number, gh: number, yBase: number, wallColor: Color,
+    hx: number, hz: number,
+  ): BufferGeometry | null {
+    const n = b.outline.length;
+    if (n < 3 || gh <= 0) return null;
+    const shop = kind === 'commercial' || kind === 'retail' || kind === 'lowrise';
+
+    // 외곽선의 감김 방향. 이걸 모르면 띠가 안쪽을 보고 서서 통째로 사라진다
+    // (머티리얼이 FrontSide다). 부호 있는 면적이면 오목한 외곽선에서도 정확하다.
+    let area2 = 0;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      area2 += b.outline[j]![0] * b.outline[i]![1] - b.outline[i]![0] * b.outline[j]![1];
+    }
+    const ccw = area2 > 0;
+
+    const rows = shop ? [0, gh * 0.72, gh] : [0, gh];
+    const quads = n * (rows.length - 1);
+    const verts = new Float32Array(quads * 18);   // 사각형 = 삼각형 2개 = 정점 6개
+    const cols = new Float32Array(quads * 18);
+
+    // 해시는 **건물 중심(hx, hz)** 으로 뽑는다. ox/oz 를 쓰면 안 된다 —
+    // 청크에 병합될 때(centered=false) 그 둘이 항상 0이라 도시 전체 간판이 한 색이 된다.
+    const glass = new Color(shop ? SHOP_GLASS : PODIUM_STONE);
+    // 유리·화강암도 동마다 밝기를 흔든다. 안 하면 길 하나가 통짜 띠로 보인다.
+    //
+    // **곱셈이어야 한다.** `offsetHSL`로 명도를 ±0.07 흔들었더니 유리가 새까매졌다 —
+    // 유리 기준색의 선형 명도가 0.035라 폭이 기준값의 두 배였고, 아래로 흔들린 건물은
+    // 전부 0에 눌렸다. 비율로 흔들면 어두운 색도 검게 죽지 않는다.
+    glass.multiplyScalar(0.78 + hash01(hx * 61 + hz * 13) * 0.5);
+    const sign = new Color(SIGN_HUE[Math.floor(hash01(hx * 97 + hz * 43) * SIGN_HUE.length)]!);
+    // 간판은 벽 색을 살짝 섞어야 스티커처럼 떠 보이지 않는다
+    sign.lerp(wallColor, 0.18);
+
+    let v = 0, c = 0;
+    for (let i = 0; i < n; i++) {
+      const p0 = b.outline[i]!, p1 = b.outline[(i + 1) % n]!;
+      const x0 = p0[0] - ox, z0 = p0[1] - oz;
+      const x1 = p1[0] - ox, z1 = p1[1] - oz;
+      for (let r = 0; r + 1 < rows.length; r++) {
+        const lo = yBase + rows[r]!, hi = yBase + rows[r + 1]!;
+        // 아래 두 점 → 위 두 점. ccw면 감김을 뒤집어야 바깥을 본다
+        const a = [x0, lo, z0], bb = [x1, lo, z1], cc = [x1, hi, z1], d = [x0, hi, z0];
+        const tri = ccw ? [a, cc, bb, a, d, cc] : [a, bb, cc, a, cc, d];
+        for (const p of tri) { verts[v++] = p[0]!; verts[v++] = p[1]!; verts[v++] = p[2]!; }
+        const col = shop && r === 1 ? sign : glass;
+        for (let k = 0; k < 6; k++) { cols[c++] = col.r; cols[c++] = col.g; cols[c++] = col.b; }
+      }
+    }
+
+    const geo = new BufferGeometry();
+    geo.setAttribute('position', new BufferAttribute(verts, 3));
+    geo.setAttribute('color', new BufferAttribute(cols, 3));
+    geo.computeVertexNormals();
+    flattenUV(geo);   // 상가 유리에 창 격자가 겹치면 안 된다
+    return geo;
   }
 
   private buildWater(): void {

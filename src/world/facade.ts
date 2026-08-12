@@ -138,6 +138,25 @@ export function facadeUV(
   };
 }
 
+/**
+ * 1층 간판 색.
+ *
+ * 서울 길거리가 색색인 건 건물이 아니라 **간판** 때문이다. 외벽 팔레트는 전부
+ * 무채에 가까운 저채도인데, 눈높이에서 보이는 띠 하나만 채도를 올리면
+ * 같은 건물들이 전혀 다른 거리로 읽힌다.
+ */
+export const SIGN_HUE = [0xc4433a, 0x2f6fb0, 0xe0a020, 0x3f9257, 0xd2621f];
+
+/**
+ * 1층 유리. 벽보다 확실히 어두워야 유리로 읽히지만, **너무 어두우면 구멍이 된다.**
+ * 처음 0x2b3038로 잡았다가 지상 컷에서 새까만 띠가 나와서 올렸다 —
+ * 반사가 없는 램버트라 실제 유리보다 밝게 잡아야 유리처럼 보인다.
+ */
+export const SHOP_GLASS = 0x49515e;
+
+/** 아파트·공공건물 저층부. 간판 대신 화강암 — 아파트 1층에 간판이 붙으면 거짓말이다. */
+export const PODIUM_STONE = 0x6b6862;
+
 /** 창 격자를 지운다. 물탱크·상가 유리처럼 벽이 아닌 면에 쓴다. */
 export function flattenUV(geo: BufferGeometry): void {
   const n = geo.attributes.position.count;
