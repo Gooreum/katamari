@@ -1,10 +1,10 @@
 import {
-  BufferAttribute, BufferGeometry, Color, ExtrudeGeometry, Group,
+  BoxGeometry, BufferAttribute, BufferGeometry, Color, ExtrudeGeometry, Group,
   Mesh, MeshLambertMaterial, Shape, ShapeGeometry, Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
-import { buildFacadeTexture, FACADE_SCALE, facadeUV } from './facade';
+import { buildFacadeTexture, FACADE_SCALE, facadeUV, flattenUV, paint } from './facade';
 import { buildRoadGeometry } from './Roads';
 
 /**
@@ -56,6 +56,23 @@ const ROOF_TONE = [0x46503f, 0x3f4650, 0x565049];
 function hash01(v: number): number {
   const x = Math.sin(v) * 43758.5453;
   return x - Math.floor(x);
+}
+
+/**
+ * 옥탑(물탱크·계단탑) 높이. 0이면 안 얹는다.
+ *
+ * **이 높이만큼 본체를 낮춘다.** 위에 덧붙이는 게 아니다 — 그러면 보이는 높이가
+ * `displayHeight`를 넘어서 충돌 상자와 어긋난다. 실제로도 옥탑은 건물 높이에 포함된다.
+ *
+ * 9m(3층) 미만은 건너뛴다. 그 높이대는 실제로도 옥탑이 드물고, 무엇보다
+ * 3m짜리 옥탑을 얹으면 건물의 3분의 1이 옥탑이 된다.
+ * 38%는 맨 옥상으로 남긴다 — 전부 얹으면 그게 또 통일이다.
+ */
+function clutterHeight(h: number, seed: number): number {
+  if (h < 9) return 0;
+  const r = hash01(seed);
+  if (r < 0.38) return 0;
+  return Math.min(3.2, h * 0.16) * (0.7 + r * 0.5);
 }
 
 export interface CityBuildingEntry {
@@ -283,15 +300,19 @@ export class City {
       i === 0 ? shape.moveTo(px, py) : shape.lineTo(px, py);
     });
 
+    // 옥탑을 얹을 만큼 본체를 낮춘다. 총높이는 h 그대로다.
+    const clutterH = clutterHeight(h, e.cx * 41 + e.cz * 19);
+    const mass = h - clutterH;
+
     const kind = displayKind(b);
     const fs = FACADE_SCALE[kind];
     // 건물마다 타일의 다른 칸에서 시작한다. 안 하면 불 켜진 창이 전 도시에서
     // 같은 자리에 박혀 격자무늬가 보인다.
     const geo = new ExtrudeGeometry(shape, {
-      depth: h,
+      depth: mass,
       bevelEnabled: false,
       UVGenerator: facadeUV(
-        h, fs.floor, fs.bay,
+        mass, fs.floor, fs.bay,
         Math.floor(hash01(e.cx * 7 + e.cz * 3) * 4),
         Math.floor(hash01(e.cx * 5 + e.cz * 11) * 4),
       ),
@@ -344,10 +365,18 @@ export class City {
     //
     // ExtrudeGeometry는 인덱스가 없고 computeVertexNormals()만 부른다
     // (ExtrudeGeometry.js:63). 그래서 삼각형마다 면 법선을 갖고, ny로 면이 갈린다.
+    // 옥탑을 놓을 자리. 지붕 삼각형의 무게중심이라 외곽선이 오목해도 반드시 건물 안이다.
+    const caps: number[] = [];
     for (let t = 0; t < n; t += 3) {
       const ny = nrm.getY(t);
       let cr: number, cg: number, cb: number;
       if (ny > 0.9) {
+        if (clutterH > 0) {
+          caps.push(
+            (pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)) / 3,
+            (pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2)) / 3,
+          );
+        }
         cr = roof.r; cg = roof.g; cb = roof.b;
       } else if (ny < -0.9) {
         // 바닥면 — 지면에 눌려 절대 안 보인다. 그래도 값은 채워야 병합이 된다
@@ -355,7 +384,7 @@ export class City {
       } else {
         // 위로 갈수록 밝게 — 평면 조명만으로는 층이 안 읽힌다
         const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3 - yBase;
-        const k = 0.82 + Math.min(cy / Math.max(h, 1), 1) * 0.24;
+        const k = 0.82 + Math.min(cy / Math.max(mass, 1), 1) * 0.24;
         cr = color.r * k; cg = color.g * k; cb = color.b * k;
       }
       for (let v = 0; v < 3; v++) {
@@ -365,7 +394,36 @@ export class City {
       }
     }
     geo.setAttribute('color', new BufferAttribute(colors, 3));
-    return geo;
+    if (clutterH === 0 || caps.length < 2) return geo;
+
+    // 옥탑. 지붕 삼각형 무게중심 중 해시로 골라 얹는다.
+    //
+    // 상자 하나가 12삼각형이라 도시 전체로 7만 삼각형쯤 는다. 그 값으로 사는 건
+    // **실루엣**이다 — 옥상선이 칼같이 평평한 게 "판때기" 인상의 나머지 절반이었다.
+    const parts: BufferGeometry[] = [geo];
+    const roomy = Math.min(e.width, e.depth) > 14;
+    // 큰 옥상이면 물탱크를 하나 더. 작은 옥상에 둘을 얹으면 옥상이 꽉 차서 부자연스럽다.
+    for (let k = 0; k < (roomy ? 2 : 1); k++) {
+      const pick = Math.floor(hash01(e.cx * 17 + e.cz * 23 + k * 7) * (caps.length / 2)) * 2;
+      const ch = k === 0 ? clutterH : clutterH * 0.6;
+      const w = Math.min(3.0, Math.min(e.width, e.depth) * 0.28) * (k === 0 ? 1 : 0.62);
+      // ExtrudeGeometry는 인덱스가 없다. 섞어서 병합하면 mergeGeometries가 null을 뱉는다.
+      const box = new BoxGeometry(w, ch, w).toNonIndexed();
+      box.translate(caps[pick]!, yBase + mass + ch / 2, caps[pick + 1]!);
+      flattenUV(box);  // 물탱크에 창 격자가 깔리면 안 된다
+      paint(box, roof);
+      parts.push(box);
+    }
+
+    const merged = mergeGeometries(parts, false);
+    if (!merged) {
+      // 병합 실패 시 본체만 돌려준다 — 옥탑이 없을 뿐 안전하다.
+      // 다만 만들어둔 상자는 여기서 버려야 한다. 본체(parts[0])는 그대로 쓴다.
+      for (let i = 1; i < parts.length; i++) parts[i]!.dispose();
+      return geo;
+    }
+    for (const p of parts) p.dispose();
+    return merged;
   }
 
   private buildWater(): void {
