@@ -1,0 +1,259 @@
+:root {
+  --ink: #1b1230;
+  /*
+   * 웹폰트를 쓰지 않는다.
+   * CSS @import 로 외부 폰트를 불러오면 그 요청이 렌더링을 막는다 —
+   * 네트워크가 느리거나 막힌 환경에서 페이지가 통째로 안 열린다.
+   * 게임에 폰트 하나 때문에 그런 위험을 둘 이유가 없다.
+   */
+  --font-display: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #87ceeb;
+  font-family: var(--font-mono);
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+#view { display: block; width: 100%; height: 100%; }
+
+#hud {
+  position: fixed;
+  top: max(20px, env(safe-area-inset-top));
+  left: max(22px, env(safe-area-inset-left));
+  pointer-events: none;
+  color: #fff;
+}
+
+#size {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(34px, 7vw, 58px);
+  line-height: .95;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 3px 0 var(--ink), 0 6px 18px rgba(27, 18, 48, .35);
+}
+
+#stat {
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-shadow: 0 1px 4px rgba(27, 18, 48, .6);
+}
+
+#feed {
+  position: fixed;
+  left: max(22px, env(safe-area-inset-left));
+  bottom: 68px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.eat {
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: #fff;
+  background: rgba(27, 18, 48, .55);
+  padding: 3px 9px;
+  border-radius: 99px;
+  animation: pop .3s ease-out, fade .4s 1.6s forwards;
+}
+
+@keyframes pop { from { transform: translateX(-14px) scale(.85); opacity: 0 } }
+@keyframes fade { to { opacity: 0; transform: translateX(10px) } }
+
+#help {
+  position: fixed;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(22px, env(safe-area-inset-left));
+  font-size: 11px;
+  letter-spacing: .07em;
+  color: rgba(255, 255, 255, .85);
+  text-shadow: 0 1px 4px rgba(27, 18, 48, .6);
+}
+
+kbd {
+  background: rgba(255, 255, 255, .9);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font: inherit;
+  font-weight: 500;
+}
+
+/**
+ * 라이선스 표기(ODbL). 실제 OSM 외곽선을 쓰므로 출처 표기가 의무다.
+ * #help와 달리 터치 기기에서 숨기지 않는다 — 조작 안내는 없어도 되지만 이건 아니다.
+ * 좌하단은 #help, 우상단은 LIVE 표식이 쓰므로 우하단에 둔다.
+ */
+#credit {
+  position: fixed;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  right: max(22px, env(safe-area-inset-right));
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: rgba(255, 255, 255, .55);
+  text-shadow: 0 1px 4px rgba(27, 18, 48, .6);
+  pointer-events: none;
+}
+
+@media (pointer: coarse) { #help { display: none } }
+
+/* 터치 조이스틱 */
+.stick { position: fixed; inset: 0; pointer-events: none; z-index: 10 }
+
+.stick-base, .stick-knob {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  margin-top: -56px;
+  margin-left: -56px;
+  width: 112px;
+  height: 112px;
+  border: 2px solid rgba(255, 255, 255, .5);
+  background: rgba(27, 18, 48, .18);
+}
+
+.stick-knob {
+  margin-top: -26px;
+  margin-left: -26px;
+  width: 52px;
+  height: 52px;
+  border: none;
+  background: rgba(255, 255, 255, .85);
+}
+
+@media (prefers-reduced-motion: reduce) { .eat { animation: none } }
+
+/* 계측 오버레이 (T) */
+.telemetry {
+  position: fixed;
+  top: max(20px, env(safe-area-inset-top));
+  right: 20px;
+  width: 300px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(27, 18, 48, .82);
+  color: #fff;
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.telemetry canvas { display: block; width: 100%; height: auto; }
+
+.telemetry-cv {
+  margin: 8px 0 6px;
+  font-weight: 500;
+  color: #ffd93d;
+  letter-spacing: .04em;
+}
+
+.telemetry-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  opacity: .85;
+  line-height: 1.6;
+}
+
+.telemetry-row span { color: #4ecdc4; width: 18px }
+.telemetry-row b { font-weight: 500; font-variant-numeric: tabular-nums; width: 46px }
+.telemetry-row i { font-style: normal; opacity: .6 }
+.telemetry-hint { margin-top: 6px; opacity: .45; letter-spacing: .05em }
+
+@media (pointer: coarse) { .telemetry { display: none !important } }
+
+#size.punch { animation: punch .42s cubic-bezier(.2, 1.4, .4, 1) }
+
+@keyframes punch {
+  0%   { transform: scale(1) }
+  28%  { transform: scale(1.22); color: #ffd93d }
+  100% { transform: scale(1) }
+}
+
+@media (prefers-reduced-motion: reduce) { #size.punch { animation: none } }
+
+/* 생방송 표식 */
+.onair {
+  position: fixed;
+  top: max(24px, env(safe-area-inset-top));
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 99px;
+  background: rgba(27, 18, 48, .6);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: .16em;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.onair-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff2d55;
+  animation: onair 1.8s ease-in-out infinite;
+}
+
+@keyframes onair { 50% { opacity: .25 } }
+
+/* 화자 자막 */
+.subtitle {
+  position: fixed;
+  left: 50%;
+  bottom: max(52px, calc(env(safe-area-inset-bottom) + 44px));
+  transform: translate(-50%, 8px);
+  max-width: min(760px, calc(100vw - 48px));
+  padding: 9px 18px;
+  border-radius: 8px;
+  background: rgba(27, 18, 48, .78);
+  color: #fff;
+  font-size: clamp(12px, 2.6vw, 14px);
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s ease;
+  z-index: 15;
+}
+
+.subtitle.on { opacity: 1; transform: translate(-50%, 0) }
+
+@media (prefers-reduced-motion: reduce) {
+  .onair-dot { animation: none }
+  .subtitle { transition: none }
+}
+
+/* 부팅 실패 표시 — 빈 화면은 진단이 불가능하다 */
+.fatal {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 24px;
+  overflow: auto;
+  background: #1b1230;
+  color: #ff8fa8;
+  font: 12px/1.6 var(--font-mono);
+  white-space: pre-wrap;
+  z-index: 999;
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+
+# OSM 재수집 전에 남겨둔 사본. 2.8MB 짜리라 이력에 넣을 이유가 없다.
+*.bak
+
+.DS_Store
+*.log

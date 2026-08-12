@@ -1,0 +1,32 @@
+{
+  "name": "katamari-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "curve": "tsx tools/curve.ts",
+    "packing": "tsx tools/packing.ts",
+    "synth-city": "tsx tools/synth-jamsil.ts",
+    "fetch-city": "tsx tools/fetch-osm.ts",
+    "ladder": "tsx tools/ladder.ts",
+    "citycheck": "tsx tools/citycheck.ts",
+    "shapecheck": "tsx tools/shapecheck.ts",
+    "roadcheck": "tsx tools/roadcheck.ts",
+    "placecheck": "tsx tools/placecheck.ts",
+    "handling": "tsx tools/handling.ts",
+    "spawncheck": "tsx tools/spawncheck.ts"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
