@@ -41,6 +41,15 @@ const KIND_COLOR: Record<BuildingKind, number> = {
 };
 
 /**
+ * 옥상 방수 도장. 녹색 우레탄 · 회청 시트 · 노출 콘크리트 —
+ * 서울 옥상을 위에서 보면 실제로 이 셋이 대부분이다.
+ *
+ * 외벽 팔레트(명도 51~83)보다 한참 어둡다. 그래야 항공 뷰에서 도시가 벌판이 아니라
+ * 건물 덩어리로 읽힌다.
+ */
+const ROOF_TONE = [0x46503f, 0x3f4650, 0x565049];
+
+/**
  * 좌표 → 0~1. 결정적이어야 새로고침해도 같은 도시가 나온다.
  * `Math.random`을 쓰면 흡수로 청크를 다시 그릴 때 건물 색이 바뀐다.
  */
@@ -315,15 +324,45 @@ export class City {
       (hash01(e.cx * 13 + e.cz * 73) - 0.5) * 0.28,
     );
 
+    /**
+     * 옥상 색. **건물 색과 무관한 절대색이다.**
+     *
+     * 외벽이 크림색이든 벽돌색이든 옥상은 방수 도장 색으로 통일된다 —
+     * 실제로 그렇다. 그래서 `color`에 곱하지 않고 갈아끼운다.
+     *
+     * 내려다보는 시점이 지배적인 게임인데 지금까지 옥상이 세로 그라데이션의 맨 위,
+     * 즉 **건물에서 가장 밝은 면**이었다. 항공 뷰가 크림색 벌판으로 보인 원인이다.
+     */
+    const roof = new Color(ROOF_TONE[Math.floor(hash01(e.cx * 3 + e.cz * 29) * ROOF_TONE.length)]!);
+
     const n = pos.count;
+    const nrm = geo.attributes.normal!;
     const colors = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      // 위로 갈수록 밝게 — 평면 조명만으로는 층이 안 읽힌다
-      const y = pos.getY(i) - (centered ? -h / 2 : 0);
-      const t = 0.82 + Math.min(y / Math.max(h, 1), 1) * 0.24;
-      colors[i * 3] = color.r * t;
-      colors[i * 3 + 1] = color.g * t;
-      colors[i * 3 + 2] = color.b * t;
+    const yBase = centered ? -h / 2 : 0;
+    // **삼각형 단위**로 칠한다. 정점 단위면 지붕 삼각형이 벽 그라데이션의 맨 위 값을
+    // 그대로 물려받아서 지붕만 따로 칠할 방법이 없다.
+    //
+    // ExtrudeGeometry는 인덱스가 없고 computeVertexNormals()만 부른다
+    // (ExtrudeGeometry.js:63). 그래서 삼각형마다 면 법선을 갖고, ny로 면이 갈린다.
+    for (let t = 0; t < n; t += 3) {
+      const ny = nrm.getY(t);
+      let cr: number, cg: number, cb: number;
+      if (ny > 0.9) {
+        cr = roof.r; cg = roof.g; cb = roof.b;
+      } else if (ny < -0.9) {
+        // 바닥면 — 지면에 눌려 절대 안 보인다. 그래도 값은 채워야 병합이 된다
+        cr = color.r * 0.5; cg = color.g * 0.5; cb = color.b * 0.5;
+      } else {
+        // 위로 갈수록 밝게 — 평면 조명만으로는 층이 안 읽힌다
+        const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3 - yBase;
+        const k = 0.82 + Math.min(cy / Math.max(h, 1), 1) * 0.24;
+        cr = color.r * k; cg = color.g * k; cb = color.b * k;
+      }
+      for (let v = 0; v < 3; v++) {
+        colors[(t + v) * 3] = cr;
+        colors[(t + v) * 3 + 1] = cg;
+        colors[(t + v) * 3 + 2] = cb;
+      }
     }
     geo.setAttribute('color', new BufferAttribute(colors, 3));
     return geo;
