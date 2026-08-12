@@ -4,6 +4,7 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
+import { buildFacadeTexture, FACADE_SCALE, facadeUV } from './facade';
 import { buildRoadGeometry } from './Roads';
 
 /**
@@ -82,7 +83,17 @@ export class City {
    * 건물당 약 1.6KB니까 3280채 기준 약 5MB. 재빌드에서 압출을 통째로 걷어내는 값이다.
    */
   private geometryCache = new Map<number, BufferGeometry>();
-  private material = new MeshLambertMaterial({ vertexColors: true, flatShading: false });
+  /**
+   * 창 격자. **`material`보다 먼저 선언해야 한다** — 필드 초기화는 선언 순서라
+   * 아래에 두면 `material`이 undefined를 물고 간다.
+   *
+   * 도시 전체가 이 한 장을 공유한다. 건물마다 uv 축척과 시작 칸이 달라서
+   * 같은 텍스처인데 층고도 창 밀도도 불 켜진 자리도 갈린다.
+   */
+  private facade = buildFacadeTexture();
+  private material = new MeshLambertMaterial({
+    vertexColors: true, map: this.facade, flatShading: false,
+  });
   // FrontSide여야 한다. DoubleSide면 공이 작을 때 카메라가 수면 아래로 들어가
   // 물 밑면이 화면을 가득 채운다 — 실제로 그래서 화면이 통째로 회청색이 됐다.
   //
@@ -263,7 +274,19 @@ export class City {
       i === 0 ? shape.moveTo(px, py) : shape.lineTo(px, py);
     });
 
-    const geo = new ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
+    const kind = displayKind(b);
+    const fs = FACADE_SCALE[kind];
+    // 건물마다 타일의 다른 칸에서 시작한다. 안 하면 불 켜진 창이 전 도시에서
+    // 같은 자리에 박혀 격자무늬가 보인다.
+    const geo = new ExtrudeGeometry(shape, {
+      depth: h,
+      bevelEnabled: false,
+      UVGenerator: facadeUV(
+        h, fs.floor, fs.bay,
+        Math.floor(hash01(e.cx * 7 + e.cz * 3) * 4),
+        Math.floor(hash01(e.cx * 5 + e.cz * 11) * 4),
+      ),
+    });
     // NaN 좌표 하나가 섞이면 병합된 청크 전체의 bounding sphere가 NaN이 되어
     // 프러스텀 컬링이 망가진다. 여기서 잡아야 한다.
     const pos = geo.attributes.position!;
@@ -272,9 +295,10 @@ export class City {
     }
     geo.rotateX(-Math.PI / 2);
     if (centered) geo.translate(0, -h / 2, 0);
-    geo.deleteAttribute('uv');
+    // uv를 지우지 않는다 — 창 격자가 거기 실려 있다.
+    // 정점당 8바이트가 늘지만(도시 전체 2.6MB) 창을 지오메트리로 만드는 것보다 훨씬 싸다.
 
-    const color = new Color(KIND_COLOR[displayKind(b)]);
+    const color = new Color(KIND_COLOR[kind]);
     // 같은 종류라도 동마다 살짝 다르게 — 안 하면 도시가 플라스틱처럼 보인다.
     //
     // 예전에는 전 채널에 같은 수를 곱해 **밝기만** 흔들었다. 그래서 같은 종류끼리는
@@ -356,6 +380,7 @@ export class City {
     for (const geo of this.geometryCache.values()) geo.dispose();
     this.geometryCache.clear();
     this.material.dispose();
+    this.facade.dispose();
     this.waterMaterial.dispose();
     this.group.clear();
   }
