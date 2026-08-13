@@ -1,6 +1,6 @@
 import {
-  BoxGeometry, BufferAttribute, BufferGeometry, Color, ExtrudeGeometry, Group,
-  Mesh, MeshLambertMaterial, Shape, ShapeGeometry, Vector3,
+  BoxGeometry, BufferAttribute, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry,
+  Group, Mesh, MeshLambertMaterial, Shape, ShapeGeometry, Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
@@ -68,22 +68,40 @@ function hash01(v: number): number {
   return x - Math.floor(x);
 }
 
+/** lo > hi면 lo를 돌려준다 — 폭이 건물보다 큰 병리적 경우에도 NaN이 안 나온다. */
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
 /**
- * 옥탑(물탱크·계단탑) 높이. 0이면 안 얹는다.
+ * 옥탑(물탱크·계단탑·환풍구) 높이. 0이면 안 얹는다.
  *
  * **이 높이만큼 본체를 낮춘다.** 위에 덧붙이는 게 아니다 — 그러면 보이는 높이가
  * `displayHeight`를 넘어서 충돌 상자와 어긋난다. 실제로도 옥탑은 건물 높이에 포함된다.
  *
- * 9m(3층) 미만은 건너뛴다. 그 높이대는 실제로도 옥탑이 드물고, 무엇보다
- * 3m짜리 옥탑을 얹으면 건물의 3분의 1이 옥탑이 된다.
- * 38%는 맨 옥상으로 남긴다 — 전부 얹으면 그게 또 통일이다.
+ * 예전에는 실제 서울에 맞춰 9m 미만을 빼고 38%를 맨 옥상으로 남겼다.
+ * 심시티는 **옥상 설비가 건물의 정체성**이다 — 내려다보는 게임에서 옥상이 비면
+ * 그냥 색칠한 사각형이다. 그래서 문턱을 6m로 낮추고 빈 옥상을 15%로 줄이고
+ * 크기를 실제보다 40% 키웠다(3.2m·16% → 4.6m·22%).
  */
 function clutterHeight(h: number, seed: number): number {
-  if (h < 9) return 0;
+  if (h < 6) return 0;
   const r = hash01(seed);
-  if (r < 0.38) return 0;
-  return Math.min(3.2, h * 0.16) * (0.7 + r * 0.5);
+  if (r < 0.15) return 0;
+  return Math.min(4.6, h * 0.22) * (0.7 + r * 0.5);
 }
+
+/**
+ * 옥상 설비 색. **옥상 방수색과 따로 논다** — 은색 덕트, 주황·파랑 물탱크.
+ *
+ * 예전에는 옥탑을 지붕색으로 칠했다. 그러면 옥상이 통짜 한 색이라 설비가 안 보인다.
+ * 심시티는 옥상 설비가 색으로 튀어야 건물이 살아난다. 은색을 두 번 넣어 가중치를 준다 —
+ * 실제로도 덕트·환풍구가 물탱크보다 흔하다.
+ */
+const CLUTTER_TONE = [0xb9bec4, 0xd4722f, 0x3f6f9e, 0xb9bec4];
+
+/** 이 높이부터 옥탑 하나를 8각 원통 물탱크로 바꾼다. 12각이면 도시 전체 삼각형이 5만 개 더 는다. */
+const CYLINDER_FROM = 12;
 
 /**
  * 파라펫(옥상 난간) 높이. 옥상 테두리에 세우는 낮은 담이다.
@@ -512,12 +530,31 @@ export class City {
       for (let k = 0; k < (roomy ? 2 : 1); k++) {
         const pick = Math.floor(hash01(e.cx * 17 + e.cz * 23 + k * 7) * (caps.length / 2)) * 2;
         const ch = k === 0 ? clutterH : clutterH * 0.6;
-        const w = Math.min(3.0, Math.min(e.width, e.depth) * 0.28) * (k === 0 ? 1 : 0.62);
-        // ExtrudeGeometry는 인덱스가 없다. 섞어서 병합하면 mergeGeometries가 null을 뱉는다.
-        const box = new BoxGeometry(w, ch, w).toNonIndexed();
-        box.translate(caps[pick]!, yBase + mass + ch / 2, caps[pick + 1]!);
+        const w = Math.min(4.5, Math.min(e.width, e.depth) * 0.40) * (k === 0 ? 1 : 0.62);
+        // 12m 이상이면 첫 설비를 원통 물탱크로. 옥상이 상자밭이면 그것도 통일이다.
+        // ExtrudeGeometry는 인덱스가 없다. 섞어서 병합하면 mergeGeometries가 null을 뱉는다 —
+        // 원통도 반드시 toNonIndexed()를 거쳐야 한다.
+        const box = (h >= CYLINDER_FROM && k === 0
+          ? new CylinderGeometry(w / 2, w / 2, ch, 8)
+          : new BoxGeometry(w, ch, w)).toNonIndexed();
+        // 설비 중심을 바닥면 안쪽으로 당긴다.
+        //
+        // 지붕 삼각형 무게중심은 외곽선 **안**이지만 모서리에 바짝 붙을 수 있어서,
+        // 폭의 절반이 건물 밖으로 튀어나온다 — 물탱크가 옥상 밖 허공에 뜬다.
+        // 이 결함은 원래 있었고(1500채 중 7채), 설비를 키우면서 31채로 늘었다.
+        // 폭의 절반만큼 안으로 물린 사각형에 가둔다. w <= 짧은 변의 40%라 항상 가능하다.
+        const hw = w / 2;
+        const half = new Vector3(e.width / 2 - hw, 0, e.depth / 2 - hw);
+        box.translate(
+          clamp(caps[pick]!, e.cx - ox - half.x, e.cx - ox + half.x),
+          yBase + mass + ch / 2,
+          clamp(caps[pick + 1]!, e.cz - oz - half.z, e.cz - oz + half.z),
+        );
         flattenUV(box);  // 물탱크에 창 격자가 깔리면 안 된다
-        paint(box, roof);
+        // 지붕색이 아니라 설비색. 시드도 옥상 위치 해시(e.cx*17 + e.cz*23)와 겹치지 않게 딴 걸 쓴다.
+        paint(box, new Color(CLUTTER_TONE[
+          Math.floor(hash01(e.cx * 11 + e.cz * 37 + k) * CLUTTER_TONE.length)
+        ]!));
         parts.push(box);
       }
     }
