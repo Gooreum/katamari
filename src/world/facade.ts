@@ -44,17 +44,26 @@ export function buildFacadeTexture(): CanvasTexture {
       const y = j * CELL;
       // 층 경계 슬래브. 이 줄 하나가 멀리서 층수를 읽히게 한다 —
       // 창은 거리가 멀어지면 뭉개지는데 가로줄은 끝까지 남는다.
-      cx.fillStyle = '#c8c3bb';
-      cx.fillRect(x, y + CELL - 5, CELL, 5);
+      // 5px → 9px. 심시티는 층 구분선이 굵다.
+      cx.fillStyle = '#b9b2a6';
+      cx.fillRect(x, y + CELL - 9, CELL, 9);
 
       // 불 켜진 창 8%. 결정적 수열이라 새로고침해도 같은 창에 불이 켜진다.
       // World.ts 지면 얼룩과 같은 수법.
+      // **비율은 건드리지 않는다** — 사용자가 "소수만 켜기"로 고른 값이다.
       const lit = ((i * 7 + j * 13) * 7919) % 100 < 8;
-      cx.fillStyle = lit ? '#fffbef' : '#454c58';
-      cx.fillRect(x + 8, y + 11, CELL - 16, CELL - 27);
+      // 창을 키운다. 셀 면적의 43.4% → 58.0%. 꺼진 창도 더 진하게 —
+      // 얇고 흐린 격자는 조금만 멀어져도 뭉개져서 벽이 얼룩덜룩한 판이 됐다.
+      //
+      // 더 키우지 않는 이유는 **`FLAT_UV`가 설 자리** 때문이다. 창을 키울수록 벽 여백이
+      // 얇아지는데, 그 여백이 옥상·물탱크·1층 띠가 집어가는 무지 텍셀의 유일한 후보다.
+      // 지금 여백이 5~6px이고 그 절반이 `FLAT_UV`의 안전거리다.
+      cx.fillStyle = lit ? '#fff8e2' : '#37404f';
+      cx.fillRect(x + 5, y + 6, CELL - 10, CELL - 20);
       // 세로 창틀. 없으면 창 하나가 통유리 한 장으로 뭉개져서 창이 아니라 얼룩이 된다.
-      cx.fillStyle = lit ? '#e6dcc4' : '#69707c';
-      cx.fillRect(x + CELL / 2 - 1, y + 11, 2, CELL - 27);
+      // 2px → 4px. 굵은 격자는 거리가 멀어져도 격자로 남는다.
+      cx.fillStyle = lit ? '#dcd0b0' : '#5c6675';
+      cx.fillRect(x + CELL / 2 - 2, y + 6, 4, CELL - 20);
     }
   }
 
@@ -88,10 +97,14 @@ export const FACADE_SCALE: Record<BuildingKind, { readonly floor: number; readon
  * 창이 없는 텍셀 한 점. 옥상·옥탑·상가 띠처럼 창 격자가 깔리면 안 되는 면이 쓴다.
  *
  * 좌표를 눈으로 고른 게 아니다. three는 기본이 `flipY = true`라 v=0이 캔버스 **아래쪽**이다.
- * v=0.98이 캔버스 y≈5 → 칸 위쪽 벽 여백, u=0.008이 캔버스 x≈2 → 창 왼쪽 여백.
- * 즉 창에서 가장 먼 구석이다. v=0.004를 쓰면 슬래브 줄에 얹혀서 옥상이 회색으로 나온다.
+ * (0.0098, 0.9902)는 캔버스 (2.5, 2.5) — 칸 왼쪽·위쪽 벽 여백이 겹치는 구석이다.
+ * v를 0.004 근처로 내리면 슬래브 줄에 얹혀서 옥상이 회색으로 나온다.
+ *
+ * **창을 키우면서 같이 옮겨야 했다.** 예전 값 (0.008, 0.98)은 캔버스 (2.05, 5.12)인데,
+ * 새 창이 y=6에서 시작해 여백이 0.88px밖에 안 남았다. 그 정도면 밉맵 한 단계만 내려가도
+ * 옥상에 창 색이 번진다. 지금 값은 좌 2.5px · 하 3.5px를 확보한다.
  */
-export const FLAT_UV = new Vector2(0.008, 0.98);
+export const FLAT_UV = new Vector2(0.0098, 0.9902);
 
 /**
  * ExtrudeGeometry용 UV 생성기. 건물 한 채마다 새로 만든다.
