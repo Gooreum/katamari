@@ -58,16 +58,23 @@ export class Game {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
-    this.scene.background = new Color(0x87ceeb);
+    this.scene.background = new Color(0x8fd0f0);
 
-    this.scene.add(new HemisphereLight(0xffffff, 0x4c6b3c, 0.95));
-    const sun = new DirectionalLight(0xfff4e0, 0.55);
+    // **반구광을 낮추고 태양을 올린다.** 반구광이 지배하면 모든 면이 같은 밝기라
+    // 입체가 사라진다 — 심시티는 면마다 밝기가 확실히 갈린다.
+    // 아래쪽 색은 초록 지면의 반사광이므로 지면 팔레트(#5f9e46)와 맞춘다.
+    this.scene.add(new HemisphereLight(0xffffff, 0x6f9e4a, 0.72));
+    const sun = new DirectionalLight(0xfff2d8, 0.95);
     sun.position.set(1, 2.2, 1.4);
     this.scene.add(sun);
 
     this.world = new World(this.scene, city);
     // 안개 거리는 지역 크기에 맞춰야 한다. 고정값이면 도시가 통째로 안 보인다.
-    this.scene.fog = new Fog(0x9fd8ef, this.world.groundSize * 0.16, this.world.groundSize * 0.95);
+    //
+    // **채도를 죽이는 건 팔레트가 아니라 안개다.** 예전에는 0.16(약 1,165m)부터 껴서
+    // 눈높이에서 보이는 건물 대부분이 이미 안개 속이었다 — 팔레트를 아무리 올려도
+    // 화면에서는 회청색으로 수렴했다. 이제는 먼 배경을 하늘에 녹이는 용도로만 남긴다.
+    this.scene.fog = new Fog(0xbfe6f7, this.world.groundSize * 0.40, this.world.groundSize * 1.15);
     this.ball = new Katamari(this.scene);
     this.ball.pivot.position.set(this.world.spawn.x, this.ball.radius, this.world.spawn.z);
     this.ball.prevPos.copy(this.ball.pivot.position);
