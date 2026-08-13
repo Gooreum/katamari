@@ -85,6 +85,82 @@ function clutterHeight(h: number, seed: number): number {
   return Math.min(3.2, h * 0.16) * (0.7 + r * 0.5);
 }
 
+/**
+ * 파라펫(옥상 난간) 높이. 옥상 테두리에 세우는 낮은 담이다.
+ *
+ * **심시티 건물이 장난감으로 읽히는 가장 큰 이유가 굵은 옥상 테두리다.** 지금은 벽이
+ * 옥상에서 칼같이 끝나서 종이 상자로 보인다.
+ *
+ * 옥상 **위**에 세우므로 벽과 동일 평면이 아니고 z-파이팅이 없다.
+ * 대신 옥탑과 같은 규약으로 **본체에서 떼어낸다** — 위에 덧붙이면 보이는 높이가
+ * `displayHeight`를 넘어 충돌 상자와 어긋난다.
+ *
+ * 6m(2층) 미만은 건너뛴다. 단층 점포에 난간을 두르면 그게 더 이상하다.
+ */
+function parapetHeight(h: number): number {
+  return h >= 6 ? Math.min(0.8, h * 0.06) : 0;
+}
+
+/** 파라펫 색 계수. 옥상색을 어둡게 — 실루엣 윤곽선 역할이라 대비가 클수록 좋다. */
+const PARAPET_DARK = 0.55;
+
+/**
+ * 외곽선을 따라 세운 사각형 링. **캡이 없다.**
+ *
+ * `ExtrudeGeometry`를 쓰지 않는 이유가 캡 때문이다. 압출은 언제나 위아래 뚜껑을
+ * 만드는데, 띠에서는 둘 다 안 보이는 자리라 순수한 낭비다.
+ *
+ * 1층 상가 띠와 옥상 파라펫이 이걸 공유한다 — 둘 다 "외곽선 따라 세운 띠"라 같은 물건이고,
+ * 특히 **감김 판정**을 두 벌로 두면 안 된다. 틀리면 띠가 안쪽을 보고 서서
+ * FrontSide 머티리얼에 통째로 컬링된다 — 개수 검사로는 절대 안 잡힌다.
+ *
+ * @param rows 높이 경계들. `[0, gh]`면 한 줄, `[0, a, gh]`면 두 줄.
+ * @param colorAt (행 인덱스) → 그 줄의 색
+ */
+function outlineRing(
+  outline: CityBuilding['outline'],
+  ox: number, oz: number,
+  rows: readonly number[], yBase: number,
+  colorAt: (row: number) => Color,
+): BufferGeometry | null {
+  const n = outline.length;
+  if (n < 3 || rows.length < 2) return null;
+
+  // 외곽선의 감김 방향. 부호 있는 면적이면 오목한 외곽선에서도 정확하다.
+  let area2 = 0;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    area2 += outline[j]![0] * outline[i]![1] - outline[i]![0] * outline[j]![1];
+  }
+  const ccw = area2 > 0;
+
+  const quads = n * (rows.length - 1);
+  const verts = new Float32Array(quads * 18);   // 사각형 = 삼각형 2개 = 정점 6개
+  const cols = new Float32Array(quads * 18);
+
+  let v = 0, c = 0;
+  for (let i = 0; i < n; i++) {
+    const p0 = outline[i]!, p1 = outline[(i + 1) % n]!;
+    const x0 = p0[0] - ox, z0 = p0[1] - oz;
+    const x1 = p1[0] - ox, z1 = p1[1] - oz;
+    for (let r = 0; r + 1 < rows.length; r++) {
+      const lo = yBase + rows[r]!, hi = yBase + rows[r + 1]!;
+      // 아래 두 점 → 위 두 점. ccw면 감김을 뒤집어야 바깥을 본다
+      const a = [x0, lo, z0], bb = [x1, lo, z1], cc = [x1, hi, z1], d = [x0, hi, z0];
+      const tri = ccw ? [a, cc, bb, a, d, cc] : [a, bb, cc, a, cc, d];
+      for (const p of tri) { verts[v++] = p[0]!; verts[v++] = p[1]!; verts[v++] = p[2]!; }
+      const col = colorAt(r);
+      for (let k = 0; k < 6; k++) { cols[c++] = col.r; cols[c++] = col.g; cols[c++] = col.b; }
+    }
+  }
+
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', new BufferAttribute(verts, 3));
+  geo.setAttribute('color', new BufferAttribute(cols, 3));
+  geo.computeVertexNormals();
+  flattenUV(geo);   // 띠에 창 격자가 겹치면 안 된다
+  return geo;
+}
+
 export interface CityBuildingEntry {
   readonly building: CityBuilding;
   readonly center: Vector3;
@@ -310,9 +386,11 @@ export class City {
       i === 0 ? shape.moveTo(px, py) : shape.lineTo(px, py);
     });
 
-    // 옥탑을 얹을 만큼 본체를 낮춘다. 총높이는 h 그대로다.
+    // 옥탑·파라펫을 얹을 만큼 본체를 낮춘다. 총높이는 h 그대로다.
+    // **둘 중 큰 쪽만** 뺀다 — 파라펫과 옥탑은 같은 옥상 위에 나란히 서지 겹쳐 쌓이지 않는다.
     const clutterH = clutterHeight(h, e.cx * 41 + e.cz * 19);
-    const mass = h - clutterH;
+    const parapetH = parapetHeight(h);
+    const mass = h - Math.max(clutterH, parapetH);
     // 1층 띠. 본체를 이만큼 올려서 시작한다 — 덧붙이는 게 아니라 떼어내는 것이다.
     // 저층 건물에서 띠가 건물을 통째로 잡아먹지 않도록 h의 35%로 묶는다.
     const groundH = Math.min(4.2, h * 0.35);
@@ -416,6 +494,14 @@ export class City {
     const band = this.groundBand(b, kind, ox, oz, groundH, yBase, color, e.cx, e.cz);
     if (band) parts.push(band);
 
+    // 파라펫. 옥상 **위**에 서므로 벽과 겹치지 않는다 — z-파이팅이 없다.
+    // 건물당 외곽선 변 × 2 삼각형이라 도시 전체로도 싸다.
+    if (parapetH > 0) {
+      const rim = new Color(roof).multiplyScalar(PARAPET_DARK);
+      const ring = outlineRing(b.outline, ox, oz, [mass, mass + parapetH], yBase, () => rim);
+      if (ring) parts.push(ring);
+    }
+
     // 옥탑. 지붕 삼각형 무게중심 중 해시로 골라 얹는다.
     //
     // 상자 하나가 12삼각형이라 도시 전체로 7만 삼각형쯤 는다. 그 값으로 사는 건
@@ -466,22 +552,8 @@ export class City {
     ox: number, oz: number, gh: number, yBase: number, wallColor: Color,
     hx: number, hz: number,
   ): BufferGeometry | null {
-    const n = b.outline.length;
-    if (n < 3 || gh <= 0) return null;
+    if (gh <= 0) return null;
     const shop = kind === 'commercial' || kind === 'retail' || kind === 'lowrise';
-
-    // 외곽선의 감김 방향. 이걸 모르면 띠가 안쪽을 보고 서서 통째로 사라진다
-    // (머티리얼이 FrontSide다). 부호 있는 면적이면 오목한 외곽선에서도 정확하다.
-    let area2 = 0;
-    for (let i = 0, j = n - 1; i < n; j = i++) {
-      area2 += b.outline[j]![0] * b.outline[i]![1] - b.outline[i]![0] * b.outline[j]![1];
-    }
-    const ccw = area2 > 0;
-
-    const rows = shop ? [0, gh * 0.72, gh] : [0, gh];
-    const quads = n * (rows.length - 1);
-    const verts = new Float32Array(quads * 18);   // 사각형 = 삼각형 2개 = 정점 6개
-    const cols = new Float32Array(quads * 18);
 
     // 해시는 **건물 중심(hx, hz)** 으로 뽑는다. ox/oz 를 쓰면 안 된다 —
     // 청크에 병합될 때(centered=false) 그 둘이 항상 0이라 도시 전체 간판이 한 색이 된다.
@@ -496,28 +568,8 @@ export class City {
     // 간판은 벽 색을 살짝 섞어야 스티커처럼 떠 보이지 않는다
     sign.lerp(wallColor, 0.18);
 
-    let v = 0, c = 0;
-    for (let i = 0; i < n; i++) {
-      const p0 = b.outline[i]!, p1 = b.outline[(i + 1) % n]!;
-      const x0 = p0[0] - ox, z0 = p0[1] - oz;
-      const x1 = p1[0] - ox, z1 = p1[1] - oz;
-      for (let r = 0; r + 1 < rows.length; r++) {
-        const lo = yBase + rows[r]!, hi = yBase + rows[r + 1]!;
-        // 아래 두 점 → 위 두 점. ccw면 감김을 뒤집어야 바깥을 본다
-        const a = [x0, lo, z0], bb = [x1, lo, z1], cc = [x1, hi, z1], d = [x0, hi, z0];
-        const tri = ccw ? [a, cc, bb, a, d, cc] : [a, bb, cc, a, cc, d];
-        for (const p of tri) { verts[v++] = p[0]!; verts[v++] = p[1]!; verts[v++] = p[2]!; }
-        const col = shop && r === 1 ? sign : glass;
-        for (let k = 0; k < 6; k++) { cols[c++] = col.r; cols[c++] = col.g; cols[c++] = col.b; }
-      }
-    }
-
-    const geo = new BufferGeometry();
-    geo.setAttribute('position', new BufferAttribute(verts, 3));
-    geo.setAttribute('color', new BufferAttribute(cols, 3));
-    geo.computeVertexNormals();
-    flattenUV(geo);   // 상가 유리에 창 격자가 겹치면 안 된다
-    return geo;
+    const rows = shop ? [0, gh * 0.72, gh] : [0, gh];
+    return outlineRing(b.outline, ox, oz, rows, yBase, (r) => (shop && r === 1 ? sign : glass));
   }
 
   private buildWater(): void {
