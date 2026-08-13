@@ -145,7 +145,9 @@ const roadBytes = JSON.stringify(roads).length;
 console.log(`\n${'─'.repeat(74)}`);
 console.log(`파일 ${(bytes / 1048576).toFixed(2)}MB — 그중 도로 ${(roadBytes / 1048576).toFixed(2)}MB ` +
   `(${(roadBytes / bytes * 100).toFixed(0)}%)`);
-console.log(`도로 삼각형 ${totalT.toLocaleString()} · 드로우콜 1 (종류별 색은 정점색)`);
+// 종류별 색은 예전에 정점색이었지만 지금은 텍스처 밴드다 (Roads.buildRoadTexture).
+// 드로우콜이 1인 이유가 바뀌었으므로 문구도 같이 바꾼다 — 틀린 설명이 남으면 다음 사람이 속는다.
+console.log(`도로 삼각형 ${totalT.toLocaleString()} · 드로우콜 1 (종류별 색·차선은 텍스처 4밴드)`);
 console.log(`건물 ${city.buildings.length}채 · 수역 ${city.water.length}개 · 랜드마크 ${city.landmarks.length}개`);
 
 console.log('');
