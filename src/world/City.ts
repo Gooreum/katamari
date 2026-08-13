@@ -8,7 +8,7 @@ import {
   buildFacadeTexture, FACADE_SCALE, facadeUV, flattenUV, paint,
   PODIUM_STONE, SHOP_GLASS, SIGN_HUE,
 } from './facade';
-import { buildRoadGeometry } from './Roads';
+import { buildRoadGeometry, buildRoadTexture } from './Roads';
 
 /**
  * 청크 한 변(m).
@@ -238,11 +238,18 @@ export class City {
     polygonOffsetUnits: -2,
   });
   private roadMesh: Mesh | null = null;
+  /**
+   * 차선·보도블록. **`roadMaterial`보다 먼저 선언해야 한다** — 필드 초기화는 선언
+   * 순서라 아래에 두면 `roadMaterial`이 undefined를 물고 간다 (`facade`와 같은 함정).
+   */
+  private roadTexture = buildRoadTexture();
   // 수면과 같은 수법이되 한 단계 더 앞으로 당긴다.
   // 도로가 수면보다 **위**여야 한다 — 잠실대교·올림픽대교가 한강 폴리곤 위를 지나가는데
   // 아래로 깔면 다리가 물에 잠긴다.
+  //
+  // 종류별 색은 이제 정점색이 아니라 텍스처 밴드가 갖는다.
   private roadMaterial = new MeshLambertMaterial({
-    vertexColors: true,
+    map: this.roadTexture,
     polygonOffset: true,
     polygonOffsetFactor: -4,
     polygonOffsetUnits: -4,
@@ -656,6 +663,7 @@ export class City {
     this.roadMesh?.geometry.dispose();
     this.roadMesh = null;
     this.roadMaterial.dispose();
+    this.roadTexture.dispose();
     this.chunks.clear();
     for (const geo of this.geometryCache.values()) geo.dispose();
     this.geometryCache.clear();
