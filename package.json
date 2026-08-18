@@ -18,7 +18,8 @@
     "roadcheck": "tsx tools/roadcheck.ts",
     "placecheck": "tsx tools/placecheck.ts",
     "handling": "tsx tools/handling.ts",
-    "spawncheck": "tsx tools/spawncheck.ts"
+    "spawncheck": "tsx tools/spawncheck.ts",
+    "shot": "node tools/shot.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"
