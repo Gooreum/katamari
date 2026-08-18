@@ -18,7 +18,8 @@ import { Subtitle } from '../ui/Subtitle';
 import type { Hud } from '../ui/Hud';
 import { Telemetry } from '../ui/Telemetry';
 import { Result } from '../ui/Result';
-import { DEFAULT_STAGE, judge, type StageOutcome, type StageRule } from './Stage';
+import { DEFAULT_STAGE, judge, type StageNav, type StageOutcome, type StageRule } from './Stage';
+import { markCleared } from './Progress';
 
 const STEP = 1 / 60;
 const CULL_INTERVAL = 20;
@@ -65,6 +66,8 @@ export class Game {
     private readonly hud: Hud,
     city: CityData | null = null,
     private readonly rule: StageRule = DEFAULT_STAGE,
+    /** 없으면 결과 화면이 버튼 없이 뜬다 — 도구·테스트에서 그렇게 쓴다. */
+    private readonly nav?: StageNav,
   ) {
     this.subtitle = new Subtitle(rule.name);
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -206,7 +209,9 @@ export class Game {
     this.outcome = outcome;
     this.loop.stop();
     this.sfx.thud(outcome === 'cleared' ? 0.6 : 0.3);
-    this.result.show(this.rule, outcome, this.summary, KING);
+    // 다음 별을 여는 건 **판정이지 화면이 아니다.** 결과 카드를 안 보고 나가도 기록은 남는다.
+    if (outcome === 'cleared') markCleared(this.rule.id);
+    this.result.show(this.rule, outcome, this.summary, KING, this.nav);
   }
 
   private resolveCollisions(): void {

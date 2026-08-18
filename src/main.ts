@@ -90,7 +90,7 @@ async function boot(): Promise<void> {
     // 여기까지 왔다는 건 ?stage 가 있다는 뜻이다 (없으면 위에서 선택 화면으로 빠진다).
     // 모르는 슬러그는 기존대로 1번으로 떨어진다.
     const rule = stageFromSlug(params.get('stage'));
-    game = new Game(canvas, new Hud(), city, rule);
+    game = new Game(canvas, new Hud(), city, rule, nav);
     mark('Game 생성');
   } catch (err) {
     fatal('Game 생성', err);
