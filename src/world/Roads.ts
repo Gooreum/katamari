@@ -35,7 +35,7 @@ const TEX_H = BAND_H * 4;
  * 도로 4,554개가 드로우콜 1개에서 4개가 된다.
  *
  * `fillStyle`·`fillRect`만 쓴다 — `tools/citycheck.ts`의 document 스텁이 그 둘만
- * 흉내내기 때문이다. facade.ts·World.ts가 같은 제약 아래 같은 수법을 쓴다.
+ * 흉내내기 때문이다. World.ts의 지면 텍스처가 같은 제약 아래 같은 수법을 쓴다.
  */
 export function buildRoadTexture(): CanvasTexture {
   const cv = document.createElement('canvas');

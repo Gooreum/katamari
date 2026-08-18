@@ -4,10 +4,6 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
-import {
-  buildFacadeTexture, FACADE_GRID, FACADE_SCALE, facadeUV, flattenUV,
-  PODIUM_STONE, SHOP_GLASS, SIGN_HUE,
-} from './facade';
 import { buildRoadGeometry, buildRoadTexture } from './Roads';
 
 /**
@@ -86,88 +82,6 @@ function hash01(v: number): number {
  * (`clutterHeight`·`CLUTTER_TONE`·`CYLINDER_FROM`·`clamp` 전부 삭제)
  */
 
-/**
- * 파라펫(옥상 난간) 높이. 옥상 테두리에 세우는 낮은 담이다.
- *
- * **심시티 건물이 장난감으로 읽히는 가장 큰 이유가 굵은 옥상 테두리다.** 지금은 벽이
- * 옥상에서 칼같이 끝나서 종이 상자로 보인다.
- *
- * 옥상 **위**에 세우므로 벽과 동일 평면이 아니고 z-파이팅이 없다.
- * 대신 옥탑과 같은 규약으로 **본체에서 떼어낸다** — 위에 덧붙이면 보이는 높이가
- * `displayHeight`를 넘어 충돌 상자와 어긋난다.
- *
- * 6m(2층) 미만은 건너뛴다. 단층 점포에 난간을 두르면 그게 더 이상하다.
- */
-function parapetHeight(h: number): number {
-  return h >= 6 ? Math.min(0.8, h * 0.06) : 0;
-}
-
-/**
- * 파라펫 색 계수. 지붕색에 곱한다.
- *
- * 심시티에서는 0.55로 어둡게 깔아 실루엣 **윤곽선** 역할을 시켰다.
- * 괴혼에서는 윤곽선이 아니라 **지붕 슬래브**로 읽혀야 해서 0.78로 올린다 —
- * 원작 건물의 지붕 테두리는 지붕과 같은 계열의 살짝 짙은 띠다.
- */
-const PARAPET_DARK = 0.78;
-
-/**
- * 외곽선을 따라 세운 사각형 링. **캡이 없다.**
- *
- * `ExtrudeGeometry`를 쓰지 않는 이유가 캡 때문이다. 압출은 언제나 위아래 뚜껑을
- * 만드는데, 띠에서는 둘 다 안 보이는 자리라 순수한 낭비다.
- *
- * 1층 상가 띠와 옥상 파라펫이 이걸 공유한다 — 둘 다 "외곽선 따라 세운 띠"라 같은 물건이고,
- * 특히 **감김 판정**을 두 벌로 두면 안 된다. 틀리면 띠가 안쪽을 보고 서서
- * FrontSide 머티리얼에 통째로 컬링된다 — 개수 검사로는 절대 안 잡힌다.
- *
- * @param rows 높이 경계들. `[0, gh]`면 한 줄, `[0, a, gh]`면 두 줄.
- * @param colorAt (행 인덱스) → 그 줄의 색
- */
-function outlineRing(
-  outline: CityBuilding['outline'],
-  ox: number, oz: number,
-  rows: readonly number[], yBase: number,
-  colorAt: (row: number) => Color,
-): BufferGeometry | null {
-  const n = outline.length;
-  if (n < 3 || rows.length < 2) return null;
-
-  // 외곽선의 감김 방향. 부호 있는 면적이면 오목한 외곽선에서도 정확하다.
-  let area2 = 0;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    area2 += outline[j]![0] * outline[i]![1] - outline[i]![0] * outline[j]![1];
-  }
-  const ccw = area2 > 0;
-
-  const quads = n * (rows.length - 1);
-  const verts = new Float32Array(quads * 18);   // 사각형 = 삼각형 2개 = 정점 6개
-  const cols = new Float32Array(quads * 18);
-
-  let v = 0, c = 0;
-  for (let i = 0; i < n; i++) {
-    const p0 = outline[i]!, p1 = outline[(i + 1) % n]!;
-    const x0 = p0[0] - ox, z0 = p0[1] - oz;
-    const x1 = p1[0] - ox, z1 = p1[1] - oz;
-    for (let r = 0; r + 1 < rows.length; r++) {
-      const lo = yBase + rows[r]!, hi = yBase + rows[r + 1]!;
-      // 아래 두 점 → 위 두 점. ccw면 감김을 뒤집어야 바깥을 본다
-      const a = [x0, lo, z0], bb = [x1, lo, z1], cc = [x1, hi, z1], d = [x0, hi, z0];
-      const tri = ccw ? [a, cc, bb, a, d, cc] : [a, bb, cc, a, cc, d];
-      for (const p of tri) { verts[v++] = p[0]!; verts[v++] = p[1]!; verts[v++] = p[2]!; }
-      const col = colorAt(r);
-      for (let k = 0; k < 6; k++) { cols[c++] = col.r; cols[c++] = col.g; cols[c++] = col.b; }
-    }
-  }
-
-  const geo = new BufferGeometry();
-  geo.setAttribute('position', new BufferAttribute(verts, 3));
-  geo.setAttribute('color', new BufferAttribute(cols, 3));
-  geo.computeVertexNormals();
-  flattenUV(geo);   // 띠에 창 격자가 겹치면 안 된다
-  return geo;
-}
-
 export interface CityBuildingEntry {
   readonly building: CityBuilding;
   readonly center: Vector3;
@@ -203,18 +117,17 @@ export class City {
    */
   private geometryCache = new Map<number, BufferGeometry>();
   /**
-   * 창 격자. **`material`보다 먼저 선언해야 한다** — 필드 초기화는 선언 순서라
-   * 아래에 두면 `material`이 undefined를 물고 간다.
+   * 벽 머티리얼. **텍스처가 없다.**
    *
-   * 도시 전체가 이 한 장을 공유한다. 건물마다 uv 축척과 시작 칸이 달라서
-   * 같은 텍스처인데 층고도 창 밀도도 불 켜진 자리도 갈린다.
+   * 예전에는 창 격자 텍스처 한 장을 도시 전체가 공유하고, 건물마다 uv 축척과
+   * 시작 칸을 달리해서 층고·창 밀도·불 켜진 자리를 갈랐다.
+   *
+   * 괴혼 벽은 색면 하나다. 창도 격자도 없다 — 단색 평면인 소품(World.ts)과
+   * 카타마리 공(Katamari.ts)이 이미 그 규칙이었고, 벽만 혼자 사실적이었다.
+   * 그 어긋남이 팔레트를 아무리 만져도 화면이 안 맞던 이유다.
    */
-  private facade = buildFacadeTexture();
-  // flatShading은 길거리 소품(World.ts)·카타마리 공(Katamari.ts)과 설정을 맞추는 것이다.
-  // **시각적으로는 거의 안 바뀐다** — ExtrudeGeometry가 인덱스 없는 지오메트리라
-  // 이미 면 법선을 갖고 있다. 실제 변화는 그라데이션과 팔레트가 만든다.
   private material = new MeshLambertMaterial({
-    vertexColors: true, map: this.facade, flatShading: true,
+    vertexColors: true, flatShading: true,
   });
   // FrontSide여야 한다. DoubleSide면 공이 작을 때 카메라가 수면 아래로 들어가
   // 물 밑면이 화면을 가득 채운다 — 실제로 그래서 화면이 통째로 회청색이 됐다.
@@ -232,7 +145,7 @@ export class City {
   private roadMesh: Mesh | null = null;
   /**
    * 차선·보도블록. **`roadMaterial`보다 먼저 선언해야 한다** — 필드 초기화는 선언
-   * 순서라 아래에 두면 `roadMaterial`이 undefined를 물고 간다 (`facade`와 같은 함정).
+   * 순서라 아래에 두면 `roadMaterial`이 undefined를 물고 간다.
    */
   private roadTexture = buildRoadTexture();
   // 수면과 같은 수법이되 한 단계 더 앞으로 당긴다.
@@ -403,31 +316,13 @@ export class City {
       i === 0 ? shape.moveTo(px, py) : shape.lineTo(px, py);
     });
 
-    // 파라펫을 얹을 만큼 본체를 낮춘다. 총높이는 h 그대로다.
-    // 옥탑을 없앴으므로 뺄 것은 파라펫 하나뿐이다.
-    const parapetH = parapetHeight(h);
-    const mass = h - parapetH;
-    // 1층 띠. 본체를 이만큼 올려서 시작한다 — 덧붙이는 게 아니라 떼어내는 것이다.
-    // 저층 건물에서 띠가 건물을 통째로 잡아먹지 않도록 h의 35%로 묶는다.
-    const groundH = Math.min(4.2, h * 0.35);
-
     const kind = displayKind(b);
-    const fs = FACADE_SCALE[kind];
-    // 건물마다 타일의 다른 칸에서 시작한다. 안 하면 불 켜진 창이 전 도시에서
-    // 같은 자리에 박혀 격자무늬가 보인다.
+    // **벽은 바닥부터 꼭대기까지 한 덩어리다.**
     //
-    // 칸 수는 `FACADE_GRID`에서 가져온다. 예전에는 여기에 4를 박아뒀는데,
-    // 격자를 2로 줄이자 두 파일이 조용히 어긋났다 — 랩어라운드 덕에 화면은 멀쩡했지만
-    // 그런 종류의 어긋남은 다음에 반드시 문다.
-    const geo = new ExtrudeGeometry(shape, {
-      depth: mass - groundH,
-      bevelEnabled: false,
-      UVGenerator: facadeUV(
-        mass - groundH, fs.floor, fs.bay,
-        Math.floor(hash01(e.cx * 7 + e.cz * 3) * FACADE_GRID),
-        Math.floor(hash01(e.cx * 5 + e.cz * 11) * FACADE_GRID),
-      ),
-    });
+    // 예전에는 세 토막이었다 — 1층 띠(유리+간판)만큼 올리고, 파라펫만큼 낮추고,
+    // 남은 가운데만 압출했다. 그리고 창 격자 uv를 굽는 UVGenerator를 물렸다.
+    // 셋 다 사실성 장치라 원작에는 없다. 압출 한 번으로 끝난다.
+    const geo = new ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
     // NaN 좌표 하나가 섞이면 병합된 청크 전체의 bounding sphere가 NaN이 되어
     // 프러스텀 컬링이 망가진다. 여기서 잡아야 한다.
     const pos = geo.attributes.position!;
@@ -435,11 +330,10 @@ export class City {
       if (!Number.isFinite(pos.array[i]!)) { (pos.array as Float32Array)[i] = 0; }
     }
     geo.rotateX(-Math.PI / 2);
-    // 본체는 1층 띠 위에서 시작한다. 바닥 캡이 띠 안에 묻혀 안 보인다.
-    geo.translate(0, groundH, 0);
     if (centered) geo.translate(0, -h / 2, 0);
-    // uv를 지우지 않는다 — 창 격자가 거기 실려 있다.
-    // 정점당 8바이트가 늘지만(도시 전체 2.6MB) 창을 지오메트리로 만드는 것보다 훨씬 싸다.
+    // uv를 버린다. 창 격자가 사라졌으니 실어 나를 게 없다 —
+    // 예전에는 정점당 8바이트(도시 전체 2.6MB)를 uv에 쓰고 있었다.
+    geo.deleteAttribute('uv');
 
     const color = new Color(KIND_COLOR[kind]);
     // 같은 종류라도 동마다 살짝 다르게 — 안 하면 도시가 플라스틱처럼 보인다.
@@ -468,9 +362,8 @@ export class City {
     const n = pos.count;
     const nrm = geo.attributes.normal!;
     const colors = new Float32Array(n * 3);
-    const yBase = centered ? -h / 2 : 0;
-    // **삼각형 단위**로 칠한다. 정점 단위면 지붕 삼각형이 벽 그라데이션의 맨 위 값을
-    // 그대로 물려받아서 지붕만 따로 칠할 방법이 없다.
+    // **삼각형 단위**로 칠한다. 정점 단위면 지붕 삼각형이 벽과 색이 섞여서
+    // 지붕만 따로 칠할 방법이 없다.
     //
     // ExtrudeGeometry는 인덱스가 없고 computeVertexNormals()만 부른다
     // (ExtrudeGeometry.js:63). 그래서 삼각형마다 면 법선을 갖고, ny로 면이 갈린다.
@@ -483,17 +376,12 @@ export class City {
         // 바닥면 — 지면에 눌려 절대 안 보인다. 그래도 값은 채워야 병합이 된다
         cr = color.r * 0.5; cg = color.g * 0.5; cb = color.b * 0.5;
       } else {
-        // 세로 그라데이션. **괴혼 벽은 위아래가 같은 색이다.**
+        // **벽은 위아래가 같은 색이다.**
         //
-        // 이게 "사실적 셰이딩"의 정체였고, 단색 평면인 길거리 소품(flatShading, 텍스처 없음)과
-        // 가장 크게 어긋나던 지점이다. 무엇보다 하한 0.70이 **공 눈높이에서 실제로 보이는
-        // 부분을 30% 어둡게** 만들고 있었다 — 0.25m 컷이 검은 협곡으로 나온 원인의 절반.
-        //
-        // 폭을 0.36 → 0.08로 줄인다. 완전히 0으로 두지 않는 건 멀리서 벽이 통짜로
-        // 뭉개지는 걸 막기 위해서다.
-        const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3 - yBase - groundH;
-        const k = 0.96 + Math.min(cy / Math.max(mass - groundH, 1), 1) * 0.08;
-        cr = color.r * k; cg = color.g * k; cb = color.b * k;
+        // 세로 그라데이션이 "사실적 셰이딩"의 정체였고, 0.36 → 0.08로 줄이는 것까지
+        // 해봤지만 방향이 틀렸다. 원작 벽에는 그라데이션이 아예 없다.
+        // 면이 갈려 보이는 건 색이 아니라 조명이 할 일이다.
+        cr = color.r; cg = color.g; cb = color.b;
       }
       for (let v = 0; v < 3; v++) {
         colors[(t + v) * 3] = cr;
@@ -503,68 +391,7 @@ export class City {
     }
     geo.setAttribute('color', new BufferAttribute(colors, 3));
 
-    const parts: BufferGeometry[] = [geo];
-
-    // 1층. 5cm 공으로 시작하는 게임이라 초반 내내 보는 게 여기다.
-    const band = this.groundBand(b, kind, ox, oz, groundH, yBase, color, e.cx, e.cz);
-    if (band) parts.push(band);
-
-    // 파라펫. 옥상 **위**에 서므로 벽과 겹치지 않는다 — z-파이팅이 없다.
-    // 건물당 외곽선 변 × 2 삼각형이라 도시 전체로도 싸다.
-    if (parapetH > 0) {
-      const rim = new Color(roof).multiplyScalar(PARAPET_DARK);
-      const ring = outlineRing(b.outline, ox, oz, [mass, mass + parapetH], yBase, () => rim);
-      if (ring) parts.push(ring);
-    }
-
-    if (parts.length === 1) return geo;
-    const merged = mergeGeometries(parts, false);
-    if (!merged) {
-      // 병합 실패 시 본체만 돌려준다 — 옥탑이 없을 뿐 안전하다.
-      // 다만 만들어둔 상자는 여기서 버려야 한다. 본체(parts[0])는 그대로 쓴다.
-      for (let i = 1; i < parts.length; i++) parts[i]!.dispose();
-      return geo;
-    }
-    for (const p of parts) p.dispose();
-    return merged;
-  }
-
-  /**
-   * 1층 띠. 외곽선 변마다 사각형을 직접 깐다.
-   *
-   * `ExtrudeGeometry`를 한 번 더 쓰지 않는 이유는 **캡** 때문이다. 압출은 언제나
-   * 위아래 뚜껑을 만드는데, 여기서는 둘 다 안 보이는 자리(지면과 본체 바닥)라
-   * 순수한 낭비다. 변당 사각형만 깔면 캡이 없다.
-   *
-   * 종류로 갈린다:
-   *   상가·점포·빌라 → 어두운 유리 + 그 위 간판 띠 (변당 4삼각형)
-   *   아파트·공공     → 화강암 저층부, 간판 없음 (변당 2삼각형)
-   *
-   * 아파트 1층에 간판을 붙이면 거짓말이다. 실제로 잠실 아파트 1층은 상가가 아니다.
-   */
-  private groundBand(
-    b: CityBuilding, kind: BuildingKind,
-    ox: number, oz: number, gh: number, yBase: number, wallColor: Color,
-    hx: number, hz: number,
-  ): BufferGeometry | null {
-    if (gh <= 0) return null;
-    const shop = kind === 'commercial' || kind === 'retail' || kind === 'lowrise';
-
-    // 해시는 **건물 중심(hx, hz)** 으로 뽑는다. ox/oz 를 쓰면 안 된다 —
-    // 청크에 병합될 때(centered=false) 그 둘이 항상 0이라 도시 전체 간판이 한 색이 된다.
-    const glass = new Color(shop ? SHOP_GLASS : PODIUM_STONE);
-    // 유리·화강암도 동마다 밝기를 흔든다. 안 하면 길 하나가 통짜 띠로 보인다.
-    //
-    // **곱셈이어야 한다.** `offsetHSL`로 명도를 ±0.07 흔들었더니 유리가 새까매졌다 —
-    // 유리 기준색의 선형 명도가 0.035라 폭이 기준값의 두 배였고, 아래로 흔들린 건물은
-    // 전부 0에 눌렸다. 비율로 흔들면 어두운 색도 검게 죽지 않는다.
-    glass.multiplyScalar(0.78 + hash01(hx * 61 + hz * 13) * 0.5);
-    const sign = new Color(SIGN_HUE[Math.floor(hash01(hx * 97 + hz * 43) * SIGN_HUE.length)]!);
-    // 간판은 벽 색을 살짝 섞어야 스티커처럼 떠 보이지 않는다
-    sign.lerp(wallColor, 0.18);
-
-    const rows = shop ? [0, gh * 0.72, gh] : [0, gh];
-    return outlineRing(b.outline, ox, oz, rows, yBase, (r) => (shop && r === 1 ? sign : glass));
+    return geo;
   }
 
   private buildWater(): void {
@@ -619,7 +446,6 @@ export class City {
     for (const geo of this.geometryCache.values()) geo.dispose();
     this.geometryCache.clear();
     this.material.dispose();
-    this.facade.dispose();
     this.waterMaterial.dispose();
     this.group.clear();
   }
