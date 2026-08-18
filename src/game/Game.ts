@@ -58,13 +58,18 @@ export class Game {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
-    this.scene.background = new Color(0x8fd0f0);
+    this.scene.background = new Color(0x9ad7f0);
 
-    // **반구광을 낮추고 태양을 올린다.** 반구광이 지배하면 모든 면이 같은 밝기라
-    // 입체가 사라진다 — 심시티는 면마다 밝기가 확실히 갈린다.
-    // 아래쪽 색은 초록 지면의 반사광이므로 지면 팔레트(#5f9e46)와 맞춘다.
-    this.scene.add(new HemisphereLight(0xffffff, 0x6f9e4a, 0.72));
-    const sun = new DirectionalLight(0xfff2d8, 0.95);
+    // **반구광이 지배해야 한다.** 괴혼은 그림자 대비가 거의 없는 부드러운 빛이다.
+    // 심시티 전환 때 "반구광이 지배하면 입체가 사라진다"며 태양을 올렸는데(0.72/0.95),
+    // 그건 면 대비를 세우려는 목적이었고 괴혼은 반대다. 되돌린다.
+    //
+    // 세기 1.95는 재서 정했다. 1.00으로는 태양을 안 보는 벽이 반구광만 받아
+    // 팔레트(#8fc4dd)의 40% 밝기(#4d6363)로 나왔다 — 공 눈높이에서 보이는 게 그 벽이다.
+    // 1.95에서 #6a8787이 되고, 완전 포화(255) 픽셀은 0.00%다.
+    // 아래쪽 색은 초록 지면의 반사광이라 지면 팔레트와 계열을 맞춘다.
+    this.scene.add(new HemisphereLight(0xffffff, 0xbfd6a8, 1.95));
+    const sun = new DirectionalLight(0xfff6e4, 0.45);
     sun.position.set(1, 2.2, 1.4);
     this.scene.add(sun);
 
