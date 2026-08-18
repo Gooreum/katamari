@@ -1,6 +1,6 @@
 import {
   BufferAttribute, CanvasTexture, RepeatWrapping, SRGBColorSpace, Vector2,
-  type BufferGeometry, type Color, type ExtrudeGeometry, type UVGenerator,
+  type BufferGeometry, type ExtrudeGeometry, type UVGenerator,
 } from 'three';
 import type { BuildingKind } from './cityData';
 
@@ -188,16 +188,4 @@ export function flattenUV(geo: BufferGeometry): void {
     uv[i * 2 + 1] = FLAT_UV.y;
   }
   geo.setAttribute('uv', new BufferAttribute(uv, 2));
-}
-
-/** 지오메트리 전체를 한 색으로 칠한다. 청크 병합은 정점색을 요구한다. */
-export function paint(geo: BufferGeometry, color: Color): void {
-  const n = geo.attributes.position.count;
-  const c = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    c[i * 3] = color.r;
-    c[i * 3 + 1] = color.g;
-    c[i * 3 + 2] = color.b;
-  }
-  geo.setAttribute('color', new BufferAttribute(c, 3));
 }
