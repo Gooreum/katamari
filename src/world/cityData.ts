@@ -15,7 +15,10 @@ export type BuildingKind =
   | 'lowrise'      // 빌라·다세대 — 3~5층
   | 'commercial'   // 상가·오피스
   | 'civic'        // 학교·관공서·체육시설
-  | 'retail';      // 편의점·단층 점포
+  | 'retail'       // 편의점·단층 점포
+  // ── 아래 둘은 손배치 스테이지 전용. OSM에서는 절대 안 나온다 ──
+  | 'wall'         // 방 벽·기둥·담장 — 구역을 막는 것
+  | 'door';        // 미닫이문·문턱 — 크기가 차면 사라지는 것
 
 export interface CityBuilding {
   /** 시계방향 무관. 월드 좌표(m). 첫 점과 끝 점을 중복해서 넣지 말 것. */
@@ -24,6 +27,25 @@ export interface CityBuilding {
   readonly kind: BuildingKind;
   /** 있으면 화자가 이름을 부를 수 있다 */
   readonly name?: string;
+  /**
+   * 손배치 전용 외벽색(0xRRGGBB).
+   *
+   * 있으면 `KIND_COLOR` 대신 이 색을 쓰고 **동별 해시 변주도 끈다.**
+   * 손으로 고른 색을 흔들면 고른 의미가 없다. 윗면도 지붕 팔레트가 아니라
+   * 같은 색을 살짝 눌러서 쓴다 — 벽 위에 기와가 얹히면 안 되니까.
+   */
+  readonly color?: number;
+  /**
+   * 있으면 **게이트**다. 공의 지름이 이 값(m)에 도달하면 사라진다.
+   * 원작이 구역을 여는 방식 그대로다 — 뒷마당은 10cm, 마루 밑은 20cm에 열린다.
+   *
+   * **불변식: `gate < size / TUNING.pickRatio`.**
+   * 어기면 문이 열리기 전에 플레이어가 문을 먹어치운다.
+   * (`size`는 가로·세로·높이 중 최대. `extentOf`가 재는 그 값이다.)
+   *
+   * 0도 유효한 값이다 — 처음부터 열려 있는 문. `undefined`(게이트 아님)와 다르다.
+   */
+  readonly gate?: number;
 }
 
 export interface CityLandmark {

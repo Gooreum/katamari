@@ -46,6 +46,10 @@ const KIND_COLOR: Record<BuildingKind, number> = {
   commercial: 0x8fc4dd, // 파스텔 하늘
   civic: 0x9fd9c4, //      민트
   retail: 0xf5cf72, //     버터
+  // 손배치 스테이지가 `building.color`로 덮어쓰는 게 보통이다. 여기 값은
+  // 색을 안 준 벽이 새까맣게 나오지 않게 하는 안전망이다.
+  wall: 0xf0e6d2, //       회벽
+  door: 0xe8d4a8, //       나무틀 장지문
 };
 
 /**
@@ -335,29 +339,40 @@ export class City {
     // 예전에는 정점당 8바이트(도시 전체 2.6MB)를 uv에 쓰고 있었다.
     geo.deleteAttribute('uv');
 
-    const color = new Color(KIND_COLOR[kind]);
-    // 같은 종류라도 동마다 살짝 다르게 — 안 하면 도시가 플라스틱처럼 보인다.
-    //
-    // **색상 폭을 1/4로 줄였다 (0.08 → 0.02).** 예전에는 종류 색이 저채도라 구분에
-    // 아무 도움이 안 됐고, 이 변주가 다양성의 전부라서 색상까지 크게 흔들었다.
-    // 지금은 종류 색 자체가 정보다 — 색상을 흔들면 그 정보를 지운다.
-    // 동끼리의 구분은 명도가 맡는다. 심시티도 같은 색 건물의 밝기만 다르다.
-    color.offsetHSL(
-      (hash01(e.cx * 31 + e.cz * 17) - 0.5) * 0.02,
-      (hash01(e.cx * 57 + e.cz * 91) - 0.5) * 0.10,
-      (hash01(e.cx * 13 + e.cz * 73) - 0.5) * 0.20,
-    );
+    /**
+     * 외벽 색. 두 갈래다.
+     *
+     * **손배치(`b.color`)면 그 색이 그대로 나간다 — 해시 변주를 끈다.**
+     * 손으로 고른 색을 흔들면 고른 의미가 없다. 스테이지 작성자가 벽지 색을
+     * 정했는데 벽마다 명도가 ±20%씩 달라지면 그건 벽이 아니라 얼룩이다.
+     *
+     * OSM 도시면 지금까지처럼 종류 색 + 동별 변주다. 안 흔들면 도시가
+     * 플라스틱처럼 보인다. 색상 폭이 좁은(0.02) 이유는 종류 색 자체가 정보라서
+     * 색상을 흔들면 그 정보를 지우기 때문이고, 동끼리 구분은 명도가 맡는다.
+     */
+    const handPicked = b.color !== undefined;
+    const color = new Color(handPicked ? b.color! : KIND_COLOR[kind]);
+    if (!handPicked) {
+      color.offsetHSL(
+        (hash01(e.cx * 31 + e.cz * 17) - 0.5) * 0.02,
+        (hash01(e.cx * 57 + e.cz * 91) - 0.5) * 0.10,
+        (hash01(e.cx * 13 + e.cz * 73) - 0.5) * 0.20,
+      );
+    }
 
     /**
-     * 옥상 색. **건물 색과 무관한 절대색이다.**
+     * 윗면 색.
      *
-     * 외벽이 크림색이든 벽돌색이든 옥상은 방수 도장 색으로 통일된다 —
-     * 실제로 그렇다. 그래서 `color`에 곱하지 않고 갈아끼운다.
+     * OSM 건물에서는 **외벽과 무관한 절대색**이다 — 외벽이 크림색이든 벽돌색이든
+     * 옥상은 방수 도장 색으로 통일된다. 내려다보는 시점이 지배적인 게임이라
+     * 옥상이 사실상 도시의 주 색면이고, 그래서 `color`에 곱하지 않고 갈아끼운다.
      *
-     * 내려다보는 시점이 지배적인 게임인데 지금까지 옥상이 세로 그라데이션의 맨 위,
-     * 즉 **건물에서 가장 밝은 면**이었다. 항공 뷰가 크림색 벌판으로 보인 원인이다.
+     * **손배치는 반대다.** 벽 윗면에 벽돌빨강 지붕색이 얹히면 그건 벽이 아니라
+     * 담장 위에 기와를 올린 게 된다. 같은 색을 살짝 눌러서 같은 재질로 읽히게 한다.
      */
-    const roof = new Color(ROOF_TONE[Math.floor(hash01(e.cx * 3 + e.cz * 29) * ROOF_TONE.length)]!);
+    const roof = handPicked
+      ? new Color(color).multiplyScalar(0.92)
+      : new Color(ROOF_TONE[Math.floor(hash01(e.cx * 3 + e.cz * 29) * ROOF_TONE.length)]!);
 
     const n = pos.count;
     const nrm = geo.attributes.normal!;
@@ -457,4 +472,6 @@ const KIND_LABEL: Record<BuildingKind, string> = {
   commercial: '상가 건물',
   civic: '공공건물',
   retail: '점포',
+  wall: '벽',
+  door: '문',
 };
