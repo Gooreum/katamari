@@ -3,164 +3,189 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdSmall } from './generation';
-import { assemble, METAL, PAPER, part, WHITE } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE } from './shapes.kit';
 
 /** 눕힌 원기둥을 만들 때 쓰는 회전. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다. */
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
+/** X축에 눕힌 원기둥의 뚜껑을 +X 쪽 바깥으로 향하게 하는 회전 */
+const CAP_X: readonly [number, number, number] = [0, 0, -Math.PI / 2];
 
 /**
- * 버킷 0~2 (1~8cm) 형태.
+ * 버킷 0~2 (1~8cm) 형태 — 원작 타케다 저택 물건.
  *
- * **작은 물체에 부품을 많이 쓰지 않는다.** 동전과 이쑤시개는 화면에서 몇 픽셀이고,
- * 63종을 다 채우면 이 파일의 21종이 전체 물체의 1/3을 차지한다.
- * 여기서 아낀 삼각형이 자판기·붕어빵 카트의 예산이 된다.
+ * **작은 물체에 부품을 많이 쓰지 않는다.** 개미와 쌀알은 화면에서 몇 픽셀이고,
+ * 49종을 다 채우면 이 파일의 21종이 전체 물체의 절반 가까이를 차지한다.
+ * 여기서 아낀 삼각형이 고양이·서랍장의 예산이 된다.
  *
  * 치수는 **실제 크기(cm 감각)** 로 쓴다 — normalize()가 어차피 규약에 맞추므로
  * 0~1로 환산할 필요가 없고, 그러면 비율이 눈에 안 보인다.
  */
 export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
-  담배꽁초: () => assemble([
-    // 원기둥 축은 Y다. Z로 90° 돌리면 축이 X가 된다 — 바닥에 눕힌 담배.
-    // 종이를 두 토막으로 나눠 살짝 꺾는다. 곧은 원기둥은 담배가 아니라 분필로 보인다.
-    part(new CylinderGeometry(0.14, 0.14, 0.34, 10), WHITE, [0.26, 0.015, 0], [0, 0.16, Math.PI / 2]),
-    part(new CylinderGeometry(0.142, 0.14, 0.30, 10), WHITE, [-0.03, 0, 0], [0, 0, Math.PI / 2]),
-    part(new CylinderGeometry(0.148, 0.148, 0.28, 10), [0.78, 0.6, 0.34], [-0.32, 0, 0], [0, 0, Math.PI / 2]), // 필터
-    part(new CylinderGeometry(0.150, 0.150, 0.035, 8), [0.62, 0.46, 0.24], [-0.18, 0, 0], [0, 0, Math.PI / 2]), // 이음링
-    part(new ConeGeometry(0.132, 0.10, 8), [0.12, 0.12, 0.12], [0.45, 0.03, 0], [0, 0, -Math.PI / 2]), // 탄 끝
+  // ─── 버킷 0 (1~2cm) ──────────────────────────────────────────
+
+  개미: () => assemble([
+    // 머리·가슴·배 세 덩이. 개미가 개미로 읽히는 건 이 세 마디뿐이다
+    part(new SphereGeometry(0.20, 7, 5), WHITE, [0.34, 0.20, 0]),
+    part(new SphereGeometry(0.16, 7, 5), WHITE, [0.06, 0.19, 0]),
+    part(new SphereGeometry(0.26, 7, 5), WHITE, [-0.34, 0.22, 0]),
+    // 다리는 몸통 양옆 막대 두 개로 뭉갠다. 여섯 개를 따로 세우면 이 크기에서
+    // 삼각형만 먹고 화면에는 회색 얼룩으로 나온다
+    part(new BoxGeometry(0.44, 0.03, 0.46), DARK, [0.04, 0.08, 0]),
+    part(new CylinderGeometry(0.02, 0.02, 0.20, 4), DARK, [0.44, 0.30, 0], [0, 0, 0.5]),
   ]),
 
-  // ─── 버킷 0 (1~2cm) ────────────────────────────────────────────
-
-  병뚜껑: () => assemble([
-    // 뒤집혀 떨어져 있다 — 그래서 톱니 치마가 위로 온다
-    part(new CylinderGeometry(0.5, 0.5, 0.06, 12), WHITE, [0, 0.03, 0]),             // 상판
-    part(new CylinderGeometry(0.5, 0.47, 0.16, 12), [0.85, 0.85, 0.87], [0, 0.14, 0]), // 톱니 치마
+  쌀알: () => assemble([
+    // **길쭉해야 한다.** 구 세 개를 겹쳤더니 그냥 덩어리로 보여서
+    // 팥과 구분이 안 됐다. 가는 원기둥에 양끝을 뾰족하게 씌운다.
+    part(new CylinderGeometry(0.17, 0.17, 0.56, 8), WHITE, [0, 0.17, 0], LIE_X),
+    part(new ConeGeometry(0.17, 0.22, 8), WHITE, [0.39, 0.17, 0], CAP_X),
+    part(new ConeGeometry(0.17, 0.22, 8), WHITE, [-0.39, 0.17, 0], LIE_X),
   ]),
 
-  십원짜리: () => assemble([
-    part(new CylinderGeometry(0.5, 0.5, 0.07, 14), WHITE, [0, 0.035, 0]),            // 동전
-    part(new CylinderGeometry(0.33, 0.33, 0.085, 10), [0.82, 0.72, 0.5], [0, 0.035, 0]), // 다보탑 양각 자리
+  팥: () => assemble([
+    part(new SphereGeometry(0.5, 8, 6), WHITE, [0, 0.5, 0]),
+    // 배꼽 줄. 팥과 콩을 가르는 건 이 흰 줄 하나다
+    part(new BoxGeometry(0.62, 0.10, 0.06), [0.9, 0.88, 0.82], [0, 0.5, 0.44]),
   ]),
 
-  이쑤시개: () => assemble([
-    part(new CylinderGeometry(0.035, 0.035, 0.84, 6), WHITE, [0, 0, 0], LIE_X),
-    // 쓰고 버린 것이라 끝이 물들었다. 단색 막대면 이쑤시개인지 성냥인지 모른다
-    part(new ConeGeometry(0.035, 0.09, 6), [0.7, 0.58, 0.42], [0.465, 0, 0], [0, 0, -Math.PI / 2]),
-    part(new ConeGeometry(0.035, 0.09, 6), [0.7, 0.58, 0.42], [-0.465, 0, 0], LIE_X),
+  클립: () => assemble([
+    // 겹친 고리 두 개. 벌어진 쪽이 안 보여도 클립으로 읽힌다
+    part(new TorusGeometry(0.34, 0.035, 4, 10), METAL, [0.10, 0.04, 0], [Math.PI / 2, 0, 0]),
+    part(new TorusGeometry(0.22, 0.035, 4, 10), METAL, [-0.12, 0.04, 0], [Math.PI / 2, 0, 0]),
+    part(new CylinderGeometry(0.035, 0.035, 0.30, 5), METAL, [-0.02, 0.04, 0.20], LIE_X),
   ]),
 
-  은행알: () => assemble([
-    part(new SphereGeometry(0.5, 8, 6), WHITE, [0, 0.5, 0]),                         // 알
-    part(new CylinderGeometry(0.05, 0.07, 0.16, 6), [0.55, 0.45, 0.3], [0, 0.98, 0]), // 꼭지
+  압정: () => assemble([
+    // 넓은 머리 + 짧은 침. 원작 압정은 머리가 색색이다
+    part(new CylinderGeometry(0.5, 0.46, 0.16, 12), WHITE, [0, 0.42, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.34, 5), METAL, [0, 0.17, 0]),
+    part(new ConeGeometry(0.05, 0.10, 5), METAL, [0, 0.05, 0], [Math.PI, 0, 0]),
   ]),
 
-  '껌 종이': () => assemble([
-    // 구겨진 은박. 각도가 다른 판 넷이 겹치면 평평한 종이가 '버려진 것'이 된다
-    part(new BoxGeometry(0.9, 0.03, 0.7), PAPER, [0, 0.03, 0], [0.12, 0, 0.09]),
-    part(new BoxGeometry(0.7, 0.03, 0.6), METAL, [0.12, 0.08, 0.06], [-0.3, 0.4, 0.25]),
-    part(new BoxGeometry(0.5, 0.03, 0.55), PAPER, [-0.2, 0.11, -0.1], [0.35, -0.5, -0.2]),
-    part(new BoxGeometry(0.4, 0.03, 0.35), METAL, [0.05, 0.15, 0.14], [-0.15, 0.9, 0.5]),
+  단추: () => assemble([
+    part(new CylinderGeometry(0.5, 0.5, 0.10, 12), WHITE, [0, 0.05, 0]),
+    // 구멍 넷. 어둡게 파인 원기둥으로 흉내낸다
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [0.16, 0.06, 0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [-0.16, 0.06, 0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [0.16, 0.06, -0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [-0.16, 0.06, -0.16]),
   ]),
 
-  옷핀: () => assemble([
-    part(new CylinderGeometry(0.035, 0.035, 0.92, 6), METAL, [0, 0.06, 0], LIE_X),   // 곧은 핀
-    part(new CylinderGeometry(0.045, 0.045, 0.86, 6), METAL, [-0.03, -0.09, 0], LIE_X), // 스프링 쪽 몸
-    part(new TorusGeometry(0.1, 0.035, 4, 8), METAL, [-0.46, -0.02, 0], [0, Math.PI / 2, 0]), // 코일
-    part(new BoxGeometry(0.14, 0.16, 0.1), [0.55, 0.56, 0.6], [0.44, 0.0, 0]),       // 걸이 머리(어둡게)
+  도장: () => assemble([
+    // 나무 몸통 + 붉은 인면. 원작 집에 실제로 있는 물건이다
+    part(new CylinderGeometry(0.22, 0.22, 0.86, 10), WHITE, [0, 0.47, 0]),
+    part(new CylinderGeometry(0.24, 0.24, 0.10, 10), [0.85, 0.3, 0.26], [0, 0.05, 0]),
+    part(new CylinderGeometry(0.19, 0.22, 0.10, 10), WHITE, [0, 0.90, 0]),
   ]),
 
-  // ─── 버킷 1 (2~4cm) ────────────────────────────────────────────
+  // ─── 버킷 1 (2~4cm) ──────────────────────────────────────────
 
-  라이터: () => assemble([
-    part(new BoxGeometry(0.56, 1.3, 0.34), WHITE, [0, 0.65, 0]),                     // 몸통
-    part(new BoxGeometry(0.5, 0.26, 0.3), METAL, [0, 1.42, 0]),                      // 금속 상단
-    part(new CylinderGeometry(0.11, 0.11, 0.14, 8), [0.6, 0.6, 0.62], [-0.13, 1.5, 0], [0, 0, Math.PI / 2]), // 부싯돌 휠
-    part(new BoxGeometry(0.12, 0.16, 0.12), METAL, [0.16, 1.58, 0]),                 // 노즐
+  주사위: () => assemble([
+    part(new BoxGeometry(0.9, 0.9, 0.9), WHITE, [0, 0.45, 0]),
+    // 윗면 1점, 앞면 2점. 점을 다 새기면 이 크기에서 삼각형 낭비다
+    part(new CylinderGeometry(0.11, 0.11, 0.06, 6), DARK, [0, 0.90, 0]),
+    part(new CylinderGeometry(0.09, 0.09, 0.06, 6), DARK, [-0.16, 0.61, 0.45], [Math.PI / 2, 0, 0]),
+    part(new CylinderGeometry(0.09, 0.09, 0.06, 6), DARK, [0.16, 0.29, 0.45], [Math.PI / 2, 0, 0]),
   ]),
 
-  오백원짜리: () => assemble([
-    part(new CylinderGeometry(0.5, 0.5, 0.08, 14), WHITE, [0, 0.04, 0]),             // 동전
-    part(new CylinderGeometry(0.34, 0.34, 0.095, 10), [0.86, 0.86, 0.88], [0, 0.04, 0]), // 학 양각 자리
+  나사: () => assemble([
+    // 십자 머리 + 몸통. 나사산은 안 판다 — 3cm에서 안 보인다
+    part(new CylinderGeometry(0.20, 0.20, 0.10, 8), WHITE, [0, 0.93, 0]),
+    part(new BoxGeometry(0.32, 0.05, 0.07), DARK, [0, 0.97, 0]),
+    part(new BoxGeometry(0.07, 0.05, 0.32), DARK, [0, 0.97, 0]),
+    part(new CylinderGeometry(0.09, 0.09, 0.76, 7), WHITE, [0, 0.50, 0]),
+    part(new ConeGeometry(0.09, 0.14, 7), WHITE, [0, 0.07, 0], [Math.PI, 0, 0]),
   ]),
 
-  건전지: () => assemble([
-    part(new CylinderGeometry(0.5, 0.5, 1.9, 12), WHITE, [0, 0.95, 0]),              // 몸통
-    part(new CylinderGeometry(0.505, 0.505, 0.9, 12), [0.75, 0.72, 0.6], [0, 0.75, 0]), // 라벨
-    part(new CylinderGeometry(0.18, 0.18, 0.12, 8), METAL, [0, 1.96, 0]),            // 양극 돌기
+  압핀: () => assemble([
+    // 손잡이가 위로 솟은 압핀. 압정과 실루엣이 달라야 둘 다 두는 의미가 있다
+    part(new CylinderGeometry(0.26, 0.30, 0.34, 9), WHITE, [0, 0.72, 0]),
+    part(new CylinderGeometry(0.34, 0.34, 0.12, 9), WHITE, [0, 0.50, 0]),
+    part(new CylinderGeometry(0.04, 0.04, 0.40, 5), METAL, [0, 0.24, 0]),
+    part(new ConeGeometry(0.04, 0.09, 5), METAL, [0, 0.045, 0], [Math.PI, 0, 0]),
   ]),
 
-  립밤: () => assemble([
-    part(new CylinderGeometry(0.48, 0.5, 0.95, 10), WHITE, [0, 0.475, 0]),           // 몸통
-    part(new CylinderGeometry(0.5, 0.5, 0.1, 10), [0.8, 0.8, 0.8], [0, 0.98, 0]),    // 이음링
-    part(new CylinderGeometry(0.5, 0.49, 0.8, 10), [0.88, 0.88, 0.9], [0, 1.43, 0]), // 뚜껑
+  지우개: () => assemble([
+    // 모서리가 닳은 직육면체 + 종이 띠. 띠가 있어야 지우개로 읽힌다
+    part(new BoxGeometry(0.94, 0.36, 0.44), WHITE, [0, 0.18, 0]),
+    part(new BoxGeometry(0.52, 0.38, 0.46), PAPER, [0.04, 0.18, 0]),
+    part(new BoxGeometry(0.20, 0.30, 0.40), WHITE, [-0.50, 0.15, 0], [0, 0, 0.22]),
   ]),
 
-  열쇠: () => assemble([
-    part(new CylinderGeometry(0.3, 0.3, 0.07, 8), [0.85, 0.74, 0.45], [-0.62, 0.035, 0]), // 황동 머리
-    part(new BoxGeometry(1.05, 0.07, 0.16), METAL, [0.1, 0.035, 0]),                 // 자루
-    // 톱니 — 길이가 다른 세 개여야 열쇠로 읽힌다
-    ...([[0.36, 0.1], [0.56, 0.16], [0.76, 0.08]] as const).map(
-      ([x, h]) => part(new BoxGeometry(0.1, h, 0.16), METAL, [x, 0.035 + h / 2 + 0.03, 0])),
-  ]),
-
-  '페트병 뚜껑': () => assemble([
-    part(new CylinderGeometry(0.5, 0.5, 0.5, 12), WHITE, [0, 0.25, 0]),              // 톱니 옆면
-    part(new CylinderGeometry(0.46, 0.46, 0.08, 12), [0.9, 0.9, 0.9], [0, 0.53, 0]), // 상판
+  각설탕: () => assemble([
+    // 정육면체 하나. 알갱이 결을 살짝만 낸다
+    part(new BoxGeometry(0.86, 0.80, 0.86), WHITE, [0, 0.40, 0]),
+    part(new BoxGeometry(0.30, 0.10, 0.30), WHITE, [0.18, 0.82, -0.14], [0, 0.4, 0]),
+    part(new BoxGeometry(0.22, 0.10, 0.22), WHITE, [-0.22, 0.80, 0.18], [0, 0.9, 0]),
   ]),
 
   사탕: () => assemble([
-    part(new SphereGeometry(0.42, 8, 6), WHITE, [0, 0.42, 0]),                       // 알맹이
-    part(new ConeGeometry(0.2, 0.34, 6), PAPER, [0.5, 0.42, 0], [0, 0, Math.PI / 2]), // 포장 꼬리
-    part(new ConeGeometry(0.2, 0.34, 6), PAPER, [-0.5, 0.42, 0], [0, 0, -Math.PI / 2]),
+    // 알맹이 + 양쪽으로 꼬인 포장지. 이 실루엣이 사탕의 전부다
+    part(new SphereGeometry(0.34, 8, 6), WHITE, [0, 0.34, 0]),
+    part(new ConeGeometry(0.30, 0.30, 6), PAPER, [0.44, 0.34, 0], CAP_X),
+    part(new ConeGeometry(0.30, 0.30, 6), PAPER, [-0.44, 0.34, 0], LIE_X),
   ]),
 
-  // ─── 버킷 2 (4~8cm) ────────────────────────────────────────────
-
-  담뱃갑: () => assemble([
-    part(new BoxGeometry(0.56, 0.72, 0.24), WHITE, [0, 0.36, 0]),                    // 갑 아래
-    part(new BoxGeometry(0.57, 0.28, 0.25), [0.85, 0.85, 0.85], [0, 0.86, 0]),       // 젖힌 뚜껑
-    part(new BoxGeometry(0.575, 0.22, 0.255), [0.6, 0.6, 0.6], [0, 0.4, 0]),         // 경고 문구 띠
-    part(new BoxGeometry(0.44, 0.1, 0.2), METAL, [0, 1.02, 0]),                      // 은박
+  성냥: () => assemble([
+    part(new BoxGeometry(0.92, 0.06, 0.06), WHITE, [0, 0.03, 0]),
+    // 빨간 머리. 성냥과 이쑤시개를 가르는 유일한 부품이다
+    part(new SphereGeometry(0.075, 6, 4), [0.86, 0.28, 0.22], [0.47, 0.05, 0]),
   ]),
 
-  명함: () => assemble([
-    part(new BoxGeometry(1.0, 0.02, 0.58), PAPER, [0, 0.01, 0]),                     // 카드
-    part(new BoxGeometry(0.5, 0.025, 0.06), [0.45, 0.45, 0.5], [-0.16, 0.012, -0.1]), // 이름 줄
-    part(new BoxGeometry(0.62, 0.025, 0.035), [0.6, 0.6, 0.65], [-0.1, 0.012, 0.06]), // 연락처 줄
-    part(new BoxGeometry(0.34, 0.025, 0.04), [0.5, 0.55, 0.7], [0.28, 0.012, -0.18]),  // 회사 로고
+  // ─── 버킷 2 (4~8cm) ──────────────────────────────────────────
+
+  크레용: () => assemble([
+    // 몸통 + 종이 라벨 + 깎인 끝. 원작 크레용은 색이 곧 정체성이라
+    // SHAPE_COLOR 에 6색을 넣어뒀다
+    part(new CylinderGeometry(0.14, 0.14, 0.74, 9), WHITE, [-0.08, 0.14, 0], LIE_X),
+    part(new CylinderGeometry(0.152, 0.152, 0.46, 9), PAPER, [-0.14, 0.14, 0], LIE_X),
+    part(new ConeGeometry(0.14, 0.24, 9), WHITE, [0.41, 0.14, 0], CAP_X),
   ]),
 
-  찌라시: () => assemble([
-    // 바람에 뒹구는 전단지. 낱장을 다른 각도로 겹친다
-    part(new BoxGeometry(0.95, 0.02, 0.68), PAPER, [0, 0.02, 0], [0.1, 0, 0.14]),
-    part(new BoxGeometry(0.9, 0.02, 0.64), WHITE, [0.06, 0.07, 0.05], [-0.22, 0.3, -0.18]),
-    part(new BoxGeometry(0.8, 0.02, 0.6), PAPER, [-0.1, 0.12, -0.06], [0.28, -0.6, 0.3]),
-    part(new BoxGeometry(0.6, 0.02, 0.5), [0.8, 0.78, 0.74], [0.14, 0.17, 0.12], [-0.2, 1.0, -0.4]),
+  캐러멜: () => assemble([
+    // 포장지에 싸인 직육면체. 양끝을 접어 눌렀다
+    part(new BoxGeometry(0.62, 0.34, 0.40), WHITE, [0, 0.17, 0]),
+    part(new BoxGeometry(0.18, 0.20, 0.40), PAPER, [0.38, 0.11, 0]),
+    part(new BoxGeometry(0.18, 0.20, 0.40), PAPER, [-0.38, 0.11, 0]),
   ]),
 
-  물티슈: () => assemble([
-    part(new BoxGeometry(1.0, 0.3, 0.66), WHITE, [0, 0.15, 0]),                      // 파우치
-    part(new BoxGeometry(0.44, 0.09, 0.3), [0.8, 0.8, 0.82], [0.1, 0.33, 0]),        // 뚜껑
-    part(new BoxGeometry(0.5, 0.03, 0.36), [0.65, 0.65, 0.68], [0.1, 0.3, 0]),       // 뚜껑 테두리
-    part(new BoxGeometry(0.26, 0.16, 0.2), PAPER, [0.1, 0.44, 0], [0.2, 0, -0.25]),   // 뽑혀 나온 티슈
+  체온계: () => assemble([
+    // 유리 막대 + 은색 구슬. 원작 집 서랍에 있는 그것
+    part(new CylinderGeometry(0.055, 0.055, 0.80, 7), GLASS, [0.06, 0.06, 0], LIE_X),
+    part(new SphereGeometry(0.085, 7, 5), METAL, [-0.40, 0.06, 0]),
+    part(new BoxGeometry(0.60, 0.02, 0.06), [0.9, 0.2, 0.18], [0.08, 0.10, 0]),
   ]),
 
-  소주잔: () => assemble([
-    part(new CylinderGeometry(0.5, 0.36, 0.72, 12), WHITE, [0, 0.42, 0]),            // 몸통
-    part(new CylinderGeometry(0.42, 0.3, 0.66, 12), [0.72, 0.75, 0.78], [0, 0.5, 0]), // 안쪽 면
-    part(new CylinderGeometry(0.34, 0.34, 0.1, 10), [0.9, 0.9, 0.92], [0, 0.05, 0]), // 굽
+  '간장 팩': () => assemble([
+    // 도시락에 들어 있는 물고기 모양 간장통. 원작에도 있다
+    part(new SphereGeometry(0.24, 8, 6), WHITE, [0, 0.16, 0]),
+    part(new ConeGeometry(0.20, 0.34, 7), WHITE, [0.34, 0.16, 0], CAP_X),
+    part(new ConeGeometry(0.16, 0.22, 5), WHITE, [-0.30, 0.16, 0], LIE_X),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), [0.9, 0.5, 0.2], [0.50, 0.16, 0], LIE_X),
   ]),
 
-  교통카드: () => assemble([
-    part(new BoxGeometry(1.0, 0.03, 0.63), WHITE, [0, 0.015, 0]),                    // 카드
-    part(new BoxGeometry(0.18, 0.035, 0.14), [0.85, 0.72, 0.35], [-0.3, 0.018, -0.14]), // 금색 칩
-    part(new BoxGeometry(0.3, 0.035, 0.1), [0.5, 0.55, 0.65], [0.24, 0.018, 0.16]),  // 로고
-    part(new BoxGeometry(1.0, 0.035, 0.12), [0.35, 0.35, 0.4], [0, 0.018, 0.24]),     // 자기띠
+  청개구리: () => assemble([
+    // 몸통 + 눈 둘 + 접힌 뒷다리. 원작 마당에 있는 그 개구리(7.4cm)
+    part(new SphereGeometry(0.34, 8, 6), WHITE, [0, 0.28, 0]),
+    part(new SphereGeometry(0.20, 7, 5), WHITE, [0.24, 0.34, 0]),
+    part(new SphereGeometry(0.09, 6, 4), [0.95, 0.9, 0.3], [0.32, 0.46, 0.13]),
+    part(new SphereGeometry(0.09, 6, 4), [0.95, 0.9, 0.3], [0.32, 0.46, -0.13]),
+    part(new SphereGeometry(0.14, 6, 4), WHITE, [-0.20, 0.16, 0.24]),
+    part(new SphereGeometry(0.14, 6, 4), WHITE, [-0.20, 0.16, -0.24]),
   ]),
 
-  '이어폰 케이스': () => assemble([
-    part(new CylinderGeometry(0.5, 0.46, 0.52, 12), WHITE, [0, 0.26, 0]),            // 아래 통
-    part(new CylinderGeometry(0.5, 0.5, 0.3, 12), [0.9, 0.9, 0.92], [0, 0.67, 0]),   // 뚜껑
-    part(new BoxGeometry(0.12, 0.1, 0.16), [0.6, 0.6, 0.62], [0, 0.52, -0.44]),      // 힌지
+  성냥갑: () => assemble([
+    // 서랍이 살짝 빠진 갑. 빠진 단이 있어야 상자가 아니라 성냥갑이다
+    part(new BoxGeometry(0.86, 0.24, 0.56), WHITE, [0, 0.12, 0]),
+    part(new BoxGeometry(0.34, 0.20, 0.52), PAPER, [0.52, 0.11, 0]),
+    // 옆면 마찰지
+    part(new BoxGeometry(0.86, 0.16, 0.02), DARK, [0, 0.12, 0.285]),
+  ]),
+
+  건전지: () => assemble([
+    part(new CylinderGeometry(0.28, 0.28, 0.86, 10), WHITE, [0, 0.43, 0]),
+    // +극 돌기. 이거 하나로 건전지가 된다
+    part(new CylinderGeometry(0.10, 0.10, 0.08, 7), METAL, [0, 0.89, 0]),
+    part(new CylinderGeometry(0.285, 0.285, 0.10, 10), METAL, [0, 0.06, 0]),
   ]),
 };
