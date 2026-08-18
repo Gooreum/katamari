@@ -5,7 +5,7 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
 import {
-  buildFacadeTexture, FACADE_SCALE, facadeUV, flattenUV, paint,
+  buildFacadeTexture, FACADE_GRID, FACADE_SCALE, facadeUV, flattenUV, paint,
   PODIUM_STONE, SHOP_GLASS, SIGN_HUE,
 } from './facade';
 import { buildRoadGeometry, buildRoadTexture } from './Roads';
@@ -443,13 +443,17 @@ export class City {
     const fs = FACADE_SCALE[kind];
     // 건물마다 타일의 다른 칸에서 시작한다. 안 하면 불 켜진 창이 전 도시에서
     // 같은 자리에 박혀 격자무늬가 보인다.
+    //
+    // 칸 수는 `FACADE_GRID`에서 가져온다. 예전에는 여기에 4를 박아뒀는데,
+    // 격자를 2로 줄이자 두 파일이 조용히 어긋났다 — 랩어라운드 덕에 화면은 멀쩡했지만
+    // 그런 종류의 어긋남은 다음에 반드시 문다.
     const geo = new ExtrudeGeometry(shape, {
       depth: mass - groundH,
       bevelEnabled: false,
       UVGenerator: facadeUV(
         mass - groundH, fs.floor, fs.bay,
-        Math.floor(hash01(e.cx * 7 + e.cz * 3) * 4),
-        Math.floor(hash01(e.cx * 5 + e.cz * 11) * 4),
+        Math.floor(hash01(e.cx * 7 + e.cz * 3) * FACADE_GRID),
+        Math.floor(hash01(e.cx * 5 + e.cz * 11) * FACADE_GRID),
       ),
     });
     // NaN 좌표 하나가 섞이면 병합된 청크 전체의 bounding sphere가 NaN이 되어
