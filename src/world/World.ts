@@ -295,6 +295,9 @@ export class World {
    * 다만 콘크리트 줄눈이 아니라 **잔디 깎은 결**로 읽히게 한다. 그래서 격자선을
    * 어둡게가 아니라 밝게 넣는다 — 잔디는 결이 뒤집히는 줄이 밝게 보인다.
    *
+   * 괴혼 전환에서 한 단계 더 밝혔다(#5f9e46 → #7cb85e). 원작 지형은 명랑한 중간 초록이고,
+   * 공 눈높이에서 화면의 절반이 지면이라 여기가 어두우면 전체가 가라앉는다.
+   *
    * 도로(0x5f6268 ~ 0xa8a091)보다 **어둡게** 잡는 규칙은 그대로다.
    * 지면이 도로보다 밝으면 도로망이 배경에 묻혀서 Roads.ts 가 한 일이 안 보인다.
    */
@@ -302,20 +305,20 @@ export class World {
     const cv = document.createElement('canvas');
     cv.width = cv.height = 64;              // 64px = 2m. 타일 안에 1m 판 4장
     const cx = cv.getContext('2d')!;
-    cx.fillStyle = '#5f9e46';
+    cx.fillStyle = '#7cb85e';
     cx.fillRect(0, 0, 64, 64);
 
     // 얼룩. 완전히 균일하면 플라스틱처럼 보인다.
     // 무작위가 아니라 결정적 수열이라 새로고침해도 같은 무늬가 나온다.
     // **초록 안에서만 흔든다** — 회색이 섞이면 잔디가 죽는다.
     for (let i = 0; i < 240; i++) {
-      const v = 158 + ((i * 7919) % 20);
+      const v = 178 + ((i * 7919) % 20);
       cx.fillStyle = `rgb(${v - 63},${v},${v - 90})`;
       cx.fillRect((i * 37) % 64, (i * 53) % 64, 1, 1);
     }
 
     // 1m 깎은 줄
-    cx.fillStyle = '#6cae4f';
+    cx.fillStyle = '#8ac46b';
     cx.fillRect(0, 0, 64, 1);
     cx.fillRect(0, 32, 64, 1);
     cx.fillRect(0, 0, 1, 64);

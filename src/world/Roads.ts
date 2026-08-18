@@ -45,11 +45,13 @@ export function buildRoadTexture(): CanvasTexture {
 
   const LINE = '#e8e6df';
   // 순서가 BAND와 같아야 한다.
+  // 괴혼 전환에서 네 밴드를 전부 밝혔다. 차선·줄눈 구조는 그대로 —
+  // 밝기만 올려 초록 지면 위에서 도로가 회색 띠가 아니라 밝은 길로 보이게 한다.
   const bands: Array<{ base: string; edge?: number; dash?: boolean; joint?: string }> = [
-    { base: '#6b7078', edge: 3, dash: true },   // 대로 — 양끝 실선 + 중앙 파선
-    { base: '#767b83', edge: 2 },               // 생활도로 — 양끝 실선만
-    { base: '#83878e' },                        // 골목 — 표시 없음. 실제로도 없다
-    { base: '#c0b7a4', joint: '#a89e8b' },      // 보도 — 블록 줄눈
+    { base: '#8e939b', edge: 3, dash: true },   // 대로 — 양끝 실선 + 중앙 파선
+    { base: '#999ea6', edge: 2 },               // 생활도로 — 양끝 실선만
+    { base: '#a4a8ae' },                        // 골목 — 표시 없음. 실제로도 없다
+    { base: '#d6cdb9', joint: '#bdb3a0' },      // 보도 — 블록 줄눈
   ];
 
   bands.forEach((b, i) => {
