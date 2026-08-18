@@ -13,10 +13,12 @@ import { CameraRig } from './CameraRig';
 import { DebrisField } from './Debris';
 import { Sfx } from '../audio/Sfx';
 import { Narrator } from '../narrative/Narrator';
-import { SEOUL } from '../narrative/script.seoul';
+import { KING } from '../narrative/script.king';
 import { Subtitle } from '../ui/Subtitle';
 import type { Hud } from '../ui/Hud';
 import { Telemetry } from '../ui/Telemetry';
+import { Result } from '../ui/Result';
+import { DEFAULT_STAGE, judge, type StageOutcome, type StageRule } from './Stage';
 
 const STEP = 1 / 60;
 const CULL_INTERVAL = 20;
@@ -32,8 +34,12 @@ export class Game {
   private readonly telemetry: Telemetry;
   private readonly debris: DebrisField;
   private readonly sfx = new Sfx();
-  private readonly subtitle = new Subtitle();
+  private readonly subtitle: Subtitle;
   private readonly narrator: Narrator;
+  private readonly result = new Result();
+
+  /** null이면 진행 중. 한 번 정해지면 안 바뀐다 */
+  private outcome: StageOutcome = null;
 
   /** 화자 트리거용 상태 */
   private nextMilestone = 0;
@@ -54,7 +60,13 @@ export class Game {
   private readonly renderQuat = new Quaternion();
   private readonly candidates: number[] = [];
 
-  constructor(canvas: HTMLCanvasElement, private readonly hud: Hud, city: CityData | null = null) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    private readonly hud: Hud,
+    city: CityData | null = null,
+    private readonly rule: StageRule = DEFAULT_STAGE,
+  ) {
+    this.subtitle = new Subtitle(rule.name);
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
@@ -91,7 +103,7 @@ export class Game {
     }
 
     this.debris = new DebrisField(this.scene);
-    this.narrator = new Narrator(SEOUL, this.subtitle);
+    this.narrator = new Narrator(KING, this.subtitle);
     this.nextMilestone = this.ball.diameter * 2;
     this.telemetry = new Telemetry(this.ball.diameter);
     this.loop = new Loop(STEP, this.step, this.render);
@@ -118,6 +130,7 @@ export class Game {
     this.input.dispose();
     this.telemetry.dispose();
     this.subtitle.dispose();
+    this.result.dispose();
   }
 
   // ── 시뮬레이션: 항상 고정 dt ────────────────────────────────
@@ -158,6 +171,13 @@ export class Game {
 
     if (++this.ticks % CULL_INTERVAL === 0) this.ball.cullBuried();
 
+    // 스테이지 판정. **목표 달성을 먼저 본다** — 마지막 순간에 목표를 넘기며
+    // 시간이 다 되는 경우 실패로 보내면 화면에서 본 것과 결과가 어긋난다.
+    if (this.outcome === null) {
+      const verdict = judge(this.rule, this.ball.diameter, this.elapsed);
+      if (verdict !== null) this.finish(verdict);
+    }
+
     this.narrator.step(dt);
     this.sinceAbsorb += dt;
     // idle 대사는 쓰지 않는다. 재촉은 이 게임이 주려는 것과 반대다.
@@ -166,6 +186,19 @@ export class Game {
       this.narrator.fire('milestone', this.ball.diameter);
     }
   };
+
+  /**
+   * 판 종료. 루프를 멈추고 왕의 평가를 띄운다.
+   *
+   * `stop()`을 그대로 쓰지 않는 이유는 입력·자막을 거두면 결과 화면이
+   * 같이 사라지기 때문이다. 시뮬만 세우고 화면은 남긴다.
+   */
+  private finish(outcome: Exclude<StageOutcome, null>): void {
+    this.outcome = outcome;
+    this.loop.stop();
+    this.sfx.thud(outcome === 'cleared' ? 0.6 : 0.3);
+    this.result.show(this.rule, outcome, this.summary, KING);
+  }
 
   private resolveCollisions(): void {
     const p = this.ball.pivot.position;
@@ -338,6 +371,8 @@ export class Game {
       this.world.pool.drawCalls + this.ball.drawCalls + this.debris.count +
         (this.world.city?.drawCalls ?? 0) + 1,
       this.ball.visibleAttached,
+      this.rule.target,
+      this.rule.limit > 0 ? this.rule.limit - this.elapsed : null,
     );
   };
 

@@ -11,7 +11,15 @@ export class Hud {
   /** 다음 "두 배" 지점. 넘을 때마다 숫자가 한 번 튄다. */
   private nextMilestone = 0;
 
-  update(diameter: number, count: number, elapsed: number, drawCalls: number, attached = 0): void {
+  /**
+   * @param target    목표 지름(m). 원작 HUD의 절반이 이 숫자다
+   * @param remaining 남은 시간(초). `null`이면 무제한 스테이지 — 시계를 아예 안 띄운다
+   *                  (원작 1스테이지가 그렇다. 조작을 배우는 판에 시계를 붙이지 않는다)
+   */
+  update(
+    diameter: number, count: number, elapsed: number, drawCalls: number,
+    attached = 0, target = 0, remaining: number | null = null,
+  ): void {
     // DOM 쓰기는 값이 바뀔 때만. 매 프레임 textContent 대입은 레이아웃을 유발한다.
     if (this.nextMilestone === 0) this.nextMilestone = diameter * 2;
     if (diameter >= this.nextMilestone) {
@@ -27,9 +35,12 @@ export class Hud {
       this.sizeEl.textContent = size;
       this.lastSize = size;
     }
-    const mm = Math.floor(elapsed / 60);
-    const ss = String(Math.floor(elapsed % 60)).padStart(2, '0');
-    const stat = `${count} objects · ${mm}:${ss} · ${drawCalls} draws · ${attached} on surface`;
+    // 시계는 **남은 시간**을 보여준다. 경과 시간은 제한이 있는 판에서 아무 정보도 아니다.
+    const clock = remaining === null
+      ? `${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, '0')}`
+      : `남은 ${Math.floor(Math.max(0, remaining) / 60)}:${String(Math.floor(Math.max(0, remaining) % 60)).padStart(2, '0')}`;
+    const goal = target > 0 ? `목표 ${formatSize(target)} · ` : '';
+    const stat = `${goal}${clock} · ${count}개 · ${drawCalls} draws · ${attached} on surface`;
     if (stat !== this.lastStat) {
       this.statEl.textContent = stat;
       this.lastStat = stat;

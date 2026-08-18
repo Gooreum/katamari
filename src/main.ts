@@ -1,6 +1,7 @@
 import './styles.css';
 import { Game } from './game/Game';
 import { Hud } from './ui/Hud';
+import { stageFromSlug } from './game/Stage';
 import type { CityData } from './world/cityData';
 
 /**
@@ -46,12 +47,20 @@ async function boot(): Promise<void> {
     }
   }
 
+  // **OSM 표기는 OSM을 쓸 때만 단다.** ODbL이 요구하는 건 실제로 그 데이터를
+  // 쓸 때고, 손배치 스테이지에 붙여두면 그냥 거짓말이다.
+  const credit = document.getElementById('credit');
+  if (credit) credit.textContent = slug === 'house' ? '' : '지형 © OpenStreetMap contributors';
+
   const canvas = document.getElementById('view') as HTMLCanvasElement;
   if (!canvas) throw new Error('#view 캔버스를 찾을 수 없습니다');
 
   let game: Game;
   try {
-    game = new Game(canvas, new Hud(), city);
+    // ?stage=star2 로 고른다. 선택 화면은 아직 없다 — 원작 스테이지 선택 UI는
+    // 별자리·달까지 붙은 뒤에나 의미가 있고, 지금은 집 맵 하나뿐이다.
+    const rule = stageFromSlug(params.get('stage'));
+    game = new Game(canvas, new Hud(), city, rule);
     mark('Game 생성');
   } catch (err) {
     fatal('Game 생성', err);
