@@ -10,6 +10,8 @@
  * 위도 1도가 111km라 그대로 쓰면 도시가 찌그러지기 때문이다.
  */
 
+import type { RoomPlacement } from './generation';
+
 export type BuildingKind =
   | 'apartment'    // 아파트 동 — 좁은 바닥, 높음
   | 'lowrise'      // 빌라·다세대 — 3~5층
@@ -112,6 +114,13 @@ export interface CityData {
    * 필수로 만들면 그 파일들이 전부 스키마 위반이 된다.
    */
   readonly roads?: readonly CityRoad[];
+  /**
+   * 손배치 스테이지 전용 배치 규칙.
+   *
+   * 있으면 `World`가 도넛 공식 대신 **방 단위**로 물건을 깐다.
+   * OSM 도시에는 없다 — 거기서는 지금까지의 `placeCoef * size^placePower`가 맞다.
+   */
+  readonly placement?: { readonly rooms: readonly RoomPlacement[] };
 }
 
 // ─── 기하 유틸 ────────────────────────────────────────────────

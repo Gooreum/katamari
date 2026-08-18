@@ -178,6 +178,31 @@ export const LABEL_BUCKETS: readonly (readonly string[])[] = [
   ['포장마차 천막', '마을버스 승강장', '전봇대', '은행나무', '아크릴 간판', '승용차', '주차 차단기'],
 ];
 
+/**
+ * 방 하나의 배치 규칙. **손배치 스테이지 전용.**
+ *
+ * 도넛 공식(`placeCoef * size^placePower`)은 **경계 없는 평지**를 전제한다.
+ * 벽으로 막힌 방에서는 성립하지 않는다 — 3cm 물체가 3m 밖 복도에 떨어지면
+ * 거실에서 먹을 게 모자라 플레이어가 갇힌다.
+ *
+ * 그래서 크기 구간을 방에 **직접 못 박는다.** 사다리가 방마다 닫혀 있어야
+ * "방에서 다 먹고 문이 열린다"는 원작 리듬이 나온다.
+ *
+ * 렌더 정보(바닥색·이름)는 여기 없다. `generation.ts`는 THREE를 모르는 파일이고,
+ * 튜닝 스크립트가 게임과 **같은 숫자**를 읽는다는 규약이 그것에 달려 있다.
+ */
+export interface RoomPlacement {
+  readonly id: string;
+  /** 바닥 사각형 (x0, z0, x1, z1). 월드 좌표(m) */
+  readonly rect: readonly [number, number, number, number];
+  /** 이 방에 놓을 물체 크기 범위(m) */
+  readonly sizeMin: number;
+  readonly sizeMax: number;
+  readonly count: number;
+  /** 이 지름(m)에 도달해야 들어올 수 있는 방. 사다리 검사가 구간을 나눌 때 쓴다 */
+  readonly openAt: number;
+}
+
 export const GENERATION = {
   count: 1400,
 

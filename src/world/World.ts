@@ -68,8 +68,14 @@ export class World {
     const reach = cityData ? cityData.radius : 190;
     this.groundSize = reach * 2.6;
 
+    // **손배치 스테이지의 스폰은 건드리지 않는다.**
+    //
+    // `findClearSpawn`은 OSM 좌표가 석촌호수 한가운데일 수 있어서 만든 보정이다.
+    // 손으로 지은 방에서는 해악이다 — 여유 3m가 5.4m짜리 거실을 통째로
+    // "막힌 자리"로 판정해서 스폰을 집 밖 12m로 던져버린다.
+    // 작성자가 거실 중앙을 고른 것이면 거실 중앙이 맞다.
     if (cityData) {
-      const p = this.findClearSpawn(cityData);
+      const p = cityData.placement ? cityData.spawn : this.findClearSpawn(cityData);
       this.spawn.set(p.x, 0, p.z);
     }
 
