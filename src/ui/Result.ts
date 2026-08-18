@@ -1,5 +1,5 @@
 import type { Script } from '../narrative/Narrator';
-import type { StageOutcome, StageRule } from '../game/Stage';
+import { nextStage, type StageNav, type StageOutcome, type StageRule } from '../game/Stage';
 import { formatSize } from './Hud';
 
 export interface Summary {
@@ -25,7 +25,7 @@ export class Result {
 
   show(
     rule: StageRule, outcome: Exclude<StageOutcome, null>,
-    summary: Summary, script: Script,
+    summary: Summary, script: Script, nav?: StageNav,
   ): void {
     if (this.el) return;   // 두 번 띄우지 않는다
 
@@ -57,6 +57,20 @@ export class Result {
       .map((u) => `<dt>${u.label}</dt><dd>${escapeHtml(value(u.from))}</dd>`)
       .join('');
 
+    /**
+     * **다음 별은 깼을 때만 열린다.** 시간이 다 됐는데도 이어갈 수 있으면
+     * 제한시간이 아무 의미가 없어진다. 마지막 판이면 `nextStage`가 null이다.
+     */
+    const next = cleared ? nextStage(rule) : null;
+    // `nav`가 없는 경로(도구·테스트에서 화면만 확인)에서는 예전 힌트를 그대로 둔다.
+    const actions = nav ? `
+        <div class="result-actions">
+          <button class="btn" data-act="select">스테이지 선택</button>
+          <button class="btn" data-act="retry">다시</button>
+          ${next ? `<button class="btn primary" data-act="next">다음 별로 · ${escapeHtml(next.name)}</button>` : ''}
+        </div>`
+      : '<div class="result-hint"><kbd>R</kbd> 다시</div>';
+
     el.innerHTML = `
       <div class="result-card">
         <div class="result-head">${escapeHtml(rule.name)}</div>
@@ -65,11 +79,31 @@ export class Result {
         </div>
         <dl class="result-stats">${rows}</dl>
         <p class="result-king">${escapeHtml(verdict.text)}</p>
-        <div class="result-hint"><kbd>R</kbd> 다시</div>
+        ${actions}
       </div>`;
+
+    if (nav) {
+      // 위임. 버튼이 세 개뿐이지만 조건부로 하나가 빠지므로 개별 바인딩은 분기가 늘어난다.
+      el.addEventListener('click', (e) => {
+        switch ((e.target as HTMLElement).closest<HTMLElement>('.btn')?.dataset['act']) {
+          case 'next': if (next) nav.go(next); break;
+          case 'retry': nav.go(rule); break;
+          case 'select': nav.select(); break;
+        }
+      });
+    }
+
     document.body.appendChild(el);
     // 한 프레임 뒤에 클래스를 붙여야 전환이 돈다 (붙이자마자 주면 초기 상태가 없다)
-    requestAnimationFrame(() => el.classList.add('on'));
+    requestAnimationFrame(() => {
+      el.classList.add('on');
+      // 기본 동작에 포커스 — 깼으면 「다음 별로」, 아니면 「다시」. Enter 한 번으로 이어진다.
+      // 두 번 나눠 찾는 이유: `querySelector('a, b')`는 셀렉터 우선순위가 아니라
+      // **문서 순서**로 고른다. 「다시」가 앞에 있어서 한 줄로 쓰면 그게 잡힌다.
+      const pick = el.querySelector<HTMLButtonElement>('.btn.primary')
+        ?? el.querySelector<HTMLButtonElement>('[data-act="retry"]');
+      pick?.focus();
+    });
     this.el = el;
   }
 
