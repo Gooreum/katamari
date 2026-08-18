@@ -83,17 +83,19 @@ export function buildFacadeTexture(): CanvasTexture {
  * 오피스는 층고가 높고 창이 촘촘하고(커튼월), 빌라는 층고가 낮고 창이 성기다.
  *
  * 예전에는 실측값에 맞췄다 — 주거 층고 2.8~2.9m, 업무 3.8m가 한국 표준이다.
- * 심시티는 **비례를 과장한다.** 층고를 25% 키우면 같은 높이 건물의 층수가 그만큼 줄고,
- * 창 하나가 그만큼 커진다. 텍스처를 아무리 굵게 그려도 45m 건물에 층이 15겹이면
- * 눈높이 밖에서는 결국 뭉갠다 — 크게 보이게 하는 건 텍스처가 아니라 **층수**다.
- * 베이폭도 같이 키워서 가로 방향 창도 넓힌다.
+ * 심시티에서 25% 키웠고, 괴혼에서 한 번 더 키운다.
+ *
+ * **크게 보이게 하는 건 텍스처가 아니라 층수다.** 텍스처를 아무리 단순하게 그려도
+ * 45m 건물에 층이 11겹이면 눈높이 밖에서는 결국 격자로 뭉갠다.
+ * 원작 건물은 층이 몇 개 안 보인다 — 창은 벽에 찍힌 점 몇 개다.
+ * 베이폭도 같이 키워서 가로 방향 창 개수도 줄인다.
  */
 export const FACADE_SCALE: Record<BuildingKind, { readonly floor: number; readonly bay: number }> = {
-  apartment: { floor: 3.6, bay: 4.6 },
-  lowrise: { floor: 3.4, bay: 4.8 },
-  commercial: { floor: 4.4, bay: 4.0 },
-  civic: { floor: 4.6, bay: 5.4 },
-  retail: { floor: 4.0, bay: 4.4 },
+  apartment: { floor: 5.0, bay: 6.0 },
+  lowrise: { floor: 4.6, bay: 6.2 },
+  commercial: { floor: 5.6, bay: 5.4 },
+  civic: { floor: 6.0, bay: 7.0 },
+  retail: { floor: 5.2, bay: 5.8 },
 };
 
 /**
