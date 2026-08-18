@@ -67,6 +67,21 @@ export interface StageNav {
   select(): void;
 }
 
+/**
+ * `stage` 파라미터만 갈아끼운 쿼리 문자열. `id`가 `null`이면 빼는데,
+ * **`?stage` 없음 = 선택 화면**이 진입 규칙이라 그게 곧 "선택 화면으로"다.
+ *
+ * `district` 같은 나머지 파라미터는 그대로 둔다 — 지형을 고른 채 판만 옮긴다.
+ * `location`을 안 만지는 순수 함수라 브라우저 없이 검사할 수 있다.
+ */
+export function stageSearch(search: string, id: string | null): string {
+  const p = new URLSearchParams(search);
+  if (id === null) p.delete('stage');
+  else p.set('stage', id);
+  const q = p.toString();
+  return q ? `?${q}` : '';
+}
+
 /** 판이 끝난 이유. `null`이면 아직 진행 중. */
 export type StageOutcome = 'cleared' | 'timeup' | null;
 

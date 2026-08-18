@@ -19,6 +19,9 @@ import type { Script } from './Narrator';
 export const KING: Script = {
   id: 'king',
 
+  // 선택 화면. 왕은 별을 부순 쪽이면서도 순서를 정해주지 않는다.
+  select: '어느 별부터 주울 테냐. 짐은 순서에 관심이 없다만, 너는 있겠지.',
+
   lines: [
     // ── 시작 ────────────────────────────────────────────────
     { event: 'start', once: true, text: '짐이 어젯밤 조금 과했노라. 별이 전부 사라졌다. 네 탓은 아니다만, 네가 줍거라.' },

@@ -32,6 +32,8 @@ export interface Line {
 export interface Script {
   readonly id: string;
   readonly lines: readonly Line[];
+  /** 스테이지 선택 화면의 한 줄. 화자의 목소리는 이 파일 하나에만 둔다. */
+  readonly select: string;
   /** 결과 화면 문구 — 루프가 붙으면 쓴다 */
   readonly result: {
     readonly units: ReadonlyArray<{ label: string; from: 'diameter' | 'count' | 'biggest' | 'time' }>;
