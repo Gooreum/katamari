@@ -151,6 +151,20 @@ const SHAPE_INDEX = new Map<string, number>(
  *
  * 랜드마크는 없다. 집은 생활 물건의 밀도로 드러나야 한다.
  */
+/**
+ * 라벨 버킷이 덮는 크기 범위(m). **`GENERATION.sizeMax` 와 분리돼 있다.**
+ *
+ * 둘을 묶어놨더니 집 맵 상한(1.2m)에 맞춰 `sizeMax` 를 내리는 순간
+ * 잠실(도넛 경로) 길거리 상한이 7m → 2m 로 같이 내려가서 최소 건물(6m)과의
+ * 이음매가 끊겼다. `ladder -- --city jamsil` 이 "2m~5m 완전히 비어 있음"으로 잡았다.
+ *
+ * 라벨은 **물건의 정체**고 배치 범위는 **스테이지 설정**이다. 다른 것이다.
+ * 이 범위를 넘는 크기는 마지막 버킷으로 접힌다 — 잠실에 5m짜리 서랍장이
+ * 굴러다니게 되지만, 거긴 렌더 경로가 살아 있는지 보는 보조 모드다.
+ */
+export const LABEL_SIZE_MIN = 0.01;
+export const LABEL_SIZE_MAX = 1.2;
+
 export const LABEL_BUCKETS: readonly (readonly string[])[] = [
   // 1 ~ 2cm
   ['개미', '쌀알', '팥', '클립', '압정', '단추', '도장'],
@@ -205,11 +219,13 @@ export const GENERATION = {
    */
   sizeMin: 0.01,
   /**
-   * 집 맵의 제일 큰 물건은 서랍장·TV 급이다. 예전 5.0m(승용차·전봇대)는
-   * 동네 맵의 숫자였고, 지금 스테이지에는 그 크기의 물건이 존재하지 않는다.
-   * 이 값이 라벨 버킷 경계를 정하므로 실제 최대와 맞아야 한다.
+   * **도넛 배치(OSM 도시) 전용 상한.** 손배치 스테이지는 방마다 자기 범위를 갖는다.
+   *
+   * 이 값은 라벨 버킷 경계와 **무관하다** (`LABEL_SIZE_MAX` 참고).
+   * 예전에는 둘이 묶여 있어서, 집 맵에 맞춰 이걸 내리는 순간 잠실 사다리에
+   * 2m~5m 구멍이 뚫렸다.
    */
-  sizeMax: 1.2,
+  sizeMax: 5.0,
 
   /**
    * 배치 반경 = placeCoef * size^placePower, 도넛 안쪽은 innerRatio.
@@ -308,6 +324,10 @@ export function generateWorld(
   const retry = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   const specs: ObjectSpec[] = [];
   const logRatio = Math.log(g.sizeMax / g.sizeMin);
+  const labelRatio = Math.log(LABEL_SIZE_MAX / LABEL_SIZE_MIN);
+  /** 크기(m) → 라벨 축 위치 0~1. 범위를 벗어나면 양끝으로 접는다 */
+  const labelU = (m: number): number =>
+    Math.min(1, Math.max(0, Math.log(m / LABEL_SIZE_MIN) / labelRatio));
 
   /**
    * 물체 하나를 만든다. **위치를 정하는 방법만** 호출자가 넘긴다.
@@ -397,9 +417,9 @@ export function generateWorld(
       const [rx0, rz0, rx1, rz1] = room.rect;
       for (let n = 0; n < room.count; n++) {
         const base = room.sizeMin * Math.exp(logR * rand());
-        // 라벨 버킷은 **전역** 크기 축에서 고른다. 방 안의 상대 위치로 고르면
+        // 라벨 버킷은 **라벨 축**에서 고른다. 방 안의 상대 위치로 고르면
         // 화장실의 제일 큰 물건과 뒷마당의 제일 큰 물건이 같은 라벨을 받는다.
-        const u = Math.min(1, Math.max(0, Math.log(base / g.sizeMin) / logRatio));
+        const u = labelU(base);
         // 물체 반쪽만큼 벽에서 물러난다. 방 배치에서는 base 가 곧 **최대 변**이다
         // (아래 emit 이 종횡비를 정규화한다).
         const m = base / 2 + ROOM_MARGIN;
@@ -427,6 +447,8 @@ export function generateWorld(
     // 로그 균등: s = min * (max/min)^u
     const u = rand();
     const base = g.sizeMin * Math.exp(logRatio * u);
+    // 라벨은 **라벨 축**에서 고른다. 배치 범위(sizeMax)와 다른 축이다.
+    const lu = labelU(base);
 
     const outer = Math.min(Math.max(g.placeCoef * base ** g.placePower, g.placeMin), g.placeMax);
     const inner = outer * g.placeInnerRatio;
@@ -436,7 +458,7 @@ export function generateWorld(
     let dist = 0;
 
     emit(
-      u, base,
+      lu, base,
       () => {
         // 도넛 안에서 면적 균등 샘플링
         dist = Math.sqrt(inner * inner + rand() * (outer * outer - inner * inner));
