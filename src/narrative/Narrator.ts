@@ -16,6 +16,7 @@ export type NarrativeEvent =
   | 'bigAbsorb'  // 자기 몸통만 한 걸 삼킴
   | 'impact'     // 못 먹는 것에 세게 박음
   | 'shed'       // 충격으로 붙은 게 떨어짐
+  | 'gate'       // 크기가 차서 구역이 열림 — 원작의 "뒷마당 10cm"
   | 'idle';      // 한동안 아무것도 못 먹음
 
 export interface Line {
@@ -40,6 +41,9 @@ export interface Script {
 
 const PRIORITY: Record<NarrativeEvent, number> = {
   start: 3,
+  // 시작과 동급이다. 문이 열리는 건 흡수가 아니라 **사건**이고,
+  // 성장 곡선에서 가장 기억에 남는 지점이라 놓치면 안 된다.
+  gate: 3,
   impact: 2,
   shed: 2,
   bigAbsorb: 1,

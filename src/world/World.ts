@@ -8,7 +8,7 @@ import { SpatialHash } from './SpatialHash';
 import { generateWorld, GENERATION, PALETTE, type BlockedFn, type ObjectSpec } from './generation';
 import { buildShapeGeometries, withWhiteColors } from './shapes';
 import { City } from './City';
-import type { CityData } from './cityData';
+import type { CityData, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
 const CELL = 4;
@@ -91,15 +91,23 @@ export class World {
     const isBlocked = cityData ? this.buildBlocked(cityData) : undefined;
     const spawnX = this.spawn.x;
     const spawnZ = this.spawn.z;
+    // 손배치 스테이지는 **방이 배치를 전부 정한다.** 개수 스케일링도 placeMax도 안 쓴다 —
+    // 방마다 개수와 크기 범위를 직접 적어뒀고, 그게 곧 사다리다.
+    // 좌표도 이미 월드 기준이라 아래 스폰 오프셋에서 빠진다.
+    const rooms = cityData?.placement?.rooms;
     const specs: ObjectSpec[] = generateWorld(
       seed,
-      cityData ? {
+      rooms ? {} : cityData ? {
         count: Math.round(GENERATION.count * Math.min(3, reach / 190)),
         placeMax: reach,
       } : {},
       isBlocked && ((x, z) => isBlocked(x + spawnX, z + spawnZ)),
+      rooms,
     );
-    if (cityData) {
+    // 도넛 배치는 원점 기준으로 뽑으므로 스폰만큼 옮긴다.
+    // **방 배치는 이미 월드 좌표다** — 여기서 또 옮기면 방이 통째로 어긋난다.
+    // (지금 집 맵은 스폰이 (0,0)이라 티가 안 나지만, 스폰을 옮기는 순간 문다.)
+    if (cityData && !rooms) {
       for (const s of specs) { s.x += this.spawn.x; s.z += this.spawn.z; }
     }
 
@@ -167,7 +175,14 @@ export class World {
     }
     this.pool.flush();
 
-    scene.add(this.buildGround());
+    if (rooms) {
+      // 집 맵은 잔디 벌판이 아니다. 바탕 한 장(벽 밑·방 사이가 하늘로 뚫리지 않게)을
+      // 깔고 그 위에 방 바닥을 얹는다. 방 7개면 드로우콜 +8.
+      scene.add(this.buildFlatGround(0x7a6a4e));
+      for (const r of rooms) scene.add(this.buildRoomFloor(r));
+    } else {
+      scene.add(this.buildGround());
+    }
     if (this.city) scene.add(this.city.group);
   }
 
@@ -288,6 +303,38 @@ export class World {
   }
 
   get total(): number { return GENERATION.count; }
+
+  /**
+   * 방 바닥. 텍스처 없이 색면 하나 — 원작 실내 바닥이 그렇다.
+   *
+   * 5cm 공에게는 절대 크기 기준이 필요한데, 집 맵에서는 그 역할을 **가구와 방 경계**가
+   * 한다. 잔디의 1m 격자선 같은 장치를 실내에 깔면 다다미도 마루도 아닌 게 된다.
+   *
+   * y = 4mm. 바탕(0)보다 위, 수면(12mm)·도로(20mm)보다 아래 — 어차피 집 맵에는
+   * 물도 도로도 없지만 규약을 깨지 않는다.
+   */
+  private buildRoomFloor(room: StageRoom): Mesh {
+    const [x0, z0, x1, z1] = room.rect;
+    const mesh = new Mesh(
+      new PlaneGeometry(x1 - x0, z1 - z0),
+      new MeshLambertMaterial({ color: room.floor }),
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2);
+    mesh.name = `floor_${room.id}`;
+    return mesh;
+  }
+
+  /** 방 밑에 까는 바탕 한 장. 벽 두께 밑이나 방 사이 틈으로 하늘이 보이지 않게 한다. */
+  private buildFlatGround(color: number): Mesh {
+    const mesh = new Mesh(
+      new PlaneGeometry(this.groundSize, this.groundSize),
+      new MeshLambertMaterial({ color }),
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.name = 'ground';
+    return mesh;
+  }
 
   /**
    * 지면 — 도로가 **아닌** 곳. 블록 안쪽, 공원, 공터.

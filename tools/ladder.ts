@@ -16,26 +16,39 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { coveredByLandmark, displayHeight, extentOf, type CityData } from '../src/world/cityData';
 import { generateWorld, GENERATION } from '../src/world/generation';
+import { buildHouseStage } from '../src/world/stage.house';
 import { TUNING } from '../src/game/tuning';
 
 interface Item { size: number; source: 'street' | 'building' | 'landmark'; label: string }
 
 const slug = process.argv.includes('--city')
   ? process.argv[process.argv.indexOf('--city') + 1]!
-  : 'jamsil';
+  : 'house';
 
 let city: CityData;
-try {
-  city = JSON.parse(readFileSync(resolve(process.cwd(), `src/world/city.${slug}.json`), 'utf8'));
-} catch {
-  console.error(`src/world/city.${slug}.json 이 없습니다.`);
-  console.error('먼저 실행하세요:  npm run synth-city   또는   npm run fetch-city');
-  process.exit(1);
+if (slug === 'house') {
+  city = buildHouseStage();
+} else {
+  try {
+    city = JSON.parse(readFileSync(resolve(process.cwd(), `src/world/city.${slug}.json`), 'utf8'));
+  } catch {
+    console.error(`src/world/city.${slug}.json 이 없습니다.`);
+    console.error('먼저 실행하세요:  npm run synth-city   또는   npm run fetch-city');
+    process.exit(1);
+  }
 }
 
+// **도구가 게임과 다른 월드를 재면 사다리 숫자가 거짓말이 된다.**
+// 손배치 스테이지는 방이 배치를 정하므로 여기서도 같은 방 목록을 넘긴다.
 const items: Item[] = [];
-for (const s of generateWorld(1337)) items.push({ size: s.size, source: 'street', label: s.label });
+const place = city.placement;
+const specs = place
+  ? generateWorld(1337, {}, undefined, place.rooms)
+  : generateWorld(1337);
+for (const s of specs) items.push({ size: s.size, source: 'street', label: s.label });
 for (const b of city.buildings) {
+  // 벽·문은 먹으라고 있는 게 아니다. 사다리에 넣으면 없는 계단이 있다고 거짓말한다.
+  if (b.kind === 'wall' || b.kind === 'door') continue;
   // 게임이 보는 높이와 같아야 한다. 원본 높이로 재면 도구가 다른 도시를 잰다.
   const e = extentOf(b.outline, displayHeight(b));
   // City가 숨기는 건물은 사다리에서도 빼야 한다. 한쪽만 숨기면 도구가 거짓말을 한다 —
@@ -114,14 +127,24 @@ if (gaps.length === 0) {
   console.log('    · 상단이면         city.<slug>.json 의 landmarks 에 손으로 추가');
 }
 
-// 절차 생성 상한과 건물 하한이 만나는 지점 점검 — 두 층이 이어져야 한다
-const streetMax = Math.max(...items.filter((i) => i.source === 'street').map((i) => i.size));
-const buildingMin = Math.min(...items.filter((i) => i.source === 'building').map((i) => i.size));
-console.log(`\n  이음매: 길거리 최대 ${f(streetMax)}  →  건물 최소 ${f(buildingMin)}`);
-if (buildingMin > streetMax * 2) {
-  console.log(`  ⚠ 두 층 사이가 벌어져 있습니다. generation.ts 의 sizeMax 를 ${f(buildingMin / 1.5)} 근처로 올리세요.`);
+// 절차 생성 상한과 건물 하한이 만나는 지점 점검 — 두 층이 이어져야 한다.
+//
+// **건물 층이 없는 스테이지도 있다.** 집 맵의 건물은 벽과 문뿐이고 둘 다 먹으라고
+// 있는 게 아니라 위에서 걸러진다. 그때 buildingMin 은 Infinity 가 되는데,
+// 그걸 "이음매가 벌어졌다"고 경고하면 도구가 없는 문제를 만들어낸다.
+const streetItems = items.filter((i) => i.source === 'street');
+const buildingItems = items.filter((i) => i.source === 'building');
+const streetMax = Math.max(...streetItems.map((i) => i.size));
+if (buildingItems.length === 0) {
+  console.log(`\n  이음매: 건물 층이 없는 스테이지입니다 (길거리 최대 ${f(streetMax)}).`);
 } else {
-  console.log('  두 층이 이어집니다.');
+  const buildingMin = Math.min(...buildingItems.map((i) => i.size));
+  console.log(`\n  이음매: 길거리 최대 ${f(streetMax)}  →  건물 최소 ${f(buildingMin)}`);
+  if (buildingMin > streetMax * 2) {
+    console.log(`  ⚠ 두 층 사이가 벌어져 있습니다. generation.ts 의 sizeMax 를 ${f(buildingMin / 1.5)} 근처로 올리세요.`);
+  } else {
+    console.log('  두 층이 이어집니다.');
+  }
 }
 console.log(`\n  최대 흡수 가능 크기 = 지름 × ${TUNING.pickRatio}`);
 console.log(`  → ${f(biggest)} 짜리를 먹으려면 지름 ${f(biggest / TUNING.pickRatio)} 필요\n`);

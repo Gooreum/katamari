@@ -121,6 +121,14 @@ export class City {
    */
   private geometryCache = new Map<number, BufferGeometry>();
   /**
+   * 아직 안 열린 게이트의 entries 인덱스.
+   *
+   * 별도 목록을 두는 이유는 `openGates()`가 **매 프레임** 불리기 때문이다.
+   * entries 전체(잠실이면 6,340개)를 매번 훑을 수는 없다. 집 맵은 5개뿐이고,
+   * 다 열리면 배열이 비어서 조기 반환한다.
+   */
+  private gateEntries: number[] = [];
+  /**
    * 벽 머티리얼. **텍스처가 없다.**
    *
    * 예전에는 창 격자 텍스처 한 장을 도시 전체가 공유하고, 건물마다 uv 축척과
@@ -206,6 +214,8 @@ export class City {
         chunk,
         absorbed: false,
       }) - 1;
+      // gate 는 0도 유효한 값이다(처음부터 열린 문). falsy 검사를 쓰면 안 된다.
+      if (building.gate !== undefined) this.gateEntries.push(entryIndex);
       let members = this.chunkMembers.get(chunk);
       if (!members) this.chunkMembers.set(chunk, (members = []));
       members.push(entryIndex);
@@ -245,6 +255,32 @@ export class City {
     mesh.position.copy(e.center);
     mesh.updateMatrixWorld(true);
     return mesh;
+  }
+
+  /**
+   * 지름이 문턱을 넘긴 게이트를 연다. 열린 문 이름을 돌려준다.
+   *
+   * 흡수와 같은 경로다 — 청크에서 빼고 캐시를 버린다. 다른 점은 개별 메시를
+   * 만들지 않는다는 것뿐. 문은 공에 붙지 않고 그냥 **사라진다.**
+   * 원작에서 뒷마당이 10cm에 열리는 게 이거다.
+   *
+   * 뒤에서부터 훑는 이유는 `splice`로 지우면서 돌기 때문이다.
+   */
+  openGates(diameter: number): string[] {
+    if (this.gateEntries.length === 0) return [];
+    const opened: string[] = [];
+    for (let k = this.gateEntries.length - 1; k >= 0; k--) {
+      const i = this.gateEntries[k]!;
+      const e = this.entries[i]!;
+      if (diameter < e.building.gate!) continue;
+      e.absorbed = true;
+      this.dirty.add(e.chunk);
+      this.geometryCache.get(i)?.dispose();
+      this.geometryCache.delete(i);
+      opened.push(e.building.name ?? '문');
+      this.gateEntries.splice(k, 1);
+    }
+    return opened;
   }
 
   /** 렌더 직전 한 번. 더러워진 청크만 다시 굽는다. */

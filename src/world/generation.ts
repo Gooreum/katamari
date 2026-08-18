@@ -289,10 +289,17 @@ export type BlockedFn = (x: number, z: number) => boolean;
 const RETRY_ANGLE_ONLY = 24;
 const RETRY_MAX = 48;
 
+/**
+ * 방 안쪽으로 물러나는 고정 여유(m). 물체 반쪽(`base * 0.75`)에 더해서 쓴다.
+ * 벽 두께 절반 + 벽에 딱 붙어 박히지 않을 만큼.
+ */
+const ROOM_MARGIN = 0.06;
+
 export function generateWorld(
   seed = 1337,
   overrides: Partial<GenerationParams> = {},
   blocked?: BlockedFn,
+  rooms?: readonly RoomPlacement[],
 ): ObjectSpec[] {
   const g = { ...GENERATION, ...overrides };
   const rand = mulberry32(seed);
@@ -307,21 +314,38 @@ export function generateWorld(
   const specs: ObjectSpec[] = [];
   const logRatio = Math.log(g.sizeMax / g.sizeMin);
 
-  for (let n = 0; n < g.count; n++) {
-    // 로그 균등: s = min * (max/min)^u
-    const u = rand();
-    const base = g.sizeMin * Math.exp(logRatio * u);
-
+  /**
+   * 물체 하나를 만든다. **위치를 정하는 방법만** 호출자가 넘긴다.
+   *
+   * `drawPos`가 난수 스트림 한가운데서 불리는 게 의도적이다. 도넛 배치는
+   * 종횡비 다음에 dist·angle을 뽑았고, 그 **호출 순서를 바꾸면 시드가 같아도
+   * 월드가 통째로 달라져서** ladder/curve로 재둔 이전 값과 비교가 불가능해진다.
+   * 방 배치는 자기 스트림 위치에서 x·z를 뽑을 뿐 순서 규약은 그대로 따른다.
+   *
+   * @param u 전역 크기 축에서의 위치(0~1). 라벨 버킷이 이걸로 갈린다 —
+   *          방마다 크기 범위가 달라도 "이 크기면 이 물건"은 하나로 유지된다.
+   */
+  const emit = (
+    u: number, base: number,
+    drawPos: () => readonly [number, number],
+    retryPos?: (t: number) => readonly [number, number],
+    /**
+     * true면 종횡비를 정규화해서 **최대 변이 정확히 base** 가 된다.
+     *
+     * 도넛 배치에서는 `size`(최대 변)가 base × aspectMax 까지 커진다 — 넓은 평지라
+     * 상관없다. 방에서는 다르다: "이 방엔 40cm까지"라고 적었는데 60cm가 나오면
+     * 1.8m 복도에 안 들어간다. 방에서는 sizeMax 가 **실제 최대 변**을 뜻한다.
+     */
+    normalizeAspect = false,
+  ): void => {
     const aspect = () => g.aspectMin + rand() * (g.aspectMax - g.aspectMin);
-    const sx = base * aspect();
-    const sy = base * aspect();
-    const sz = base * aspect();
+    const a1 = aspect(), a2 = aspect(), a3 = aspect();
+    const k = normalizeAspect ? 1 / Math.max(a1, a2, a3) : 1;
+    const sx = base * a1 * k;
+    const sy = base * a2 * k;
+    const sz = base * a3 * k;
 
-    const outer = Math.min(Math.max(g.placeCoef * base ** g.placePower, g.placeMin), g.placeMax);
-    const inner = outer * g.placeInnerRatio;
-    // 도넛 안에서 면적 균등 샘플링
-    const dist = Math.sqrt(inner * inner + rand() * (outer * outer - inner * inner));
-    const angle = rand() * Math.PI * 2;
+    let [x, z] = drawPos();
 
     const bucket = Math.min(
       LABEL_BUCKETS.length - 1,
@@ -329,13 +353,11 @@ export function generateWorld(
     );
     const labels = LABEL_BUCKETS[bucket]!;
 
-    // 난수를 뽑는 **순서**를 바꾸지 않는다. 순서가 바뀌면 시드가 같아도 월드가 통째로
-    // 달라져서 ladder/curve 로 측정해둔 이전 값과 비교 자체가 불가능해진다.
-    // 원래 객체 리터럴이 rotY → geo → color → label 순으로 평가했으므로 그 순서 그대로 뽑는다.
+    // 난수를 뽑는 **순서**를 바꾸지 않는다 (위 주석 참고).
     // 라벨이 geo를 결정하니 조립만 뒤로 미룬다.
     const rotY = rand() * Math.PI * 2;
     const primitive = (rand() * GEOMETRY_COUNT) | 0;
-    // 색 난수는 **여기서** 뽑는다 — 위 주석대로 호출 순서를 바꾸면 안 되기 때문이다.
+    // 색 난수는 **여기서** 뽑는다 — 호출 순서를 바꾸면 안 되기 때문이다.
     // 쓰는 시점만 label 확정 뒤로 미룬다. 형태를 알아야 그 형태의 색을 고를 수 있다.
     const colorRoll = rand();
     const label = labels[(rand() * labels.length) | 0]!;
@@ -346,17 +368,10 @@ export function generateWorld(
       ? choices[(colorRoll * choices.length) | 0]!
       : (colorRoll * PALETTE.length) | 0;
 
-    let x = Math.cos(angle) * dist;
-    let z = Math.sin(angle) * dist;
     // 물 위·건물 안이면 다시 뽑는다. 버리지 않는다 — 개수가 줄면 밀도가 무너진다.
-    if (blocked !== undefined && blocked(x, z)) {
+    if (blocked !== undefined && retryPos !== undefined && blocked(x, z)) {
       for (let t = 0; t < RETRY_MAX; t++) {
-        const a2 = retry() * Math.PI * 2;
-        const d2 = t < RETRY_ANGLE_ONLY
-          ? dist
-          : Math.sqrt(inner * inner + retry() * (outer * outer - inner * inner));
-        x = Math.cos(a2) * d2;
-        z = Math.sin(a2) * d2;
+        [x, z] = retryPos(t);
         if (!blocked(x, z)) break;
       }
     }
@@ -373,6 +388,74 @@ export function generateWorld(
       volume: sx * sy * sz,
       label,
     });
+  };
+
+  // ── 방 배치 ────────────────────────────────────────────────
+  //
+  // 도넛 공식은 **경계 없는 평지**를 전제한다. 벽으로 막힌 방에서는 성립하지 않는다 —
+  // 3cm 물체가 3m 밖 복도에 떨어지면 거실에서 먹을 게 모자라 플레이어가 갇힌다.
+  if (rooms !== undefined) {
+    /** specs 인덱스 → 그 물체가 사는 방. 완화가 끝난 뒤 되밀어 넣을 때 쓴다 */
+    const owner: (readonly [number, number, number, number])[] = [];
+    for (const room of rooms) {
+      const logR = Math.log(room.sizeMax / room.sizeMin);
+      const [rx0, rz0, rx1, rz1] = room.rect;
+      for (let n = 0; n < room.count; n++) {
+        const base = room.sizeMin * Math.exp(logR * rand());
+        // 라벨 버킷은 **전역** 크기 축에서 고른다. 방 안의 상대 위치로 고르면
+        // 화장실의 제일 큰 물건과 뒷마당의 제일 큰 물건이 같은 라벨을 받는다.
+        const u = Math.min(1, Math.max(0, Math.log(base / g.sizeMin) / logRatio));
+        // 물체 반쪽만큼 벽에서 물러난다. 방 배치에서는 base 가 곧 **최대 변**이다
+        // (아래 emit 이 종횡비를 정규화한다).
+        const m = base / 2 + ROOM_MARGIN;
+        // 방이 여유보다 좁으면 가운데 한 점으로 접는다. 넓이가 음수가 되면
+        // 좌표가 뒤집혀서 물체가 방 밖에 놓인다.
+        const ax = Math.min(rx0 + m, (rx0 + rx1) / 2);
+        const bx = Math.max(rx1 - m, (rx0 + rx1) / 2);
+        const az = Math.min(rz0 + m, (rz0 + rz1) / 2);
+        const bz = Math.max(rz1 - m, (rz0 + rz1) / 2);
+        const pick = (r: () => number) => [ax + r() * (bx - ax), az + r() * (bz - az)] as const;
+        emit(u, base, () => pick(rand), () => pick(retry), true);
+        owner.push([ax, az, bx, bz]);
+      }
+    }
+    relaxOverlaps(specs, g.relaxIterations, blocked, (i) => {
+      const [ax, az, bx, bz] = owner[i]!;
+      const s = specs[i]!;
+      s.x = Math.min(bx, Math.max(ax, s.x));
+      s.z = Math.min(bz, Math.max(az, s.z));
+    });
+    return specs;
+  }
+
+  for (let n = 0; n < g.count; n++) {
+    // 로그 균등: s = min * (max/min)^u
+    const u = rand();
+    const base = g.sizeMin * Math.exp(logRatio * u);
+
+    const outer = Math.min(Math.max(g.placeCoef * base ** g.placePower, g.placeMin), g.placeMax);
+    const inner = outer * g.placeInnerRatio;
+    // 재배치가 참고해야 해서 밖에 둔다 — 앞쪽 RETRY_ANGLE_ONLY 회는 **각도만** 다시 뽑고
+    // 이 거리를 그대로 쓴다. placeCoef/placePower 로 튜닝한 반지름 분포가 곧 성장 곡선이라
+    // dist 를 흔들면 곡선이 흔들린다.
+    let dist = 0;
+
+    emit(
+      u, base,
+      () => {
+        // 도넛 안에서 면적 균등 샘플링
+        dist = Math.sqrt(inner * inner + rand() * (outer * outer - inner * inner));
+        const angle = rand() * Math.PI * 2;
+        return [Math.cos(angle) * dist, Math.sin(angle) * dist] as const;
+      },
+      (t) => {
+        const a2 = retry() * Math.PI * 2;
+        const d2 = t < RETRY_ANGLE_ONLY
+          ? dist
+          : Math.sqrt(inner * inner + retry() * (outer * outer - inner * inner));
+        return [Math.cos(a2) * d2, Math.sin(a2) * d2] as const;
+      },
+    );
   }
 
   // 위치만 민다. 개수·크기·색·라벨은 여기서 절대 안 바뀐다.
@@ -416,6 +499,16 @@ function relaxOverlaps(
   specs: ObjectSpec[],
   iterations: number,
   blocked?: BlockedFn,
+  /**
+   * 물체 i를 자기 구역 안으로 되밀어 넣는다. 방 배치 전용.
+   *
+   * **완화는 경계를 모른다.** 그냥 겹친 쌍을 서로 밀 뿐이라, 5.4m 거실에 430개를
+   * 넣으면 벽을 뚫고 복도·집 밖까지 퍼진다 (실측 1,480개 중 1,250개 이탈).
+   * `blocked`로는 못 막는다 — 벽 너머 빈 공간은 "막힌 자리"가 아니기 때문이다.
+   * 그래서 **반복마다** 접어 넣는다. 마지막에 한 번만 접으면 그 접힘이
+   * 새 겹침을 만들고 완화할 기회가 없다.
+   */
+  confine?: (i: number) => void,
 ): number {
   if (iterations <= 0) return 0;
   // 완화 전 위치. 이 좌표들은 이미 blocked 를 통과한 상태다.
@@ -488,6 +581,10 @@ function relaxOverlaps(
           moved++;
         }
       }
+    }
+
+    if (confine !== undefined) {
+      for (let i = 0; i < specs.length; i++) if (next[i] === 1) confine(i);
     }
 
     resolved += moved;

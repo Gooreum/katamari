@@ -1,5 +1,4 @@
-import type { CityBuilding, CityData } from './cityData';
-import type { RoomPlacement } from './generation';
+import type { CityBuilding, CityData, StageRoom } from './cityData';
 
 /**
  * 원작 塊魂(2004)의 **타케다 저택 1층**.
@@ -77,16 +76,6 @@ const R_YARD: Rect = [-4.0, 3.45, 4.0, 9.45];
 type Rect = readonly [number, number, number, number];
 
 /**
- * 방 하나. 렌더(바닥색)와 배치(크기 범위·개수)를 **같은 사각형**에서 읽는다.
- * 둘이 따로 놀면 바닥은 깔렸는데 물건이 벽 밖에 놓이는 종류의 버그가 난다.
- */
-export interface HouseRoom extends RoomPlacement {
-  readonly name: string;
-  /** 바닥색 */
-  readonly floor: number;
-}
-
-/**
  * 방 목록. **순서가 곧 바닥을 까는 순서다** — 뒤가 위로 온다.
  *
  * 크기 범위는 원작 아이템 실측에 맞췄다. 거실이 28cm까지인 건
@@ -96,7 +85,7 @@ export interface HouseRoom extends RoomPlacement {
  * 개수는 방 넓이에 대충 비례하되 **거실을 두껍게** 준다. 원작 1스테이지가
  * 거실에서만 5cm → 10cm를 만들어야 해서, 여기 밀도가 곧 초반 재미다.
  */
-export const HOUSE_ROOMS: readonly HouseRoom[] = [
+export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'living', name: '거실', rect: R_LIVING, floor: 0xd6d8a6, sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0 },
   { id: 'hall', name: '복도', rect: R_HALL, floor: 0xc08b4e, sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL },
   { id: 'kids', name: '아이 방', rect: R_KIDS, floor: 0xd6d8a6, sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS },

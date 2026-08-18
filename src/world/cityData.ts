@@ -12,6 +12,19 @@
 
 import type { RoomPlacement } from './generation';
 
+/**
+ * 스테이지의 방 하나.
+ *
+ * 배치 규칙(`RoomPlacement`)에 **렌더 정보**를 얹은 것이다. 배치 숫자는
+ * `generation.ts`가 갖고(튜닝 스크립트와 공유해야 하므로), 바닥색·이름처럼
+ * 화면에만 쓰는 건 스키마인 여기가 갖는다.
+ */
+export interface StageRoom extends RoomPlacement {
+  readonly name: string;
+  /** 바닥색(0xRRGGBB). 원작 실내 바닥은 텍스처가 아니라 색면 하나다 */
+  readonly floor: number;
+}
+
 export type BuildingKind =
   | 'apartment'    // 아파트 동 — 좁은 바닥, 높음
   | 'lowrise'      // 빌라·다세대 — 3~5층
@@ -120,7 +133,7 @@ export interface CityData {
    * 있으면 `World`가 도넛 공식 대신 **방 단위**로 물건을 깐다.
    * OSM 도시에는 없다 — 거기서는 지금까지의 `placeCoef * size^placePower`가 맞다.
    */
-  readonly placement?: { readonly rooms: readonly RoomPlacement[] };
+  readonly placement?: { readonly rooms: readonly StageRoom[] };
 }
 
 // ─── 기하 유틸 ────────────────────────────────────────────────
