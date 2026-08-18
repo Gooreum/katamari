@@ -70,28 +70,37 @@ export class Game {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
-    this.scene.background = new Color(0x9ad7f0);
+    // 하늘. 실내에서도 창 밖·문 너머로 보이므로 밝게 둔다.
+    this.scene.background = new Color(0x86cdf0);
 
-    // **반구광이 지배해야 한다.** 괴혼은 그림자 대비가 거의 없는 부드러운 빛이다.
-    // 심시티 전환 때 "반구광이 지배하면 입체가 사라진다"며 태양을 올렸는데(0.72/0.95),
-    // 그건 면 대비를 세우려는 목적이었고 괴혼은 반대다. 되돌린다.
-    //
-    // 세기 1.95는 재서 정했다. 1.00으로는 태양을 안 보는 벽이 반구광만 받아
-    // 팔레트(#8fc4dd)의 40% 밝기(#4d6363)로 나왔다 — 공 눈높이에서 보이는 게 그 벽이다.
-    // 1.95에서 #6a8787이 되고, 완전 포화(255) 픽셀은 0.00%다.
-    // 아래쪽 색은 초록 지면의 반사광이라 지면 팔레트와 계열을 맞춘다.
-    this.scene.add(new HemisphereLight(0xffffff, 0xbfd6a8, 1.95));
-    const sun = new DirectionalLight(0xfff6e4, 0.45);
+    /**
+     * **반구광이 지배하되 태양이 면을 갈라놓는다.**
+     *
+     * 세 안(hemi 1.80/1.95/1.35 × sun 0.55/0.45/0.95)을 렌더로 비교했다.
+     * 앞의 둘은 반구광이 너무 강해서 물건이 자기 그림자를 못 갖고, 밀집한 실내에서
+     * 소품 수백 개가 한 덩어리 얼룩으로 뭉갰다. 태양을 0.95까지 올린 이 값이
+     * 물건 하나하나를 덩어리로 읽히게 한다 — 그러면서도 그림자 대비는 여전히 낮다.
+     *
+     * 아래쪽 색은 바닥 반사광이라 다다미 팔레트와 계열을 맞춘다.
+     */
+    this.scene.add(new HemisphereLight(0xffffff, 0xd7e8bc, 1.35));
+    const sun = new DirectionalLight(0xfff6e4, 0.95);
     sun.position.set(1, 2.2, 1.4);
     this.scene.add(sun);
 
     this.world = new World(this.scene, city);
-    // 안개 거리는 지역 크기에 맞춰야 한다. 고정값이면 도시가 통째로 안 보인다.
-    //
-    // **채도를 죽이는 건 팔레트가 아니라 안개다.** 예전에는 0.16(약 1,165m)부터 껴서
-    // 눈높이에서 보이는 건물 대부분이 이미 안개 속이었다 — 팔레트를 아무리 올려도
-    // 화면에서는 회청색으로 수렴했다. 이제는 먼 배경을 하늘에 녹이는 용도로만 남긴다.
-    this.scene.fog = new Fog(0xbfe6f7, this.world.groundSize * 0.40, this.world.groundSize * 1.15);
+    /**
+     * 안개는 **먼 배경을 하늘에 녹이는 용도로만** 남긴다.
+     *
+     * 잠실은 반경 2.8km라 안개 없이는 지평선이 칼로 자른 듯 끊긴다.
+     * 집 맵은 12m다 — 그 거리에 안개가 낄 이유가 없고, 걸면 방 안이 뿌예진다.
+     * 원작 실내 화면에는 안개가 없다.
+     */
+    if (this.world.groundSize > 1200) {
+      this.scene.fog = new Fog(
+        0xbfe6f7, this.world.groundSize * 0.40, this.world.groundSize * 1.15,
+      );
+    }
     this.ball = new Katamari(this.scene);
     this.ball.pivot.position.set(this.world.spawn.x, this.ball.radius, this.world.spawn.z);
     this.ball.prevPos.copy(this.ball.pivot.position);

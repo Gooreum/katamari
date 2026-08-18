@@ -40,10 +40,17 @@ const FENCE_H = 1.2;
 
 // ─── 색 (원작 톤: 나무·회벽·다다미) ──────────────────────────
 
-const C_WALL = 0xf2e8d5;   // 회벽
-const C_PILLAR = 0xa9763f; // 기둥·문틀 나무
-const C_DOOR = 0xf7f1e0;   // 장지문 창호지
-const C_FENCE = 0x9c6b3c;  // 판자 담장
+/**
+ * 재료색. **원작 화면색이지 실물색이 아니다.**
+ *
+ * 실제 회벽·삼나무·창호지 색(0xf2e8d5 / 0xa9763f / 0xf7f1e0)으로도 렌더해봤는데
+ * 실내가 통째로 크림색 한 덩어리가 됐다. 원작 실내가 알록달록한 건 물건 때문만이
+ * 아니라 **면 자체가 색을 갖기** 때문이라, 채도를 올리고 명도를 벌린다.
+ */
+const C_WALL = 0xfbf0d2;   // 회벽
+const C_PILLAR = 0xc2762c; // 기둥·문틀 나무
+const C_DOOR = 0xfffaea;   // 장지문 창호지
+const C_FENCE = 0xc07d33;  // 판자 담장
 
 // ─── 구역 개방 지름 (m) ──────────────────────────────────────
 
@@ -85,14 +92,22 @@ type Rect = readonly [number, number, number, number];
  * 개수는 방 넓이에 대충 비례하되 **거실을 두껍게** 준다. 원작 1스테이지가
  * 거실에서만 5cm → 10cm를 만들어야 해서, 여기 밀도가 곧 초반 재미다.
  */
+/** 바닥색. 벽과 같은 규칙 — 재료색이 아니라 화면색이다. */
+const F_TATAMI = 0xc8d27a;
+const F_WOOD = 0xcf9042;
+const F_TILE = 0xeceadf;
+const F_BATH = 0xa8d4e0;
+const F_PORCH = 0xbf8038;
+const F_DIRT = 0x9c7b48;
+
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: 0xd6d8a6, sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0 },
-  { id: 'hall', name: '복도', rect: R_HALL, floor: 0xc08b4e, sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: 0xd6d8a6, sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS },
-  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: 0xdfdcd0, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS },
-  { id: 'bath', name: '화장실', rect: R_BATH, floor: 0xcadde2, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS },
-  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: 0xb07c42, sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: 0x9b7d55, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0 },
+  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS },
+  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS },
+  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS },
+  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────

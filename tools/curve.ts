@@ -10,6 +10,18 @@
  */
 import { generateWorld, GENERATION, type GenerationParams, type ObjectSpec } from '../src/world/generation';
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '../src/game/tuning';
+import { buildHouseStage } from '../src/world/stage.house';
+import { HOUSE_STAGES } from '../src/game/Stage';
+
+/**
+ * 기본 스테이지의 방 배치. **게임과 같은 월드를 재야 한다** —
+ * 도넛 공식으로 재면 지금은 존재하지도 않는 월드의 곡선을 보고 튜닝하게 된다.
+ *
+ * `--donut` 을 주면 예전처럼 경계 없는 평지를 잰다 (OSM 도시 경로 비교용).
+ */
+const ROOMS = process.argv.includes('--donut')
+  ? undefined
+  : buildHouseStage().placement?.rooms;
 
 interface Sample { t: number; diameter: number; eaten: number }
 
@@ -125,7 +137,7 @@ function bar(value: number, max: number, width = 26): string {
 }
 
 function report(label: string, overrides: Partial<GenerationParams> = {}): Result {
-  const specs = generateWorld(1337, overrides);
+  const specs = generateWorld(1337, overrides, undefined, ROOMS);
   const r = simulate(specs);
   const rows = doublings(r.samples);
   const maxDt = Math.max(...rows.map((x) => x.dt), 1);
@@ -144,6 +156,16 @@ function report(label: string, overrides: Partial<GenerationParams> = {}): Resul
   const cv = Math.sqrt(dts.reduce((a, b) => a + (b - mean) ** 2, 0) / (dts.length || 1)) / mean;
 
   console.log(`\n  최종 ${fmt(r.finalDiameter)} · ${r.eaten}/${r.total}개 · ${r.samples.at(-1)!.t.toFixed(0)}초`);
+  // **스테이지 목표에 언제 닿는가.** 곡선이 매끄러워도 3분 안에 10cm를 못 만들면
+  // 그 스테이지는 클리어가 불가능하다. CV보다 이게 먼저 봐야 할 숫자다.
+  for (const stage of HOUSE_STAGES) {
+    const hit = r.samples.find((x) => x.diameter >= stage.target);
+    const limit = stage.limit > 0 ? `${stage.limit}초` : '무제한';
+    console.log(hit
+      ? `  ${stage.name}: ${fmt(stage.target)} 도달 ${hit.t.toFixed(0)}초 / 제한 ${limit}`
+      + (stage.limit > 0 && hit.t > stage.limit ? '  ⚠ 제한 초과' : '')
+      : `  ${stage.name}: ${fmt(stage.target)} **도달 실패**`);
+  }
   console.log(`  두 배 소요시간 편차(CV): ${cv.toFixed(3)}   ← 낮을수록 곡선이 매끄럽다`);
   if (r.stalledAt !== null) {
     console.log(`  ⚠ 막힘: ${fmt(r.stalledAt)} 짜리를 못 먹고 멈춤`);
@@ -167,7 +189,7 @@ if (process.argv.includes('--sweep')) {
 }
 
 if (process.argv.includes('--csv')) {
-  const specs = generateWorld(1337);
+  const specs = generateWorld(1337, {}, undefined, ROOMS);
   const r = simulate(specs);
   console.log('\nt,diameter,eaten');
   for (const s of r.samples) {
