@@ -329,6 +329,121 @@ kbd {
   text-align: right;
 }
 
+/* 스테이지 선택 — 결과 카드와 같은 오버레이·카드 규칙을 그대로 쓴다 */
+.select {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 14, 34, .55);
+  opacity: 0;
+  transition: opacity .35s ease;
+  z-index: 30;
+}
+
+.select.on { opacity: 1 }
+
+.select-card {
+  width: min(420px, 100%);
+  padding: 26px 28px 22px;
+  border-radius: 14px;
+  background: #fdf8ec;
+  color: #2a2320;
+  box-shadow: 0 18px 48px rgba(20, 14, 34, .4);
+  transform: translateY(10px);
+  transition: transform .35s cubic-bezier(.2, 1.2, .4, 1);
+}
+
+.select.on .select-card { transform: none }
+
+.select-head {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+/* 왕의 말. 결과 화면과 같은 자리에서 같은 목소리로 읽혀야 한다 */
+.select-king {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #6b6058;
+  text-wrap: balance;
+}
+
+.select-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.select-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(42, 35, 32, .14);
+  border-radius: 10px;
+  background: #fffdf7;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.select-row:hover:not(:disabled) { border-color: #d9a441; background: #fff8e6 }
+.select-row:active:not(:disabled) { transform: translateY(1px) }
+.select-row:focus-visible { outline: 2px solid #d9a441; outline-offset: 2px }
+
+.select-star { font-size: 15px; text-align: center; color: #d9a441 }
+.select-name { font-size: 14px; font-weight: 600 }
+.select-meta { font-size: 11px; color: #8a7f75; font-variant-numeric: tabular-nums }
+
+/* 잠긴 판. 못 누른다는 걸 색으로도 커서로도 말한다 */
+.select-row.locked {
+  opacity: .45;
+  cursor: not-allowed;
+  background: #f4efe4;
+}
+
+/* 결과 화면 버튼 — 「다음 별로」가 기본 동작이라 오른쪽 끝에 둔다 */
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.btn {
+  padding: 9px 14px;
+  border: 1px solid rgba(42, 35, 32, .18);
+  border-radius: 8px;
+  background: #fffdf7;
+  color: #2a2320;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.btn:hover { border-color: #d9a441; background: #fff8e6 }
+.btn:active { transform: translateY(1px) }
+.btn:focus-visible { outline: 2px solid #d9a441; outline-offset: 2px }
+
+.btn.primary {
+  border-color: transparent;
+  background: #d9a441;
+  color: #2a2320;
+  font-weight: 600;
+}
+
+.btn.primary:hover { background: #e6b355 }
+
 @media (prefers-reduced-motion: reduce) {
-  .result, .result-card { transition: none }
+  .result, .result-card, .select, .select-card, .select-row, .btn { transition: none }
 }

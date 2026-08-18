@@ -79,8 +79,11 @@ export class Result {
   }
 }
 
-/** 라벨·물체 이름이 대본에서 오므로 그대로 innerHTML 에 넣지 않는다. */
-function escapeHtml(s: string): string {
+/**
+ * 라벨·물체 이름이 대본에서 오므로 그대로 innerHTML 에 넣지 않는다.
+ * `StageSelect`도 같은 규칙이 필요해서 export 한다 — 복붙하면 한쪽만 고쳐진다.
+ */
+export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!
   ));
