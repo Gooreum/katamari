@@ -3,8 +3,8 @@
  *
  * 원작 塊魂은 한 맵을 계속 굴리는 게 아니라 **스테이지가 여러 개**다.
  * 각각 목표 크기와 제한시간이 있고, 끝나면 왕이 평가한다.
- * **맵도 판마다 다르다** — 1번은 타케다 저택 거실, 2번은 저택 전체,
- * 3번은 동네(Pigeon Town)다. 어느 구역인지는 `area`가 들고 있다.
+ * **맵도 판마다 다르다** — 1번은 타케다 저택 거실, 2·4번은 저택 전체,
+ * 3·5번은 동네(Pigeon Town)다. 어느 구역인지는 `area`가 들고 있다.
  */
 
 /**
@@ -34,21 +34,35 @@ export interface StageRule {
 }
 
 /**
- * 원작 값.
+ * 원작 값. 다섯 판이 **두 맵을 재사용**한다 — 1·2·4는 타케다 저택, 3·5는 동네.
  *
- * **3번 제한시간을 480 → 540초로 고쳤다.** 지난번에는 검색 요약이 8분/9분으로
- * 엇갈려서 보류했는데, 이번에 독립 검색 3회가 전부 9분이었고 목표 50cm는
- * 처음부터 일관됐다. 같은 조사에서 3번의 무대가 동네 맵인 것도 확정됐다.
+ * 이름이 `HOUSE_STAGES`였는데 절반이 동네라 이미 거짓말이었다. `STAGES`로 고쳤다.
  *
- * 이름은 「집 스테이지」가 아니라 그냥 원작 1~3이다 — 3번은 집이 아니다.
+ * ## 시작 크기 — 아직 5cm 하나뿐이다
+ *
+ * 조사에서 **6·7번이 "Starting Size 50cm"로 명시**된 걸 찾았다. 스테이지별 시작
+ * 크기가 실제로 있다는 뜻이다. 그런데 **4·5번의 값은 어느 자료에도 없다.**
+ * 그래서 이번에도 전부 5cm로 둔다 — 지어내지 않는다.
+ * `StageRule.start`는 6·7번(50cm)을 만들 때 넣으면 된다.
+ *
+ * ## 5번 목표는 2m70cm다 — 2m80cm가 아니다
+ *
+ * 여러 곳에 "Make a Star 5는 2m80cm"라고 나오는데 그건 **최고 평가 기준**이다.
+ * 같은 출처가 2번을 "37cm"라고 하는데 2번 목표는 20cm다. 제한시간도 마찬가지로
+ * "8분"은 슈팅스타 조건이고 실제 제한은 13:00이다.
  */
-export const HOUSE_STAGES: readonly StageRule[] = [
+export const STAGES: readonly StageRule[] = [
   { id: 'star1', name: '별을 만들어라 1', target: 0.10, limit: 0, area: 'living' },
   { id: 'star2', name: '별을 만들어라 2', target: 0.20, limit: 360, area: 'house' },
   { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 540, area: 'town' },
+  { id: 'star4', name: '별을 만들어라 4', target: 1.00, limit: 600, area: 'house' },
+  { id: 'star5', name: '별을 만들어라 5', target: 2.70, limit: 780, area: 'town' },
 ];
 
-export const DEFAULT_STAGE = HOUSE_STAGES[0]!;
+/** 옛 이름. 도구·기존 e2e가 아직 쓴다 — 같은 배열을 가리킨다. */
+export const HOUSE_STAGES = STAGES;
+
+export const DEFAULT_STAGE = STAGES[0]!;
 
 /**
  * `?stage=star2` → 규칙. 모르는 값이면 1번.
@@ -57,12 +71,12 @@ export const DEFAULT_STAGE = HOUSE_STAGES[0]!;
  * 잠금은 선택 화면의 규칙이지 실행 금지가 아니고, 도구·e2e가 이 문으로 들어온다.
  */
 export function stageFromSlug(slug: string | null): StageRule {
-  return HOUSE_STAGES.find((s) => s.id === slug) ?? DEFAULT_STAGE;
+  return STAGES.find((s) => s.id === slug) ?? DEFAULT_STAGE;
 }
 
 /** 목록에서의 위치. 목록에 없으면 -1 */
 export function stageIndex(rule: StageRule): number {
-  return HOUSE_STAGES.findIndex((s) => s.id === rule.id);
+  return STAGES.findIndex((s) => s.id === rule.id);
 }
 
 /**
@@ -71,7 +85,7 @@ export function stageIndex(rule: StageRule): number {
  */
 export function nextStage(rule: StageRule): StageRule | null {
   const i = stageIndex(rule);
-  return i < 0 ? null : HOUSE_STAGES[i + 1] ?? null;
+  return i < 0 ? null : STAGES[i + 1] ?? null;
 }
 
 /**
