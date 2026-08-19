@@ -1,5 +1,9 @@
 import type { CityBuilding, CityData, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
+import {
+  piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
+  type PieceOpts, type SlabStyle,
+} from './stage.kit';
 
 /**
  * 원작 塊魂(2004)의 **타케다 저택 1층**.
@@ -117,104 +121,37 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
 // ─── 기하 ────────────────────────────────────────────────────
 
 /**
- * 선분 (x0,z0)→(x1,z1) 을 두께 t로 부풀린 사각 외곽선.
- *
- * 축정렬 선분만 받는다. 집 벽은 전부 축정렬이고, 비스듬한 벽을 지원하면
- * 법선 계산이 필요해지는데 쓸 데가 없다.
+ * 이 집의 치수. 계산은 `stage.kit.ts` 가 하고 여기서는 **상수만 묶는다** —
+ * 동네 담장(0.18m·1.0m)과 호수 연석(0.30m·0.45m)이 같은 함수를 써야 해서
+ * 치수가 인자로 빠졌다.
  */
-function slab(x0: number, z0: number, x1: number, z1: number, t: number): CityBuilding['outline'] {
-  const h = t / 2;
-  // 가로 벽이면 z를, 세로 벽이면 x를 부풀린다
-  const horizontal = Math.abs(x1 - x0) >= Math.abs(z1 - z0);
-  const [ax, az, bx, bz] = horizontal
-    ? [Math.min(x0, x1), z0 - h, Math.max(x0, x1), z0 + h]
-    : [x0 - h, Math.min(z0, z1), x0 + h, Math.max(z0, z1)];
-  return [[ax, az], [bx, az], [bx, bz], [ax, bz]];
-}
+const WALL: SlabStyle = { t: WALL_T, h: WALL_H, color: C_WALL };
+const DOOR: SlabStyle = { t: WALL_T, h: DOOR_H, color: C_DOOR };
 
-interface SlabOpts {
-  readonly t?: number;
-  readonly h?: number;
-  readonly color?: number;
-  readonly kind?: 'wall' | 'door';
-  readonly gate?: number;
-  readonly name?: string;
-}
+type SlabOpts = PieceOpts;
 
 function piece(x0: number, z0: number, x1: number, z1: number, o: SlabOpts = {}): CityBuilding {
-  return {
-    outline: slab(x0, z0, x1, z1, o.t ?? WALL_T),
-    height: o.h ?? WALL_H,
-    kind: o.kind ?? 'wall',
-    color: o.color ?? C_WALL,
-    ...(o.gate !== undefined ? { gate: o.gate } : {}),
-    ...(o.name !== undefined ? { name: o.name } : {}),
-  };
+  return kitPiece(x0, z0, x1, z1, WALL, o);
 }
 
 /**
- * 문이 뚫린 벽 한 장. 벽을 두 토막으로 자르고 그 사이에 문짝을 세운다.
- *
- * **문짝을 벽에 얹지 않고 벽을 잘라내는 이유**: 문이 열리면(= 문짝 건물이 사라지면)
- * 그 자리가 뻥 뚫려야 한다. 벽 위에 덧대면 문이 사라져도 뒤에 벽이 남는다.
+ * 문이 뚫린 벽 한 장.
  *
  * `gate` 불변식(`gate < size / pickRatio`)은 여기서 자동으로 지켜진다 —
  * 문짝 폭이 최소 0.6m라 size가 최소 1.8m(DOOR_H)이고,
  * 가장 큰 개방값 0.10m 는 1.8 / 0.85 = 2.12m 보다 한참 작다.
- *
- * @param at 문 중심의 축 좌표 (가로 벽이면 x, 세로 벽이면 z)
- * @param w  문 폭(m)
  */
 function wallWithDoor(
   x0: number, z0: number, x1: number, z1: number,
   at: number, w: number, gate: number, name: string,
   o: SlabOpts = {},
 ): CityBuilding[] {
-  const horizontal = Math.abs(x1 - x0) >= Math.abs(z1 - z0);
-  const lo = at - w / 2;
-  const hi = at + w / 2;
-  const parts: CityBuilding[] = [];
-
-  // **문이 벽 구간 안에 있어야 한다.**
-  // 이걸 안 잡으면 문짝만 허공에 서고 그 자리에 벽이 없어서 집이 통째로 샌다.
-  // 실제로 부엌·화장실을 복도 구간 밖에 두는 바람에 8cm에서 집 밖으로 나갈 수 있었고,
-  // 화면상으로는 멀쩡해 보였다 — 도달 범위 검사(scratch reach.ts)가 잡았다.
-  const [segLo, segHi] = horizontal
-    ? [Math.min(x0, x1), Math.max(x0, x1)]
-    : [Math.min(z0, z1), Math.max(z0, z1)];
-  if (lo < segLo - 1e-9 || hi > segHi + 1e-9) {
-    throw new Error(
-      `${name}: 문(${lo.toFixed(2)}~${hi.toFixed(2)})이 벽 구간(${segLo.toFixed(2)}~${segHi.toFixed(2)}) 밖이다`,
-    );
-  }
-
-  if (horizontal) {
-    const a = Math.min(x0, x1), b = Math.max(x0, x1);
-    if (lo - a > 0.01) parts.push(piece(a, z0, lo, z0, o));
-    if (b - hi > 0.01) parts.push(piece(hi, z0, b, z0, o));
-    parts.push(piece(lo, z0, hi, z0, {
-      ...o, h: DOOR_H, kind: 'door', color: C_DOOR, gate, name,
-    }));
-  } else {
-    const a = Math.min(z0, z1), b = Math.max(z0, z1);
-    if (lo - a > 0.01) parts.push(piece(x0, a, x0, lo, o));
-    if (b - hi > 0.01) parts.push(piece(x0, hi, x0, b, o));
-    parts.push(piece(x0, lo, x0, hi, {
-      ...o, h: DOOR_H, kind: 'door', color: C_DOOR, gate, name,
-    }));
-  }
-  return parts;
+  return kitWallWithDoor(x0, z0, x1, z1, at, w, gate, name, WALL, DOOR, o);
 }
 
 /** 모서리 기둥. 벽이 만나는 자리에 세워 실루엣을 끊는다 — 원작 목조 주택의 결이다. */
 function pillar(x: number, z: number): CityBuilding {
-  const s = 0.09;
-  return {
-    outline: [[x - s, z - s], [x + s, z - s], [x + s, z + s], [x - s, z + s]],
-    height: WALL_H,
-    kind: 'wall',
-    color: C_PILLAR,
-  };
+  return kitPillar(x, z, { t: WALL_T, h: WALL_H, color: C_PILLAR });
 }
 
 // ─── 집 짓기 ─────────────────────────────────────────────────
