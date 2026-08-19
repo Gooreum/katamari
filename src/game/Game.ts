@@ -104,7 +104,8 @@ export class Game {
         0xbfe6f7, this.world.groundSize * 0.40, this.world.groundSize * 1.15,
       );
     }
-    this.ball = new Katamari(this.scene);
+    // 규칙은 **지름**을 들고 있고 공은 반지름을 쓴다
+    this.ball = new Katamari(this.scene, rule.start / 2);
     this.ball.pivot.position.set(this.world.spawn.x, this.ball.radius, this.world.spawn.z);
     this.ball.prevPos.copy(this.ball.pivot.position);
     this.rig = new CameraRig(innerWidth / innerHeight);

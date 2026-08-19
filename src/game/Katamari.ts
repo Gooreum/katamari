@@ -46,7 +46,12 @@ export class Katamari {
   readonly group = new Group();
 
   readonly velocity = new Vector3();
-  radius = TUNING.startRadius;
+  radius: number;
+  /**
+   * 이 판의 시작 반지름. **`shed()`의 하한이 이 값이다** —
+   * 50cm로 시작한 공이 부딪혀서 5cm까지 쪼그라들면 판이 망가진다.
+   */
+  private readonly startRadius: number;
   stun = 0;
 
   /** 렌더 보간용 이전 스텝 상태 */
@@ -75,7 +80,9 @@ export class Katamari {
   private readonly squashQuat = new Quaternion();
   private readonly dirScratch = new Vector3();
 
-  constructor(scene: Scene) {
+  constructor(scene: Scene, startRadius = TUNING.startRadius) {
+    this.startRadius = startRadius;
+    this.radius = startRadius;
     this.core = new Mesh(
       new SphereGeometry(1, 28, 20),
       new MeshLambertMaterial({ color: 0x39304f }),
@@ -286,7 +293,7 @@ export class Katamari {
     const n = Math.min(count, this.riding.length);
     if (n <= 0) return [];
     const items = this.riding.splice(this.riding.length - n, n);
-    const floor = volumeFromRadius(TUNING.startRadius);
+    const floor = volumeFromRadius(this.startRadius);
 
     for (const item of items) {
       this.volume = Math.max(floor, this.volume - item.volume * TUNING.growth);

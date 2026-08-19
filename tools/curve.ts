@@ -68,10 +68,10 @@ interface Result {
   stalledAt: number | null;
 }
 
-function simulate(specs: ObjectSpec[]): Result {
+function simulate(specs: ObjectSpec[], startRadius = TUNING.startRadius): Result {
   const alive = specs.map((s) => ({ s, dead: false }));
   let px = 0, pz = 0;
-  let radius = TUNING.startRadius;
+  let radius = startRadius;
   let volume = volumeFromRadius(radius);
   let t = 0;
   let eaten = 0;
@@ -173,7 +173,23 @@ function bar(value: number, max: number, width = 26): string {
 
 function report(label: string, overrides: Partial<GenerationParams> = {}): Result {
   const specs = [...generateWorld(1337, overrides, undefined, ROOMS, LABELS), ...buildingSpecs()];
-  const r = simulate(specs);
+  /**
+   * **이 구역을 쓰는 판만 본다.**
+   * 거실 전용 월드(최대 28cm)에서 별 4(1m)를 재면 당연히 "도달 실패"가 나온다 —
+   * 그 맵에 없는 판이라 실패가 아니라 무의미한 숫자다.
+   * `--donut` 은 스테이지가 없는 비교용 월드라 전부 찍는다.
+   */
+  const judged = process.argv.includes('--donut')
+    ? STAGES
+    : STAGES.filter((x) => x.area === AREA);
+  /**
+   * **시작 크기가 다르면 곡선도 다르다.** 같은 동네 맵이라도 3·5번은 5cm에서,
+   * 8번은 10cm에서 시작한다. 한 번만 돌려서 셋을 다 판정하면 8번 숫자가 거짓말이 된다.
+   * 주 곡선은 그 구역에서 **가장 작은 시작값**(제일 긴 경로)으로 그린다.
+   */
+  const starts = [...new Set(judged.map((x) => x.start))].sort((a, b) => a - b);
+  const baseStart = (starts[0] ?? TUNING.startRadius * 2) / 2;
+  const r = simulate(specs, baseStart);
   const rows = doublings(r.samples);
   const maxDt = Math.max(...rows.map((x) => x.dt), 1);
 
@@ -193,20 +209,17 @@ function report(label: string, overrides: Partial<GenerationParams> = {}): Resul
   console.log(`\n  최종 ${fmt(r.finalDiameter)} · ${r.eaten}/${r.total}개 · ${r.samples.at(-1)!.t.toFixed(0)}초`);
   // **스테이지 목표에 언제 닿는가.** 곡선이 매끄러워도 3분 안에 10cm를 못 만들면
   // 그 스테이지는 클리어가 불가능하다. CV보다 이게 먼저 봐야 할 숫자다.
-  /**
-   * **이 구역을 쓰는 판만 본다.**
-   * 예전엔 다섯 판을 전부 찍었는데, 거실 전용 월드(최대 28cm)에서 별 4(1m)를 재면
-   * 당연히 "도달 실패"가 나온다 — 그 맵에 없는 판이라 실패가 아니라 무의미한 숫자다.
-   * `--donut` 은 스테이지가 없는 비교용 월드라 전부 찍는다.
-   */
-  const judged = process.argv.includes('--donut')
-    ? STAGES
-    : STAGES.filter((x) => x.area === AREA);
+  const byStart = new Map<number, Result>();
+  for (const start of starts) {
+    byStart.set(start, start / 2 === baseStart ? r : simulate(specs, start / 2));
+  }
   for (const stage of judged) {
-    const hit = r.samples.find((x) => x.diameter >= stage.target);
+    const run = byStart.get(stage.start) ?? r;
+    const hit = run.samples.find((x) => x.diameter >= stage.target);
     const limit = stage.limit > 0 ? `${stage.limit}초` : '무제한';
     console.log(hit
       ? `  ${stage.name}: ${fmt(stage.target)} 도달 ${hit.t.toFixed(0)}초 / 제한 ${limit}`
+      + (starts.length > 1 ? ` (시작 ${fmt(stage.start)})` : '')
       + (stage.limit > 0 && hit.t > stage.limit ? '  ⚠ 제한 초과' : '')
       : `  ${stage.name}: ${fmt(stage.target)} **도달 실패**`);
   }
