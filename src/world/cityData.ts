@@ -133,7 +133,19 @@ export interface CityData {
    * 있으면 `World`가 도넛 공식 대신 **방 단위**로 물건을 깐다.
    * OSM 도시에는 없다 — 거기서는 지금까지의 `placeCoef * size^placePower`가 맞다.
    */
-  readonly placement?: { readonly rooms: readonly StageRoom[] };
+  readonly placement?: {
+    readonly rooms: readonly StageRoom[];
+    /**
+     * 이 스테이지의 라벨·형태 표. 없으면 `generation.ts`의 기본(집 물건)을 쓴다.
+     *
+     * **버킷 개수와 크기 경계는 기본 표와 같아야 한다** — 이름만 다르다.
+     * 라벨은 물건의 정체고 크기 경계는 사다리라, 경계를 스테이지마다 바꾸면
+     * 사다리 검사가 서로 다른 자를 대게 된다.
+     *
+     * 이게 없던 시절엔 동네에도 밥솥·서랍장이 굴러다녔다.
+     */
+    readonly labels?: readonly (readonly string[])[];
+  };
 }
 
 // ─── 기하 유틸 ────────────────────────────────────────────────
