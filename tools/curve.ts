@@ -12,7 +12,7 @@ import { generateWorld, GENERATION, type GenerationParams, type ObjectSpec } fro
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '../src/game/tuning';
 import { buildHouseStage } from '../src/world/stage.house';
 import { buildTownStage } from '../src/world/stage.town';
-import { HOUSE_STAGES } from '../src/game/Stage';
+import { STAGES } from '../src/game/Stage';
 
 /**
  * 기본 스테이지의 방 배치. **게임과 같은 월드를 재야 한다** —
@@ -165,7 +165,7 @@ function report(label: string, overrides: Partial<GenerationParams> = {}): Resul
   console.log(`\n  최종 ${fmt(r.finalDiameter)} · ${r.eaten}/${r.total}개 · ${r.samples.at(-1)!.t.toFixed(0)}초`);
   // **스테이지 목표에 언제 닿는가.** 곡선이 매끄러워도 3분 안에 10cm를 못 만들면
   // 그 스테이지는 클리어가 불가능하다. CV보다 이게 먼저 봐야 할 숫자다.
-  for (const stage of HOUSE_STAGES) {
+  for (const stage of STAGES) {
     const hit = r.samples.find((x) => x.diameter >= stage.target);
     const limit = stage.limit > 0 ? `${stage.limit}초` : '무제한';
     console.log(hit

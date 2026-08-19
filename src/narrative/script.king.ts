@@ -80,6 +80,8 @@ export const KING: Script = {
       { minDiameter: 0.10, text: '별 하나 값은 되겠다. 아주 작은 별로.' },
       { minDiameter: 0.20, text: '쓸 만하구나. 짐이 이런 말을 자주 하지 않는다는 걸 알아두어라.' },
       { minDiameter: 0.50, text: '훌륭하다. 어젯밤 일은 이걸로 없던 것이 되었다. 그렇지?' },
+      { minDiameter: 1.00, text: '미터라. 짐이 셈을 다시 해야 하는 크기구나. 귀찮게.' },
+      { minDiameter: 2.50, text: '이 정도면 별이라 불러도 아무도 항의하지 않겠다. 짐 빼고.' },
     ],
   },
 };
