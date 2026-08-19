@@ -31,6 +31,14 @@ export interface StageRule {
    */
   readonly limit: number;
   readonly area: StageArea;
+  /**
+   * 시작 **지름**(m). 원작은 판마다 다르다 — 6·7번이 50cm, 8번이 10cm다.
+   *
+   * 1~5번은 전부 0.05인데, 그중 **확인된 건 1번뿐**이다 (5cm → 10cm).
+   * 2~5번의 시작 크기는 어느 자료에도 없어서 1번 값을 그대로 둔 것이고,
+   * 지어낸 값이 아니라 **모르는 값**이라는 뜻이다.
+   */
+  readonly start: number;
 }
 
 /**
@@ -52,11 +60,11 @@ export interface StageRule {
  * "8분"은 슈팅스타 조건이고 실제 제한은 13:00이다.
  */
 export const STAGES: readonly StageRule[] = [
-  { id: 'star1', name: '별을 만들어라 1', target: 0.10, limit: 0, area: 'living' },
-  { id: 'star2', name: '별을 만들어라 2', target: 0.20, limit: 360, area: 'house' },
-  { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 540, area: 'town' },
-  { id: 'star4', name: '별을 만들어라 4', target: 1.00, limit: 600, area: 'house' },
-  { id: 'star5', name: '별을 만들어라 5', target: 2.70, limit: 780, area: 'town' },
+  { id: 'star1', name: '별을 만들어라 1', target: 0.10, limit: 0, area: 'living', start: 0.05 },
+  { id: 'star2', name: '별을 만들어라 2', target: 0.20, limit: 360, area: 'house', start: 0.05 },
+  { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 540, area: 'town', start: 0.05 },
+  { id: 'star4', name: '별을 만들어라 4', target: 1.00, limit: 600, area: 'house', start: 0.05 },
+  { id: 'star5', name: '별을 만들어라 5', target: 2.70, limit: 780, area: 'town', start: 0.05 },
 ];
 
 /** 옛 이름. 도구·기존 e2e가 아직 쓴다 — 같은 배열을 가리킨다. */
