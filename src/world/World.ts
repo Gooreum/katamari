@@ -103,6 +103,8 @@ export class World {
       } : {},
       isBlocked && ((x, z) => isBlocked(x + spawnX, z + spawnZ)),
       rooms,
+      // 라벨 표도 스테이지가 갖는다 — 동네에 밥솥이 굴러다니면 안 된다
+      cityData?.placement?.labels,
     );
     // 도넛 배치는 원점 기준으로 뽑으므로 스폰만큼 옮긴다.
     // **방 배치는 이미 월드 좌표다** — 여기서 또 옮기면 방이 통째로 어긋난다.

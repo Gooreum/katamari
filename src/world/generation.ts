@@ -78,6 +78,11 @@ export const SHAPE_COLOR: Record<string, readonly number[]> = {
   // ── 버킷 6 (60cm~1.2m) ──────────────────────────────────────
   고양이: [18, 5, 0], 의자: [7], 스툴: [7], 텔레비전: [5], 서랍장: [7],
   스탠드: [3], 물뿌리개: [9, 11],
+  // ── 동네 맵 전용 ────────────────────────────────────────────
+  꽃잎: [8, 10, 13], 자갈: [5], 병뚜껑: [8, 11], 도토리: [7], 솔방울: [7],
+  동전: [6], 꽃: [8, 10, 13, 16], '연어 캔': [6, 11], 쥐: [5], 골프공: [0],
+  참새: [7], 페트병: [12, 0], 모종삽: [6], 비둘기: [5, 0], 삽: [6, 7],
+  개밥그릇: [11, 8], 양동이: [11], 모래성: [9], 삼각콘: [8], 개: [7, 0],
 };
 
 export const GEOMETRY_COUNT = 4;
@@ -120,13 +125,34 @@ export const SHAPE_IDS_MID = [
 export const SHAPE_IDS_LARGE = [
   '고양이', '의자', '스툴', '텔레비전', '서랍장', '스탠드', '물뿌리개',
 ] as const;
+/**
+ * 동네 맵 전용 형태. shapes.town.ts 가 전부 구현해야 한다.
+ *
+ * **집 표와 겹치는 물건은 여기 없다** — 화분·휴지통·고양이처럼 마당에 있어도
+ * 어색하지 않은 것은 기존 형태를 그대로 쓴다. 여기 있는 건 집에는 없는 것들이다.
+ * 원작 「별을 만들어라 3」 동선에 이름이 나온 물건을 우선했다:
+ * 꽃 · 연어 캔 · 공 · 삽 · 개밥그릇 · 페트병 · 쥐 · 개 · 모래성.
+ */
+export const SHAPE_IDS_TOWN = [
+  // 버킷 0~1 (1~4cm)
+  '꽃잎', '자갈', '병뚜껑', '도토리', '솔방울', '동전',
+  // 버킷 2~3 (4~16cm)
+  '꽃', '연어 캔', '쥐', '골프공', '참새', '페트병', '모종삽',
+  // 버킷 4~5 (16~60cm)
+  '비둘기', '삽', '개밥그릇', '양동이', '모래성', '삼각콘',
+  // 버킷 6 (60cm~1.2m)
+  '개',
+] as const;
 
-export const SHAPE_IDS = [...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE];
+export const SHAPE_IDS = [
+  ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_TOWN,
+];
 
 export type ShapeIdSmall = (typeof SHAPE_IDS_SMALL)[number];
 export type ShapeIdMid = (typeof SHAPE_IDS_MID)[number];
 export type ShapeIdLarge = (typeof SHAPE_IDS_LARGE)[number];
-export type ShapeId = ShapeIdSmall | ShapeIdMid | ShapeIdLarge;
+export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
+export type ShapeId = ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdTown;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;
@@ -180,6 +206,37 @@ export const LABEL_BUCKETS: readonly (readonly string[])[] = [
   ['방석', '백팩', '휴지통', '전화기', '밥솥', '화분', '주전자'],
   // 60cm ~ 1.2m
   ['고양이', '의자', '스툴', '텔레비전', '서랍장', '스탠드', '물뿌리개'],
+];
+
+/**
+ * 동네 맵(Pigeon Town)의 라벨 표.
+ *
+ * **버킷 개수와 크기 경계는 위 표와 똑같다** — 이름만 다르다.
+ * 라벨은 물건의 정체고 경계는 사다리라, 경계까지 스테이지마다 바꾸면
+ * `ladder`가 맵마다 다른 자를 대게 된다.
+ *
+ * 절반은 기존 형태를 그대로 쓴다 (개미·클립·화분·고양이…). 마당·공원에 있어도
+ * 어색하지 않은 것들이고, 같은 물건을 두 벌 만들 이유가 없다.
+ * 집 전용(밥솥·서랍장·텔레비전·다다미 계열)은 여기 없다.
+ */
+export const TOWN_BUCKETS: readonly (readonly string[])[] = [
+  // 1 ~ 2cm
+  ['개미', '꽃잎', '자갈', '병뚜껑', '클립', '단추', '도토리'],
+  // 2 ~ 4cm
+  ['나사', '지우개', '사탕', '솔방울', '동전', '압정', '성냥'],
+  // 4 ~ 8cm
+  ['꽃', '연어 캔', '청개구리', '쥐', '골프공', '건전지', '성냥갑'],
+  // 8 ~ 15cm
+  ['참새', '페트병', '달팽이', '사과', '찻잔', '모종삽', '전구'],
+  // 15 ~ 30cm
+  ['비둘기', '삽', '개밥그릇', '신문', '접시', '슬리퍼', '두루마리 휴지'],
+  // 30 ~ 60cm
+  ['양동이', '모래성', '삼각콘', '휴지통', '백팩', '화분', '주전자'],
+  // 60cm ~ 1.2m
+  // **다섯 종뿐이다.** 이 크기의 집 물건(서랍장·텔레비전·스탠드·방석)은 전부
+  // 실내 전용이라 못 쓴다. 억지로 채우면 마당에 座布團이 굴러다니게 된다.
+  // 의자·스툴은 공원 벤치 자리로 읽히고, 물뿌리개는 마당 물건이다.
+  ['개', '고양이', '의자', '스툴', '물뿌리개'],
 ];
 
 /**
@@ -311,6 +368,11 @@ export function generateWorld(
   overrides: Partial<GenerationParams> = {},
   blocked?: BlockedFn,
   rooms?: readonly RoomPlacement[],
+  /**
+   * 이 스테이지의 라벨 표. 없으면 집 물건(`LABEL_BUCKETS`).
+   * **버킷 개수가 같아야 크기 경계가 같다** — 다르면 사다리 자가 달라진다.
+   */
+  buckets: readonly (readonly string[])[] = LABEL_BUCKETS,
 ): ObjectSpec[] {
   const g = { ...GENERATION, ...overrides };
   const rand = mulberry32(seed);
@@ -363,10 +425,10 @@ export function generateWorld(
     let [x, z] = drawPos();
 
     const bucket = Math.min(
-      LABEL_BUCKETS.length - 1,
-      Math.floor((u * LABEL_BUCKETS.length)),
+      buckets.length - 1,
+      Math.floor((u * buckets.length)),
     );
-    const labels = LABEL_BUCKETS[bucket]!;
+    const labels = buckets[bucket]!;
 
     // 난수를 뽑는 **순서**를 바꾸지 않는다 (위 주석 참고).
     // 라벨이 geo를 결정하니 조립만 뒤로 미룬다.
