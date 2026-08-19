@@ -6,6 +6,17 @@
  * 집 맵(타케다 저택)은 「별을 만들어라」 1~3이 공유한다.
  */
 
+/**
+ * 이 판이 쓰는 구역.
+ *
+ * 원작 「별을 만들어라 1」은 **거실 한 칸뿐이고 다른 구역이 없다.**
+ * 저택이 열리는 건 2번부터고, 2번이 다시 5cm에서 시작하는 것도 원작 그대로다.
+ *
+ * 3번은 원작이 **동네 맵(Pigeon Town)**인데 그 맵이 아직 없어서 집을 쓴다.
+ * 숨기지 않고 README「알려진 한계」에 적어둔다.
+ */
+export type StageArea = 'living' | 'house';
+
 export interface StageRule {
   readonly id: string;
   readonly name: string;
@@ -18,13 +29,21 @@ export interface StageRule {
    * 조작을 배우는 판이라 시계를 안 붙인 것이고, 그 판단을 그대로 가져온다.
    */
   readonly limit: number;
+  readonly area: StageArea;
 }
 
-/** 원작 값. 셋 다 타케다 저택에서 돈다. */
+/**
+ * 원작 값.
+ *
+ * **제한시간은 이번에 안 건드렸다.** 3번은 원작이 9분(그리고 동네 맵)이라는
+ * 조사 결과가 있지만, 위키 본문 접근이 전부 막혀 검색 요약에만 의존했고
+ * 그 요약이 8분/9분으로 자기모순을 냈다. 근거가 단단해지기 전에는 안 박는다.
+ * 구역(1번 = 거실만)은 여러 출처가 일치했으므로 반영한다.
+ */
 export const HOUSE_STAGES: readonly StageRule[] = [
-  { id: 'star1', name: '별을 만들어라 1', target: 0.10, limit: 0 },
-  { id: 'star2', name: '별을 만들어라 2', target: 0.20, limit: 360 },
-  { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 480 },
+  { id: 'star1', name: '별을 만들어라 1', target: 0.10, limit: 0, area: 'living' },
+  { id: 'star2', name: '별을 만들어라 2', target: 0.20, limit: 360, area: 'house' },
+  { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 480, area: 'house' },
 ];
 
 export const DEFAULT_STAGE = HOUSE_STAGES[0]!;
