@@ -1,8 +1,9 @@
 import {
+  type BufferGeometry,
   Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshLambertMaterial,
   OrthographicCamera, Scene, Vector3, WebGLRenderer,
 } from 'three';
-import { LABEL_BUCKETS, PALETTE, SHAPE_COLOR, SHAPE_IDS } from './world/generation';
+import { LABEL_BUCKETS, TOWN_BUCKETS, PALETTE, SHAPE_COLOR, SHAPE_IDS } from './world/generation';
 import { buildShapeGeometries } from './world/shapes';
 
 /**
@@ -21,13 +22,21 @@ import { buildShapeGeometries } from './world/shapes';
  * 조명은 **게임과 똑같아야 한다.** 다른 조명으로 보여주면 인게임과 다른 그림을 승인받게 된다.
  */
 
-/** 크기 버킷당 종 수. LABEL_BUCKETS 의 각 줄과 같다. */
+/** 크기 버킷당 종 수. 라벨 표의 각 줄과 같다 (줄마다 다를 수 있다). */
 const COLS = 7;
 
+const params = new URLSearchParams(location.search);
+
+/**
+ * **어느 라벨 표를 볼 것인가.** `?table=town` 이면 동네 맵 표.
+ * 표가 스테이지마다 달라진 뒤로 집 표만 그리면 동네 형태 20종이 화면에 안 나온다.
+ */
+const BUCKETS = params.get('table') === 'town' ? TOWN_BUCKETS : LABEL_BUCKETS;
+
 /** ?row=N (0~8) 이면 그 버킷만 크게 본다. 63개를 한 화면에 넣으면 하나하나가 너무 작다. */
-const rowParam = new URLSearchParams(location.search).get('row');
+const rowParam = params.get('row');
 const parsed = rowParam === null ? NaN : Number(rowParam);
-const rowFilter = Number.isInteger(parsed) && parsed >= 0 && parsed < LABEL_BUCKETS.length
+const rowFilter = Number.isInteger(parsed) && parsed >= 0 && parsed < BUCKETS.length
   ? parsed
   : null;
 
@@ -50,8 +59,16 @@ sun.position.set(1, 2.2, 1.4);
 scene.add(sun);
 
 const geometries = buildShapeGeometries();
+/**
+ * 이름 → 지오메트리.
+ *
+ * 예전엔 `geometries[bucket * COLS + col]` 로 찾았다. `SHAPE_IDS` 가 집 표의
+ * 버킷 순서로 7개씩 정렬돼 있다는 전제였는데, 라벨 표가 스테이지마다 달라진
+ * 뒤로는 성립하지 않는다 — 동네 표는 기존 형태를 재사용하고 줄 길이도 다르다.
+ */
+const byName = new Map<string, BufferGeometry>(SHAPE_IDS.map((id, i) => [id, geometries[i]!]));
 const rows = rowFilter === null
-  ? Array.from({ length: LABEL_BUCKETS.length }, (_, i) => i)
+  ? Array.from({ length: BUCKETS.length }, (_, i) => i)
   : [rowFilter];
 
 const SPACING = 1.6;
@@ -63,11 +80,11 @@ const turntables: Group[] = [];
 rows.forEach((bucket, rowIndex) => {
   const y = -(rowIndex - (rows.length - 1) / 2) * ROW_GAP;
 
-  for (let col = 0; col < COLS; col++) {
-    // SHAPE_IDS 가 버킷 순서로 정렬돼 있으므로 인덱스가 곧 (버킷, 열)이다
-    const geo = geometries[bucket * COLS + col];
+  const names = BUCKETS[bucket]!;
+  for (let col = 0; col < names.length; col++) {
+    const geo = byName.get(names[col]!);
     if (!geo) continue;
-    const x = (col - (COLS - 1) / 2) * SPACING;
+    const x = (col - (names.length - 1) / 2) * SPACING;
 
     const mesh = new Mesh(
       geo,
@@ -76,7 +93,7 @@ rows.forEach((bucket, rowIndex) => {
       // 예전에는 열 번호로 돌렸는데, 그러면 미리보기를 봐도 게임과 다른 색이라
       // 색 검수 자체가 성립하지 않는다.
       new MeshLambertMaterial({
-        color: PALETTE[SHAPE_COLOR[SHAPE_IDS[bucket * COLS + col]!]?.[0] ?? 0]!,
+        color: PALETTE[SHAPE_COLOR[names[col]!]?.[0] ?? 0]!,
         flatShading: true,
         vertexColors: true,
       }),
@@ -160,7 +177,7 @@ function layoutLabels(): void {
     labels.style.left = `${left}px`;
     labels.style.width = `${right - left}px`;
     labels.style.top = `${project(0, -0.55).y + 10}px`;
-    for (const name of LABEL_BUCKETS[rowFilter]!) {
+    for (const name of BUCKETS[rowFilter]!) {
       const d = document.createElement('div');
       d.textContent = name;
       labels.appendChild(d);
@@ -186,12 +203,12 @@ const title = document.getElementById('title');
 if (title) {
   title.textContent = rowFilter === null
     ? `형태 ${SHAPE_IDS.length}종 · 줄 = 크기 구간 · ?row=0~8 로 한 줄 확대`
-    : `${RANGES[rowFilter]} · ${COLS}종 · 조명은 게임과 동일`;
+    : `${RANGES[rowFilter]} · ${BUCKETS[rowFilter]!.length}종 · 조명은 게임과 동일`;
 }
 
 // ─── 첫 프레임: rAF 밖에서 동기로. 배경 탭에서도 픽셀이 남는다 ───
 renderer.render(scene, camera);
-console.log(`[shapes] ${turntables.length}개 렌더 (${rows.length}줄 × ${COLS}열) · 첫 프레임 동기 완료`);
+console.log(`[shapes] ${turntables.length}개 렌더 (${rows.length}줄) · 첫 프레임 동기 완료`);
 
 // ─── 이후 회전. 보이는 탭에서만 의미가 있다 ───
 let t = 0;

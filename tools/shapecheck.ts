@@ -16,7 +16,7 @@ import { buildShapeGeometries } from '../src/world/shapes';
 import {
   generateWorld, GENERATION, GEOMETRY_COUNT, SHAPE_IDS, SHAPE_IDS_LARGE, SHAPE_IDS_MID,
   SHAPE_IDS_SMALL, TOTAL_GEOMETRY_COUNT,
-  LABEL_BUCKETS, PALETTE, SHAPE_COLOR,
+  LABEL_BUCKETS, TOWN_BUCKETS, PALETTE, SHAPE_COLOR,
 } from '../src/world/generation';
 
 /** 규약 허용 오차. 부동소수 누적분만 봐주고 그 이상은 버그다. */
@@ -83,16 +83,18 @@ for (const geo of shapes) {
 // SHAPE_IDS 에 오타가 나면 그 형태는 아무 물체도 안 쓰는 죽은 지오메트리가 된다.
 // 에러가 안 나므로 이 검사가 없으면 영원히 모른다.
 
-const allLabels = new Set(LABEL_BUCKETS.flat());
+// **스테이지마다 라벨 표가 다르다.** 집 표만 보면 동네 형태 20종이 전부
+// "죽은 지오메트리"로 잡힌다 — 실제로는 동네 맵이 쓰는 것들이다.
+const allLabels = new Set([...LABEL_BUCKETS.flat(), ...TOWN_BUCKETS.flat()]);
 const missing = SHAPE_IDS.filter((id) => !allLabels.has(id));
 
 console.log(`\n${'─'.repeat(72)}`);
 if (missing.length) {
   violations++;
-  console.log(`❌ LABEL_BUCKETS 에 없는 라벨 ${missing.length}개: ${missing.join(', ')}`);
+  console.log(`❌ 어느 라벨 표에도 없는 형태 ${missing.length}개: ${missing.join(', ')}`);
   console.log('   → 이 형태는 아무 물체도 쓰지 않는 죽은 지오메트리입니다.');
 } else {
-  console.log(`✅ SHAPE_IDS ${SHAPE_IDS.length}개 전부 LABEL_BUCKETS 에 실재합니다.`);
+  console.log(`✅ SHAPE_IDS ${SHAPE_IDS.length}개 전부 라벨 표(집·동네)에 실재합니다.`);
 }
 
 // ─── 3. 색 배정 ────────────────────────────────────────────────

@@ -3,7 +3,9 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdTown } from './generation';
-import { assemble, DARK, GLASS, METAL, part, PAPER, WHITE, WOOD } from './shapes.kit';
+import {
+  assemble, DARK, GLASS, METAL, normalize, part, PAPER, WHITE, WOOD,
+} from './shapes.kit';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -24,16 +26,19 @@ const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
  */
 export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   // ── 버킷 0 (1~2cm) ────────────────────────────────────────
-  꽃잎: () => assemble([
+  // **`assemble()` 뒤에 `scale()`을 걸면 안 된다** — 정규화가 이미 끝난 뒤라
+  // 최장축 1.0·바닥 −0.5 규약이 깨진다 (shapecheck 이 이걸 잡았다).
+  // 눌러야 하면 다시 `normalize()` 를 태운다.
+  꽃잎: () => normalize(assemble([
     // 납작한 타원 한 장. 얇아야 꽃잎으로 읽힌다
-    part(new SphereGeometry(0.5, 7, 5), WHITE, [0, 0, 0], [0, 0, 0]),
+    part(new SphereGeometry(0.5, 7, 5), WHITE),
     part(new CylinderGeometry(0.03, 0.05, 0.22, 4), WOOD, [-0.42, 0, 0], LIE_X),
-  ]).scale(1, 0.16, 0.62),
+  ]).scale(1, 0.16, 0.62)),
 
-  자갈: () => assemble([
+  자갈: () => normalize(assemble([
     // 각진 돌. 구를 저해상도로 뽑으면 그 자체로 자갈이다
     part(new SphereGeometry(0.5, 6, 4), WHITE),
-  ]).scale(1, 0.72, 0.86),
+  ]).scale(1, 0.72, 0.86)),
 
   병뚜껑: () => assemble([
     part(new CylinderGeometry(0.5, 0.5, 0.26, 12), WHITE),
@@ -49,11 +54,14 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   ]),
 
   솔방울: () => assemble([
-    // 비늘을 층으로 쌓는다. 원뿔 하나면 그냥 원뿔이다
-    part(new ConeGeometry(0.34, 0.30, 7), WOOD, [0, 0.66, 0]),
-    part(new ConeGeometry(0.42, 0.30, 7), WHITE, [0, 0.44, 0]),
-    part(new ConeGeometry(0.46, 0.30, 7), WOOD, [0, 0.22, 0]),
-    part(new ConeGeometry(0.40, 0.30, 7), WHITE, [0, 0.02, 0]),
+    // **원뿔을 쌓으면 크리스마스 트리가 된다.** 두 번 그렇게 만들어보고 버렸다 —
+    // 각 층의 뾰족한 끝이 위층 밑으로 삐져나와 그대로 나무 실루엣이 된다.
+    // 달걀 하나에 비늘 링을 둘러야 솔방울로 읽힌다.
+    part(new SphereGeometry(0.30, 8, 10).scale(1, 1.75, 1), WHITE, [0, 0.55, 0]),
+    part(new TorusGeometry(0.25, 0.05, 4, 9), WOOD, [0, 0.34, 0], LIE_Z),
+    part(new TorusGeometry(0.28, 0.05, 4, 9), WOOD, [0, 0.55, 0], LIE_Z),
+    part(new TorusGeometry(0.24, 0.05, 4, 9), WOOD, [0, 0.76, 0], LIE_Z),
+    part(new CylinderGeometry(0.05, 0.05, 0.14, 5), WOOD, [0, 0.02, 0]),
   ]),
 
   동전: () => assemble([
