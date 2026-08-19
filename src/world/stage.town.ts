@@ -60,25 +60,25 @@ const OPEN_ISLAND = 0.45;
 // 원점 = 시작 마당 중앙 = 스폰. -z가 북(상점가·북 피죤타운), +z가 남(광장·호수).
 // **구역끼리 겹치면 안 된다** — 겹친 자리에 물건이 두 번 깔린다.
 
-const R_YARD: Rect = [-6, -6, 6, 6];
-const R_PATH: Rect = [-3, 6, 3, 16];
-const R_PLAZA: Rect = [-12, 16, 12, 30];
-const R_SHOPS: Rect = [-5, -26, 5, -6];
-const R_NORTH: Rect = [-20, -46, 20, -26];
-const R_CAMP: Rect = [-32, 4, -12, 22];
-const R_SITE: Rect = [-32, -20, -5, -6];
-const R_LAKESIDE: Rect = [12, 16, 34, 30];
-const R_ISLAND: Rect = [18, 36, 28, 44];
+const R_YARD: Rect = [-3, -3, 3, 3];
+const R_PATH: Rect = [-1.5, 3, 1.5, 8];
+const R_PLAZA: Rect = [-6, 8, 6, 15];
+const R_SHOPS: Rect = [-2.5, -12, 2.5, -3];
+const R_NORTH: Rect = [-9, -21, 9, -12];
+const R_CAMP: Rect = [-15, 2, -6, 12];
+const R_SITE: Rect = [-15, -9, -2.5, -3];
+const R_LAKESIDE: Rect = [6, 8, 16, 15];
+const R_ISLAND: Rect = [8.5, 17.5, 13.5, 21.5];
 
 /**
  * 도브 호수 — 연석으로 둘러싼 사각형. 안에 섬이 있다.
  *
  * **구역 사각형끼리 겹치면 안 된다** (겹친 자리에 물건이 두 번 깔린다).
- * 그래서 호수는 구역이 아니고, 섬만 구역이다. 수면은 아래 `water`가 섬을
- * **둘러싸는 네 토막**으로 그린다 — 한 장으로 덮으면 섬까지 물이 돼서
+ * 그래서 호수는 구역이 아니고, 섬만 구역이다. 수면은 아래 `water`가 섬과
+ * 다리 통로를 **뺀 다섯 토막**으로 그린다 — 한 장으로 덮으면 섬까지 물이 돼서
  * 섬에 물건이 하나도 안 깔린다 (`World`가 물 위 배치를 막는다).
  */
-const R_LAKE: Rect = [12, 30, 34, 50];
+const R_LAKE: Rect = [6, 15, 16, 24];
 
 /**
  * 다리 통로의 x 구간. 호수 북쪽 연석에서 섬 북쪽 변까지 **물을 가로지르는 육지**다.
@@ -87,8 +87,8 @@ const R_LAKE: Rect = [12, 30, 34, 50];
  * 호수 전체를 굴러다닐 수 있었다 — 도달 검사가 45cm에서 수면 5,109칸을 잡았다.
  * **다리는 구멍이 아니라 상판이다.** 통로 양옆에 연석을 세워 물을 막는다.
  */
-const BRIDGE_X0 = 22.2;
-const BRIDGE_X1 = 23.8;
+const BRIDGE_X0 = 10.2;
+const BRIDGE_X1 = 11.8;
 
 // ─── 바닥색 ──────────────────────────────────────────────────
 // 재료색이 아니라 화면색이다. 잔디는 실제보다 밝고 흙은 실제보다 노랗다.
@@ -110,15 +110,15 @@ const F_ISLAND = 0xa9c56b;
  * 거기가 목표 50cm를 넘긴 뒤 굴러다니는 구역이기 때문이다.
  */
 export const TOWN_ROOMS: readonly StageRoom[] = [
-  { id: 'yard', name: '시작 마당', rect: R_YARD, floor: F_YARD, sizeMin: 0.010, sizeMax: 0.16, count: 380, openAt: 0 },
-  { id: 'path', name: '흙길', rect: R_PATH, floor: F_DIRT, sizeMin: 0.015, sizeMax: 0.24, count: 160, openAt: OPEN_PATH },
-  { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, sizeMin: 0.020, sizeMax: 0.40, count: 300, openAt: OPEN_PLAZA },
-  { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, sizeMin: 0.020, sizeMax: 0.50, count: 260, openAt: OPEN_SHOPS },
-  { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, sizeMin: 0.030, sizeMax: 0.70, count: 240, openAt: OPEN_LAKE },
-  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, sizeMin: 0.030, sizeMax: 0.80, count: 340, openAt: OPEN_NORTH },
-  { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, sizeMin: 0.040, sizeMax: 0.90, count: 220, openAt: OPEN_CAMP },
-  { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, sizeMin: 0.050, sizeMax: 1.20, count: 200, openAt: OPEN_SITE },
-  { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, sizeMin: 0.060, sizeMax: 1.20, count: 120, openAt: OPEN_ISLAND },
+  { id: 'yard', name: '시작 마당', rect: R_YARD, floor: F_YARD, sizeMin: 0.010, sizeMax: 0.16, count: 520, openAt: 0 },
+  { id: 'path', name: '흙길', rect: R_PATH, floor: F_DIRT, sizeMin: 0.015, sizeMax: 0.24, count: 210, openAt: OPEN_PATH },
+  { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, sizeMin: 0.020, sizeMax: 0.40, count: 430, openAt: OPEN_PLAZA },
+  { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, sizeMin: 0.020, sizeMax: 0.50, count: 380, openAt: OPEN_SHOPS },
+  { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, sizeMin: 0.030, sizeMax: 0.70, count: 350, openAt: OPEN_LAKE },
+  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
+  { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
+  { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
+  { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
 ];
 
 // ─── 얇은 래퍼 — 계산은 stage.kit.ts 가 한다 ──────────────────
@@ -172,7 +172,7 @@ function buildTownWalls(): CityBuilding[] {
   b.push(...gateWall(px0, yz1, px1, yz1, 0, 1.4, OPEN_PATH, '마당 뒷문'));
   b.push(pillar(yx0, yz0), pillar(yx1, yz0), pillar(yx0, yz1), pillar(yx1, yz1));
   // 마당 안 개집 — 원작 동선에 개집이 나온다
-  b.push(block([2.4, -3.6, 4.4, -1.6], 1.3, 'retail', C_HOUSE, '개집'));
+  b.push(block([1.2, -2.4, 2.4, -1.2], 1.3, 'retail', C_HOUSE, '개집'));
 
   // ── 흙길 ────────────────────────────────────────────────
   // 좌우만 막는다. 북은 마당이 세웠고, 남(z=16)은 광장과 맞닿는다.
@@ -184,29 +184,32 @@ function buildTownWalls(): CityBuilding[] {
   b.push(piece(zx0, zz0, px0, zz0), piece(px1, zz0, zx1, zz0));
   b.push(piece(zx0, zz1, zx1, zz1));
   b.push(piece(zx0, cz1, zx0, zz1));                 // 서 담장 중 캠프장 밖 구간
-  b.push(...gateWall(zx0, zz0, zx0, cz1, 19, 1.6, OPEN_CAMP, '캠프장 문'));
-  b.push(...gateWall(zx1, zz0, zx1, zz1, 23, 1.6, OPEN_LAKE, '호숫가 문'));
+  b.push(...gateWall(zx0, zz0, zx0, cz1, 10, 1.6, OPEN_CAMP, '캠프장 문'));
+  b.push(...gateWall(zx1, zz0, zx1, zz1, 11.5, 1.6, OPEN_LAKE, '호숫가 문'));
   // 화단 둘 — 낮아서 시야는 안 막지만 5cm 공에게는 벽이다
-  b.push(...kitRing([-9, 19, -5, 23], KERB));
-  b.push(...kitRing([5, 24, 9, 28], KERB));
+  b.push(...kitRing([-4.5, 9.5, -2.5, 11.5], KERB));
+  b.push(...kitRing([2.5, 12.0, 4.5, 14.0], KERB));
   b.push(pillar(zx0, zz0), pillar(zx1, zz0), pillar(zx0, zz1), pillar(zx1, zz1));
 
   // ── 상점가 ──────────────────────────────────────────────
   // 남북으로 긴 골목. 서(x=-5)는 공사장, 북(z=-26)은 북 피죤타운.
   b.push(piece(sx1, sz0, sx1, sz1));
   b.push(piece(sx0, sz0, sx0, oz0));                 // 서 담장 중 공사장 밖 구간
-  b.push(...gateWall(sx0, oz0, sx0, sz1, -13, 1.6, OPEN_SITE, '공사장 가림막'));
+  b.push(...gateWall(sx0, oz0, sx0, sz1, -6, 1.6, OPEN_SITE, '공사장 가림막'));
   b.push(...gateWall(sx0, sz0, sx1, sz0, 0, 1.6, OPEN_NORTH, '언덕 위 골목'));
   b.push(
-    block([-11, -25, -5.4, -20], 5.0, 'commercial', C_SHOP, '빵집'),
-    block([-11, -18, -5.4, -13], 4.4, 'commercial', C_SHOP, '철물점'),
-    block([5.4, -24, 11, -19], 4.6, 'commercial', C_SHOP, '문구점'),
-    block([5.4, -16, 11, -11], 5.2, 'commercial', C_SHOP, '목욕탕'),
+    // **문 앞을 막지 않게 서쪽으로 1.1m 물려 세운다.** 맵을 45% 줄이면서
+    // 철물점이 공사장 문(x=-2.5, z -6.8~-5.2) 바로 뒤로 밀려와 35cm에서
+    // 공사장이 안 열렸다 — 도달 검사가 잡았다.
+    block([-6.4, -11.5, -3.8, -8.6], 5.0, 'commercial', C_SHOP, '빵집'),
+    block([-6.4, -7.6, -3.8, -4.7], 4.4, 'commercial', C_SHOP, '철물점'),
+    block([2.7, -11.0, 6.0, -8.1], 4.6, 'commercial', C_SHOP, '문구점'),
+    block([2.7, -6.6, 6.0, -3.7], 5.2, 'commercial', C_SHOP, '목욕탕'),
   );
   // 자판기 둘 — 1.8m라 끝까지 못 먹는다
   b.push(
-    block([-4.6, -22.2, -3.8, -21.4], 1.8, 'retail', 0xd94f4f, '자판기'),
-    block([3.8, -14.6, 4.6, -13.8], 1.8, 'retail', 0x4f8fd9, '자판기'),
+    block([-2.2, -10.2, -1.6, -9.6], 1.8, 'retail', 0xd94f4f, '자판기'),
+    block([1.6, -6.4, 2.2, -5.8], 1.8, 'retail', 0x4f8fd9, '자판기'),
   );
 
   // ── 북 피죤타운 ─────────────────────────────────────────
@@ -215,14 +218,14 @@ function buildTownWalls(): CityBuilding[] {
   b.push(piece(nx0, nz0, nx1, nz0), piece(nx0, nz0, nx0, nz1), piece(nx1, nz0, nx1, nz1));
   b.push(piece(nx0, nz1, sx0, nz1), piece(sx1, nz1, nx1, nz1));
   b.push(
-    block([-17, -43, -9, -37], 6.0, 'lowrise', C_HOUSE, '주택'),
-    block([-6, -43, 2, -37], 6.4, 'lowrise', C_HOUSE, '주택'),
-    block([5, -43, 13, -37], 5.8, 'lowrise', C_HOUSE, '주택'),
-    block([-17, -34, -10, -29], 5.4, 'lowrise', C_HOUSE, '주택'),
-    block([6, -34, 13, -29], 5.6, 'lowrise', C_HOUSE, '주택'),
+    block([-7.6, -19.6, -4.0, -16.9], 6.0, 'lowrise', C_HOUSE, '주택'),
+    block([-2.7, -19.6, 0.9, -16.9], 6.4, 'lowrise', C_HOUSE, '주택'),
+    block([2.2, -19.6, 5.8, -16.9], 5.8, 'lowrise', C_HOUSE, '주택'),
+    block([-7.6, -15.5, -4.5, -13.2], 5.4, 'lowrise', C_HOUSE, '주택'),
+    block([2.7, -15.5, 5.8, -13.2], 5.6, 'lowrise', C_HOUSE, '주택'),
   );
-  for (const x of [-13, -3, 7, 15]) {
-    b.push(block([x - 0.5, -36.5, x + 0.5, -35.5], 3.0, 'civic', C_TREE, '가로수'));
+  for (const x of [-6, -1.5, 3, 7]) {
+    b.push(block([x - 0.4, -16.6, x + 0.4, -15.8], 3.0, 'civic', C_TREE, '가로수'));
   }
 
   // ── 캠프장 ──────────────────────────────────────────────
@@ -230,20 +233,20 @@ function buildTownWalls(): CityBuilding[] {
   b.push(piece(cx0, cz0, cx1, cz0), piece(cx0, cz1, cx1, cz1), piece(cx0, cz0, cx0, cz1));
   b.push(piece(cx1, cz0, cx1, zz0));
   b.push(
-    block([-29, 8, -25, 12], 2.2, 'civic', 0xd9a441, '텐트'),
-    block([-22, 14, -18, 18], 2.0, 'civic', 0x66a86e, '텐트'),
+    block([-13.5, 3.6, -11.7, 5.4], 2.2, 'civic', 0xd9a441, '텐트'),
+    block([-10.0, 8.0, -8.2, 9.8], 2.0, 'civic', 0x66a86e, '텐트'),
   );
 
   // ── 공사장 ──────────────────────────────────────────────
   // 동쪽 변(x=-5)의 상점가 구간은 상점가가 문을 냈다.
   b.push(piece(ox0, oz0, ox1, oz0), piece(ox0, oz1, ox1, oz1), piece(ox0, oz0, ox0, oz1));
   b.push(
-    block([-29, -17, -23, -13], 2.6, 'civic', C_CONTAINER, '컨테이너'),
-    block([-21, -12, -15, -8], 2.6, 'civic', C_CONTAINER, '컨테이너'),
+    block([-13.5, -8.0, -10.8, -6.2], 2.6, 'civic', C_CONTAINER, '컨테이너'),
+    block([-9.5, -5.6, -6.8, -3.8], 2.6, 'civic', C_CONTAINER, '컨테이너'),
   );
   b.push(
-    block([-26.4, -9.4, -25.6, -8.6], 2.2, 'retail', 0xe0a03a, '공사 표지판'),
-    block([-18.4, -18.4, -17.6, -17.6], 2.2, 'retail', 0xe0a03a, '공사 표지판'),
+    block([-12.3, -4.4, -11.7, -3.8], 2.2, 'retail', 0xe0a03a, '공사 표지판'),
+    block([-8.4, -8.4, -7.8, -7.8], 2.2, 'retail', 0xe0a03a, '공사 표지판'),
   );
 
   // ── 호숫가 도로 ─────────────────────────────────────────
@@ -290,7 +293,7 @@ export function buildTownStage(): CityData {
     slug: 'town',
     // 실제 좌표가 아니다. 스키마가 요구해서 채우는 값 — 이 스테이지는 OSM이 아니다.
     origin: { lat: 0, lon: 0 },
-    radius: 50,
+    radius: 26,
     spawn: { x: 0, z: 0 },
     buildings: buildTownWalls(),
     /**

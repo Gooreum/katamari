@@ -11,6 +11,7 @@
 import { generateWorld, GENERATION, type GenerationParams, type ObjectSpec } from '../src/world/generation';
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '../src/game/tuning';
 import { buildHouseStage } from '../src/world/stage.house';
+import { buildTownStage } from '../src/world/stage.town';
 import { HOUSE_STAGES } from '../src/game/Stage';
 
 /**
@@ -22,9 +23,12 @@ import { HOUSE_STAGES } from '../src/game/Stage';
 // `--donut`: 경계 없는 평지 (OSM 도시 경로 비교용)
 // `--living`: 「별을 만들어라 1」의 세계 = 거실 한 칸. **star1이 클리어 가능한지는
 //             여기서만 드러난다** — 거실 물건만으로 5cm → 10cm가 되어야 한다.
-const ROOMS = process.argv.includes('--donut')
-  ? undefined
-  : buildHouseStage(process.argv.includes('--living') ? 'living' : 'house').placement?.rooms;
+const STAGE = process.argv.includes('--town')
+  ? buildTownStage()
+  : buildHouseStage(process.argv.includes('--living') ? 'living' : 'house');
+const ROOMS = process.argv.includes('--donut') ? undefined : STAGE.placement?.rooms;
+/** 라벨 표도 스테이지가 갖는다 — 동네에 밥솥이 나오면 사다리 이름이 거짓말이 된다 */
+const LABELS = process.argv.includes('--donut') ? undefined : STAGE.placement?.labels;
 
 interface Sample { t: number; diameter: number; eaten: number }
 
@@ -140,7 +144,7 @@ function bar(value: number, max: number, width = 26): string {
 }
 
 function report(label: string, overrides: Partial<GenerationParams> = {}): Result {
-  const specs = generateWorld(1337, overrides, undefined, ROOMS);
+  const specs = generateWorld(1337, overrides, undefined, ROOMS, LABELS);
   const r = simulate(specs);
   const rows = doublings(r.samples);
   const maxDt = Math.max(...rows.map((x) => x.dt), 1);
@@ -192,7 +196,7 @@ if (process.argv.includes('--sweep')) {
 }
 
 if (process.argv.includes('--csv')) {
-  const specs = generateWorld(1337, {}, undefined, ROOMS);
+  const specs = generateWorld(1337, {}, undefined, ROOMS, LABELS);
   const r = simulate(specs);
   console.log('\nt,diameter,eaten');
   for (const s of r.samples) {

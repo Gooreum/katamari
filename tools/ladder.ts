@@ -17,6 +17,7 @@ import { resolve } from 'node:path';
 import { coveredByLandmark, displayHeight, extentOf, type CityData } from '../src/world/cityData';
 import { generateWorld, GENERATION } from '../src/world/generation';
 import { buildHouseStage } from '../src/world/stage.house';
+import { buildTownStage } from '../src/world/stage.town';
 import { TUNING } from '../src/game/tuning';
 
 interface Item { size: number; source: 'street' | 'building' | 'landmark'; label: string }
@@ -28,6 +29,8 @@ const slug = process.argv.includes('--city')
 let city: CityData;
 if (slug === 'house') {
   city = buildHouseStage();
+} else if (slug === 'town') {
+  city = buildTownStage();
 } else {
   try {
     city = JSON.parse(readFileSync(resolve(process.cwd(), `src/world/city.${slug}.json`), 'utf8'));
@@ -43,7 +46,7 @@ if (slug === 'house') {
 const items: Item[] = [];
 const place = city.placement;
 const specs = place
-  ? generateWorld(1337, {}, undefined, place.rooms)
+  ? generateWorld(1337, {}, undefined, place.rooms, place.labels)
   : generateWorld(1337);
 for (const s of specs) items.push({ size: s.size, source: 'street', label: s.label });
 for (const b of city.buildings) {
