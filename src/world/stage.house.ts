@@ -1,4 +1,5 @@
 import type { CityBuilding, CityData, StageRoom } from './cityData';
+import type { StageArea } from '../game/Stage';
 
 /**
  * 원작 塊魂(2004)의 **타케다 저택 1층**.
@@ -6,6 +7,9 @@ import type { CityBuilding, CityData, StageRoom } from './cityData';
  * 원작에서 집 맵은 「별을 만들어라」 1~3이 공유한다. 왕자는 거실에서 시작하고,
  * 복도로 나가 아이 방·부엌·화장실을 돌고, 툇마루를 지나 뒷마당으로 나간다.
  * 구역은 문이 아니라 **크기**로 열린다 — 원작에서 뒷마당은 지름 10cm다.
+ *
+ * 다만 **1번은 거실 한 칸뿐이다** — 원작 「별을 만들어라 1」에는 다른 구역이 없다.
+ * 그래서 `buildHouseStage(area)`가 구역을 받고, `'living'`이면 거실만 짓는다.
  *
  * ## 이 파일이 JSON이 아니라 코드인 이유
  *
@@ -215,9 +219,29 @@ function pillar(x: number, z: number): CityBuilding {
 
 // ─── 집 짓기 ─────────────────────────────────────────────────
 
-function buildWalls(): CityBuilding[] {
+function buildWalls(area: StageArea): CityBuilding[] {
   const b: CityBuilding[] = [];
   const [lx0, lz0, lx1, lz1] = R_LIVING;
+
+  /**
+   * **거실 전용 — 문이 하나도 없다.**
+   *
+   * 원작 1번은 다른 구역이 *없는* 판이라, 나가는 문을 잠그는 게 아니라 애초에
+   * 문이 없다. 그래서 `gate`가 0개고 `City.openGates()`가 첫 줄에서 빠져나오며,
+   * 화자의 `gate` 대사도 안 뜬다 — 열릴 게 없으니 맞는 동작이다.
+   *
+   * 문턱만 올려서 잠그는 방법도 있지만, 그러면 갈 수도 없는 방 여섯 개에
+   * 물건 1,050개를 깔고 바닥 여섯 장을 그리게 된다.
+   */
+  if (area === 'living') {
+    b.push(
+      piece(lx0, lz0, lx0, lz1), piece(lx1, lz0, lx1, lz1),
+      piece(lx0, lz0, lx1, lz0), piece(lx0, lz1, lx1, lz1),
+      pillar(lx0, lz0), pillar(lx1, lz0), pillar(lx0, lz1), pillar(lx1, lz1),
+    );
+    return b;
+  }
+
   const [hx0, hz0, hx1] = R_HALL;
   const [kx0, kz0, , kz1] = R_KIDS;
   const [, , cx1, cz1] = R_KITCHEN;
@@ -282,8 +306,17 @@ function buildWalls(): CityBuilding[] {
  * `City`가 읽는 `CityData` 그대로다 — OSM 도시와 같은 렌더·충돌 경로를 탄다.
  * 다른 건 `placement`가 붙어 있다는 것뿐이고, 그게 있으면 `World`가 도넛 공식
  * 대신 방 단위로 물건을 깐다.
+ *
+ * `area`가 `'living'`이면 거실 한 칸만 짓는다 — 원작 「별을 만들어라 1」이다.
+ * **기본값이 `'house'`인 건 도구 때문이다** — `ladder`·`curve`·기존 e2e가 인자 없이
+ * 부르고, 그것들이 재야 하는 건 저택 전체다.
  */
-export function buildHouseStage(): CityData {
+export function buildHouseStage(area: StageArea = 'house'): CityData {
+  // 방이 없으면 물건도 안 깔린다. 벽과 방 목록이 **같은 구역**을 봐야 한다 —
+  // 어긋나면 벽 없는 곳에 물건이 깔리거나 빈 방이 생긴다.
+  const rooms = area === 'living'
+    ? HOUSE_ROOMS.filter((r) => r.id === 'living')
+    : HOUSE_ROOMS;
   return {
     name: '타케다 저택',
     slug: 'house',
@@ -291,9 +324,9 @@ export function buildHouseStage(): CityData {
     origin: { lat: 0, lon: 0 },
     radius: 12,
     spawn: { x: 0, z: 0 },
-    buildings: buildWalls(),
+    buildings: buildWalls(area),
     water: [],
     landmarks: [],
-    placement: { rooms: HOUSE_ROOMS },
+    placement: { rooms },
   };
 }

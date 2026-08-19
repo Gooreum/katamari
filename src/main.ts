@@ -1,7 +1,9 @@
 import './styles.css';
 import { Game } from './game/Game';
 import { Hud } from './ui/Hud';
-import { HOUSE_STAGES, stageFromSlug, stageSearch, type StageNav } from './game/Stage';
+import {
+  HOUSE_STAGES, stageFromSlug, stageSearch, type StageNav, type StageRule,
+} from './game/Stage';
 import { loadCleared } from './game/Progress';
 import { StageSelect } from './ui/StageSelect';
 import { KING } from './narrative/script.king';
@@ -14,10 +16,13 @@ import type { CityData } from './world/cityData';
  */
 // JSON import는 구조적으로 추론되어 튜플 타입([number, number])과 안 맞는다.
 // 스키마는 도구가 보장하므로 여기서는 단언한다.
-const DISTRICTS: Record<string, () => Promise<{ default: unknown }>> = {
-  // 기본. 원작 타케다 저택 1층 — 코드로 만들어서 수십 KB밖에 안 든다
-  house: () => import('./world/stage.house').then((m) => ({ default: m.buildHouseStage() })),
-  // OSM 실측 잠실. 기본에서 뺐지만 지운 건 아니다 (2.9MB, 동적 import라 안 부르면 안 받는다)
+const DISTRICTS: Record<string, (rule: StageRule) => Promise<{ default: unknown }>> = {
+  // 기본. 원작 타케다 저택 1층 — 코드로 만들어서 수십 KB밖에 안 든다.
+  // **판마다 구역이 다르다** — 원작 1번은 거실 한 칸뿐이라 지형 자체가 달라진다.
+  house: (rule) => import('./world/stage.house')
+    .then((m) => ({ default: m.buildHouseStage(rule.area) })),
+  // OSM 실측 잠실. 기본에서 뺐지만 지운 건 아니다 (2.9MB, 동적 import라 안 부르면 안 받는다).
+  // 스테이지와 무관하므로 rule 을 안 쓴다.
   jamsil: () => import('./world/city.jamsil.json'),
 };
 
@@ -65,12 +70,16 @@ async function boot(): Promise<void> {
     return;
   }
 
+  // **지형보다 규칙을 먼저 푼다** — 집 맵은 판마다 짓는 구역이 다르다.
+  // 모르는 슬러그는 기존대로 1번으로 떨어진다.
+  const rule = stageFromSlug(params.get('stage'));
+
   // ?nocity=1 로 지형을 빼고 띄울 수 있다 — 문제 범위를 좁힐 때 쓴다
   let city: CityData | null = null;
   if (!params.has('nocity')) {
     try {
       const loader = DISTRICTS[slug] ?? DISTRICTS['house']!;
-      city = (await loader()).default as CityData;
+      city = (await loader(rule)).default as CityData;
       mark(`지형 로드 (건물 ${city.buildings.length}채)`);
     } catch (err) {
       console.warn('[boot] 지형 데이터를 못 읽었습니다.', err);
@@ -87,9 +96,6 @@ async function boot(): Promise<void> {
 
   let game: Game;
   try {
-    // 여기까지 왔다는 건 ?stage 가 있다는 뜻이다 (없으면 위에서 선택 화면으로 빠진다).
-    // 모르는 슬러그는 기존대로 1번으로 떨어진다.
-    const rule = stageFromSlug(params.get('stage'));
     game = new Game(canvas, new Hud(), city, rule, nav);
     mark('Game 생성');
   } catch (err) {
