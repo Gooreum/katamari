@@ -12,6 +12,7 @@ import { generateWorld, GENERATION, type GenerationParams, type ObjectSpec } fro
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '../src/game/tuning';
 import { buildHouseStage } from '../src/world/stage.house';
 import { buildTownStage } from '../src/world/stage.town';
+import { extentOf } from '../src/world/cityData';
 import { STAGES } from '../src/game/Stage';
 
 /**
@@ -27,6 +28,31 @@ const STAGE = process.argv.includes('--town')
   ? buildTownStage()
   : buildHouseStage(process.argv.includes('--living') ? 'living' : 'house');
 const ROOMS = process.argv.includes('--donut') ? undefined : STAGE.placement?.rooms;
+
+/**
+ * **건물도 먹을 수 있는 물체다.**
+ *
+ * 예전에는 소품만 굴렸다. 집 맵은 건물이 벽·문뿐(먹는 게 0채)이라 티가 안 났는데,
+ * 동네가 생기고 나서 거리 집기 12채를 넣어도 곡선이 1초도 안 움직여서 드러났다 —
+ * `Game.resolveCity()`는 건물을 먹는데 이 도구는 안 세고 있었다.
+ * 도구가 게임과 다른 월드를 재면 그 숫자는 거짓말이다.
+ *
+ * 벽·문은 뺀다. 먹으라고 있는 게 아니다 (`ladder`도 같은 규칙).
+ */
+function buildingSpecs(): ObjectSpec[] {
+  if (process.argv.includes('--donut')) return [];
+  return STAGE.buildings
+    .filter((b) => b.kind !== 'wall' && b.kind !== 'door')
+    .map((b) => {
+      const e = extentOf(b.outline, b.height);
+      return {
+        x: e.cx, z: e.cz, size: e.size, volume: e.volume,
+        // 아래는 시뮬이 안 쓰는 값이다. 스키마를 맞추려고 채운다.
+        sx: e.width, sy: b.height, sz: e.depth,
+        rotY: 0, geo: 0, color: 0, label: b.name ?? '건물',
+      } as ObjectSpec;
+    });
+}
 /** 라벨 표도 스테이지가 갖는다 — 동네에 밥솥이 나오면 사다리 이름이 거짓말이 된다 */
 const LABELS = process.argv.includes('--donut') ? undefined : STAGE.placement?.labels;
 
@@ -144,7 +170,7 @@ function bar(value: number, max: number, width = 26): string {
 }
 
 function report(label: string, overrides: Partial<GenerationParams> = {}): Result {
-  const specs = generateWorld(1337, overrides, undefined, ROOMS, LABELS);
+  const specs = [...generateWorld(1337, overrides, undefined, ROOMS, LABELS), ...buildingSpecs()];
   const r = simulate(specs);
   const rows = doublings(r.samples);
   const maxDt = Math.max(...rows.map((x) => x.dt), 1);
@@ -196,7 +222,7 @@ if (process.argv.includes('--sweep')) {
 }
 
 if (process.argv.includes('--csv')) {
-  const specs = generateWorld(1337, {}, undefined, ROOMS, LABELS);
+  const specs = [...generateWorld(1337, {}, undefined, ROOMS, LABELS), ...buildingSpecs()];
   const r = simulate(specs);
   console.log('\nt,diameter,eaten');
   for (const s of r.samples) {
