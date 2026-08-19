@@ -9,6 +9,19 @@ import { spawn } from 'node:child_process';
 import { writeFileSync, rmSync } from 'node:fs';
 
 const [, , url, out, waitMs = '4000', w = '1280', h = '800', js = ''] = process.argv;
+
+/**
+ * **하드 타임아웃.** CDP 호출은 응답이 안 오면 영영 안 끝난다 — 좀비 크롬이
+ * 포트 9333을 물고 있으면 `Page.captureScreenshot` 이 매달린 채로 프로세스가
+ * 남고, 이걸 부르는 e2e 스위트가 통째로 잠긴다 (실제로 20분 넘게 잠겼다).
+ * 대기시간 + 여유의 3배를 넘기면 실패로 죽는다. 조용히 매달리는 것보다 낫다.
+ */
+const HARD_TIMEOUT = Number(waitMs) * 3 + 90_000;
+const killer = setTimeout(() => {
+  console.error(`shot.mjs 타임아웃 (${HARD_TIMEOUT}ms) — CDP가 응답하지 않습니다`);
+  process.exit(2);
+}, HARD_TIMEOUT);
+killer.unref?.();
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PROFILE = '/tmp/cdp-shot-profile';
 rmSync(PROFILE, { recursive: true, force: true });
@@ -73,6 +86,7 @@ for (let i = 0; i < warm; i++) {
   await sleep(16);
 }
 const shot = await send('Page.captureScreenshot', { format: 'png' });
+clearTimeout(killer);
 writeFileSync(out, Buffer.from(shot.result.data, 'base64'));
 console.log(`저장: ${out}`);
 for (const l of logs) console.log('  ' + l);

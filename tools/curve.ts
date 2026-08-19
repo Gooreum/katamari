@@ -13,7 +13,7 @@ import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '
 import { buildHouseStage } from '../src/world/stage.house';
 import { buildTownStage } from '../src/world/stage.town';
 import { extentOf } from '../src/world/cityData';
-import { STAGES } from '../src/game/Stage';
+import { STAGES, type StageArea } from '../src/game/Stage';
 
 /**
  * 기본 스테이지의 방 배치. **게임과 같은 월드를 재야 한다** —
@@ -24,9 +24,11 @@ import { STAGES } from '../src/game/Stage';
 // `--donut`: 경계 없는 평지 (OSM 도시 경로 비교용)
 // `--living`: 「별을 만들어라 1」의 세계 = 거실 한 칸. **star1이 클리어 가능한지는
 //             여기서만 드러난다** — 거실 물건만으로 5cm → 10cm가 되어야 한다.
-const STAGE = process.argv.includes('--town')
-  ? buildTownStage()
-  : buildHouseStage(process.argv.includes('--living') ? 'living' : 'house');
+/** 이 실행이 재는 구역. `curve` 는 **이 구역을 쓰는 판만** 판정한다. */
+const AREA: StageArea = process.argv.includes('--town') ? 'town'
+  : process.argv.includes('--living') ? 'living'
+  : 'house';
+const STAGE = AREA === 'town' ? buildTownStage() : buildHouseStage(AREA);
 const ROOMS = process.argv.includes('--donut') ? undefined : STAGE.placement?.rooms;
 
 /**
@@ -191,7 +193,16 @@ function report(label: string, overrides: Partial<GenerationParams> = {}): Resul
   console.log(`\n  최종 ${fmt(r.finalDiameter)} · ${r.eaten}/${r.total}개 · ${r.samples.at(-1)!.t.toFixed(0)}초`);
   // **스테이지 목표에 언제 닿는가.** 곡선이 매끄러워도 3분 안에 10cm를 못 만들면
   // 그 스테이지는 클리어가 불가능하다. CV보다 이게 먼저 봐야 할 숫자다.
-  for (const stage of STAGES) {
+  /**
+   * **이 구역을 쓰는 판만 본다.**
+   * 예전엔 다섯 판을 전부 찍었는데, 거실 전용 월드(최대 28cm)에서 별 4(1m)를 재면
+   * 당연히 "도달 실패"가 나온다 — 그 맵에 없는 판이라 실패가 아니라 무의미한 숫자다.
+   * `--donut` 은 스테이지가 없는 비교용 월드라 전부 찍는다.
+   */
+  const judged = process.argv.includes('--donut')
+    ? STAGES
+    : STAGES.filter((x) => x.area === AREA);
+  for (const stage of judged) {
     const hit = r.samples.find((x) => x.diameter >= stage.target);
     const limit = stage.limit > 0 ? `${stage.limit}초` : '무제한';
     console.log(hit
