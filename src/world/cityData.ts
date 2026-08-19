@@ -10,7 +10,7 @@
  * 위도 1도가 111km라 그대로 쓰면 도시가 찌그러지기 때문이다.
  */
 
-import type { RoomPlacement } from './generation';
+import type { LabelTable, RoomPlacement } from './generation';
 
 /**
  * 스테이지의 방 하나.
@@ -144,7 +144,7 @@ export interface CityData {
      *
      * 이게 없던 시절엔 동네에도 밥솥·서랍장이 굴러다녔다.
      */
-    readonly labels?: readonly (readonly string[])[];
+    readonly labels?: LabelTable;
   };
 }
 

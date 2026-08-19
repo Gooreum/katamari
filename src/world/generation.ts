@@ -240,6 +240,32 @@ export const TOWN_BUCKETS: readonly (readonly string[])[] = [
 ];
 
 /**
+ * 스테이지의 라벨 표 — **이름과 크기 경계를 함께** 들고 있다.
+ *
+ * 예전에는 이름만 스테이지가 갖고 경계는 `LABEL_SIZE_MIN/MAX`(0.01~1.2m) 고정이었다.
+ * World 맵은 공이 50cm에서 시작해 6m까지 가므로 그 경계로는 소품 절반이 마지막
+ * 버킷에 뭉쳐서 전부 「고양이·의자·스툴」이 된다.
+ *
+ * **버킷 개수는 표마다 달라도 되지만, 한 표 안에서는 경계가 로그 등분이다.**
+ */
+export interface LabelTable {
+  readonly buckets: readonly (readonly string[])[];
+  /** 첫 버킷이 시작하는 크기(m). 이보다 작으면 첫 버킷으로 접힌다 */
+  readonly min: number;
+  /** 마지막 버킷이 끝나는 크기(m). 이보다 크면 마지막 버킷으로 접힌다 */
+  readonly max: number;
+}
+
+/** 집 맵 — 예전 기본값 그대로다 */
+export const HOUSE_TABLE: LabelTable = {
+  buckets: LABEL_BUCKETS, min: LABEL_SIZE_MIN, max: LABEL_SIZE_MAX,
+};
+/** 동네 맵 — 경계는 집과 같고 이름만 다르다 */
+export const TOWN_TABLE: LabelTable = {
+  buckets: TOWN_BUCKETS, min: LABEL_SIZE_MIN, max: LABEL_SIZE_MAX,
+};
+
+/**
  * 방 하나의 배치 규칙. **손배치 스테이지 전용.**
  *
  * 도넛 공식(`placeCoef * size^placePower`)은 **경계 없는 평지**를 전제한다.
@@ -368,11 +394,8 @@ export function generateWorld(
   overrides: Partial<GenerationParams> = {},
   blocked?: BlockedFn,
   rooms?: readonly RoomPlacement[],
-  /**
-   * 이 스테이지의 라벨 표. 없으면 집 물건(`LABEL_BUCKETS`).
-   * **버킷 개수가 같아야 크기 경계가 같다** — 다르면 사다리 자가 달라진다.
-   */
-  buckets: readonly (readonly string[])[] = LABEL_BUCKETS,
+  /** 이 스테이지의 라벨 표(이름 + 크기 경계). 없으면 집 물건. */
+  table: LabelTable = HOUSE_TABLE,
 ): ObjectSpec[] {
   const g = { ...GENERATION, ...overrides };
   const rand = mulberry32(seed);
@@ -386,10 +409,10 @@ export function generateWorld(
   const retry = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   const specs: ObjectSpec[] = [];
   const logRatio = Math.log(g.sizeMax / g.sizeMin);
-  const labelRatio = Math.log(LABEL_SIZE_MAX / LABEL_SIZE_MIN);
+  const labelRatio = Math.log(table.max / table.min);
   /** 크기(m) → 라벨 축 위치 0~1. 범위를 벗어나면 양끝으로 접는다 */
   const labelU = (m: number): number =>
-    Math.min(1, Math.max(0, Math.log(m / LABEL_SIZE_MIN) / labelRatio));
+    Math.min(1, Math.max(0, Math.log(m / table.min) / labelRatio));
 
   /**
    * 물체 하나를 만든다. **위치를 정하는 방법만** 호출자가 넘긴다.
@@ -425,10 +448,10 @@ export function generateWorld(
     let [x, z] = drawPos();
 
     const bucket = Math.min(
-      buckets.length - 1,
-      Math.floor((u * buckets.length)),
+      table.buckets.length - 1,
+      Math.floor((u * table.buckets.length)),
     );
-    const labels = buckets[bucket]!;
+    const labels = table.buckets[bucket]!;
 
     // 난수를 뽑는 **순서**를 바꾸지 않는다 (위 주석 참고).
     // 라벨이 geo를 결정하니 조립만 뒤로 미룬다.

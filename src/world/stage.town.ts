@@ -1,5 +1,5 @@
 import type { CityBuilding, CityData, StageRoom } from './cityData';
-import { TOWN_BUCKETS } from './generation';
+import { TOWN_TABLE } from './generation';
 import {
   block, piece as kitPiece, pillar as kitPillar, ring as kitRing,
   wallWithDoor as kitWallWithDoor,
@@ -364,6 +364,6 @@ export function buildTownStage(): CityData {
       outline: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] as ReadonlyArray<readonly [number, number]>,
     })),
     landmarks: [],
-    placement: { rooms: TOWN_ROOMS, labels: TOWN_BUCKETS },
+    placement: { rooms: TOWN_ROOMS, labels: TOWN_TABLE },
   };
 }
