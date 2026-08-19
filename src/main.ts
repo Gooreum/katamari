@@ -35,8 +35,7 @@ const OSM_DISTRICTS: Record<string, () => Promise<{ default: unknown }>> = {
  */
 async function buildArea(area: StageArea): Promise<CityData> {
   if (area === 'town') {
-    // TODO(Phase 3): stage.town 으로 교체. 지금은 저택으로 폴백한다.
-    return (await import('./world/stage.house')).buildHouseStage('house');
+    return (await import('./world/stage.town')).buildTownStage();
   }
   return (await import('./world/stage.house')).buildHouseStage(area);
 }

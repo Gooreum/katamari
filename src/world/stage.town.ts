@@ -80,6 +80,16 @@ const R_ISLAND: Rect = [18, 36, 28, 44];
  */
 const R_LAKE: Rect = [12, 30, 34, 50];
 
+/**
+ * 다리 통로의 x 구간. 호수 북쪽 연석에서 섬 북쪽 변까지 **물을 가로지르는 육지**다.
+ *
+ * 처음엔 연석에 구멍(게이트)만 냈는데, 열리는 순간 그 구멍으로 들어가서
+ * 호수 전체를 굴러다닐 수 있었다 — 도달 검사가 45cm에서 수면 5,109칸을 잡았다.
+ * **다리는 구멍이 아니라 상판이다.** 통로 양옆에 연석을 세워 물을 막는다.
+ */
+const BRIDGE_X0 = 22.2;
+const BRIDGE_X1 = 23.8;
+
 // ─── 바닥색 ──────────────────────────────────────────────────
 // 재료색이 아니라 화면색이다. 잔디는 실제보다 밝고 흙은 실제보다 노랗다.
 const F_YARD = 0x9fbf62;
@@ -246,10 +256,24 @@ function buildTownWalls(): CityBuilding[] {
    * 굴러 지나가고, 그러면 섬 게이트(45cm)가 아무 의미도 없어진다.
    */
   const [kx0, kz0, kx1, kz1] = R_LAKE;
-  b.push(kitPiece(kx0, kz1, kx1, kz1, KERB));
+  const [ix0, iz0, ix1, iz1] = R_ISLAND;
+  // 호수 바깥 연석 — 서·동·남. 북(z=30)은 다리 입구가 있어 아래에서 따로 세운다.
   b.push(kitPiece(kx0, kz0, kx0, kz1, KERB), kitPiece(kx1, kz0, kx1, kz1, KERB));
-  // 북쪽 연석에 다리 한 짝. 45cm에 열린다
-  b.push(...kitWallWithDoor(kx0, kz0, kx1, kz0, 23, 1.6, OPEN_ISLAND, '호수 다리', KERB, GATE));
+  b.push(kitPiece(kx0, kz1, kx1, kz1, KERB));
+  // 북쪽 연석 + 다리 입구 (45cm에 열린다)
+  b.push(...kitWallWithDoor(
+    kx0, kz0, kx1, kz0, (BRIDGE_X0 + BRIDGE_X1) / 2, BRIDGE_X1 - BRIDGE_X0,
+    OPEN_ISLAND, '호수 다리', KERB, GATE,
+  ));
+  // 다리 상판 양옆 — 이게 없으면 문이 열리는 순간 호수 전체가 열린다
+  b.push(
+    kitPiece(BRIDGE_X0, kz0, BRIDGE_X0, iz0, KERB),
+    kitPiece(BRIDGE_X1, kz0, BRIDGE_X1, iz0, KERB),
+  );
+  // 섬 둘레 — 북쪽은 다리가 들어오는 폭만 비운다
+  b.push(kitPiece(ix0, iz0, BRIDGE_X0, iz0, KERB), kitPiece(BRIDGE_X1, iz0, ix1, iz0, KERB));
+  b.push(kitPiece(ix0, iz1, ix1, iz1, KERB));
+  b.push(kitPiece(ix0, iz0, ix0, iz1, KERB), kitPiece(ix1, iz0, ix1, iz1, KERB));
 
   return b;
 }
@@ -276,7 +300,8 @@ export function buildTownStage(): CityData {
      * `World`가 섬 위 배치를 전부 막아버린다 — 섬에 물건이 하나도 안 깔린다.
      */
     water: [
-      [R_LAKE[0], R_LAKE[1], R_LAKE[2], R_ISLAND[1]],
+      [R_LAKE[0], R_LAKE[1], BRIDGE_X0, R_ISLAND[1]],
+      [BRIDGE_X1, R_LAKE[1], R_LAKE[2], R_ISLAND[1]],
       [R_LAKE[0], R_ISLAND[3], R_LAKE[2], R_LAKE[3]],
       [R_LAKE[0], R_ISLAND[1], R_ISLAND[0], R_ISLAND[3]],
       [R_ISLAND[2], R_ISLAND[1], R_LAKE[2], R_ISLAND[3]],
