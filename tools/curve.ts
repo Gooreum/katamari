@@ -19,9 +19,12 @@ import { HOUSE_STAGES } from '../src/game/Stage';
  *
  * `--donut` 을 주면 예전처럼 경계 없는 평지를 잰다 (OSM 도시 경로 비교용).
  */
+// `--donut`: 경계 없는 평지 (OSM 도시 경로 비교용)
+// `--living`: 「별을 만들어라 1」의 세계 = 거실 한 칸. **star1이 클리어 가능한지는
+//             여기서만 드러난다** — 거실 물건만으로 5cm → 10cm가 되어야 한다.
 const ROOMS = process.argv.includes('--donut')
   ? undefined
-  : buildHouseStage().placement?.rooms;
+  : buildHouseStage(process.argv.includes('--living') ? 'living' : 'house').placement?.rooms;
 
 interface Sample { t: number; diameter: number; eaten: number }
 
