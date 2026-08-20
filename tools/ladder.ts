@@ -18,6 +18,7 @@ import { coveredByLandmark, displayHeight, extentOf, type CityData } from '../sr
 import { generateWorld, GENERATION } from '../src/world/generation';
 import { buildHouseStage } from '../src/world/stage.house';
 import { buildTownStage } from '../src/world/stage.town';
+import { buildWorldStage } from '../src/world/stage.world';
 import { TUNING } from '../src/game/tuning';
 
 interface Item { size: number; source: 'street' | 'building' | 'landmark'; label: string }
@@ -31,6 +32,10 @@ if (slug === 'house') {
   city = buildHouseStage();
 } else if (slug === 'town') {
   city = buildTownStage();
+} else if (slug === 'world') {
+  // 손배치 스테이지는 JSON이 없다 — 집·동네와 같이 코드에서 짓는다.
+  // 이 갈래가 없으면 `--city world` 가 city.world.json 을 찾다 죽는다.
+  city = buildWorldStage();
 } else {
   try {
     city = JSON.parse(readFileSync(resolve(process.cwd(), `src/world/city.${slug}.json`), 'utf8'));
