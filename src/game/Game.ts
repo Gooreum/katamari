@@ -22,6 +22,9 @@ import { DEFAULT_STAGE, judge, type StageNav, type StageOutcome, type StageRule 
 import { loadStars, recordStar } from './Progress';
 
 const STEP = 1 / 60;
+/** 계속 굴리는 동안 최고 기록을 저장하는 간격(초). 매 프레임 쓸 수는 없다 */
+const SAVE_EVERY = 3;
+
 const CULL_INTERVAL = 20;
 
 export class Game {
@@ -48,6 +51,8 @@ export class Game {
    * 이 값은 **HUD와 저장**에만 쓴다 — 목표·시계를 지우고, 최고 기록을 계속 갱신한다.
    */
   private eternal = false;
+  /** 계속 굴리는 동안 최고 기록을 저장할 다음 시각(초) */
+  private nextSave = 0;
 
   /** 화자 트리거용 상태 */
   private nextMilestone = 0;
@@ -158,6 +163,7 @@ export class Game {
   resume(): void {
     if (this.outcome === null) return;   // 아직 안 끝났으면 할 일이 없다
     this.eternal = true;
+    this.nextSave = this.elapsed + SAVE_EVERY;
     this.result.dispose();
     this.subtitle.mark('계속');
     this.loop.start();
@@ -213,6 +219,22 @@ export class Game {
     if (this.outcome === null) {
       const verdict = judge(this.rule, this.ball.diameter, this.elapsed);
       if (verdict !== null) this.finish(verdict);
+    }
+
+    /**
+     * 계속 굴리는 동안에도 **최고 기록은 갱신한다.** 20m를 만들었는데 하늘의
+     * 별이 12m로 남으면 이 모드를 하는 이유가 없다.
+     *
+     * **깬 판일 때만 저장한다.** `loadCleared()` 가 별 기록에서 파생되므로,
+     * 시간 초과한 판에서 계속 굴려 기록이 남으면 그걸 "깼다"로 읽어
+     * **다음 판이 열린다.** 제한시간이 통째로 무의미해진다.
+     *
+     * 매 프레임 `localStorage` 를 쓸 수는 없어 몇 초에 한 번만 들른다.
+     * `recordStar` 는 더 클 때만 실제로 쓰므로 대부분은 읽고 끝난다.
+     */
+    if (this.eternal && this.outcome === 'cleared' && this.elapsed >= this.nextSave) {
+      this.nextSave = this.elapsed + SAVE_EVERY;
+      recordStar(this.rule.id, this.ball.diameter);
     }
 
     this.narrator.step(dt);
