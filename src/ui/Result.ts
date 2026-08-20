@@ -26,6 +26,8 @@ export class Result {
   show(
     rule: StageRule, outcome: Exclude<StageOutcome, null>,
     summary: Summary, script: Script, nav?: StageNav,
+    /** 이 판의 **이전** 최고 지름(m). 0이면 첫 클리어라 비교할 게 없다 */
+    best = 0,
   ): void {
     if (this.el) return;   // 두 번 띄우지 않는다
 
@@ -52,6 +54,8 @@ export class Result {
         }
       }
     };
+
+    void best;   // 화면 표시는 Phase 3에서 붙인다
 
     const rows = script.result.units
       .map((u) => `<dt>${u.label}</dt><dd>${escapeHtml(value(u.from))}</dd>`)

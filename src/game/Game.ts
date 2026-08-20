@@ -19,7 +19,7 @@ import type { Hud } from '../ui/Hud';
 import { Telemetry } from '../ui/Telemetry';
 import { Result } from '../ui/Result';
 import { DEFAULT_STAGE, judge, type StageNav, type StageOutcome, type StageRule } from './Stage';
-import { markCleared } from './Progress';
+import { loadStars, recordStar } from './Progress';
 
 const STEP = 1 / 60;
 const CULL_INTERVAL = 20;
@@ -211,8 +211,12 @@ export class Game {
     this.loop.stop();
     this.sfx.thud(outcome === 'cleared' ? 0.6 : 0.3);
     // 다음 별을 여는 건 **판정이지 화면이 아니다.** 결과 카드를 안 보고 나가도 기록은 남는다.
-    if (outcome === 'cleared') markCleared(this.rule.id);
-    this.result.show(this.rule, outcome, this.summary, KING, this.nav);
+    //
+    // **옛 최고를 기록보다 먼저 읽는다.** 순서가 반대면 방금 쓴 값을 읽게 되어
+    // 결과 화면이 매번 "자기 기록 경신"이라고 말한다.
+    const best = loadStars().get(this.rule.id) ?? 0;
+    if (outcome === 'cleared') recordStar(this.rule.id, this.ball.diameter);
+    this.result.show(this.rule, outcome, this.summary, KING, this.nav, best);
   }
 
   private resolveCollisions(): void {
