@@ -28,6 +28,8 @@ export class Result {
     summary: Summary, script: Script, nav?: StageNav,
     /** 이 판의 **이전** 최고 지름(m). 0이면 첫 클리어라 비교할 게 없다 */
     best = 0,
+    /** 있으면 「계속 굴리기」가 뜬다. 누르면 판정 없이 그 공 그대로 이어 굴린다 */
+    onResume?: () => void,
   ): void {
     if (this.el) return;   // 두 번 띄우지 않는다
 
@@ -77,7 +79,15 @@ export class Result {
      */
     const next = cleared ? nextStage(rule) : null;
     // `nav`가 없는 경로(도구·테스트에서 화면만 확인)에서는 예전 힌트를 그대로 둔다.
+    /**
+     * 「계속 굴리기」는 **버튼 줄 밖, 위**에 둔다. 넷을 한 줄에 넣으면 좁은
+     * 창에서 줄이 깨지고, 성격도 다르다 — 나머지 셋은 이 판을 떠나는 문이고
+     * 이것만 안 떠나는 문이다.
+     */
+    const keep = onResume
+      ? '<button class="btn ghost" data-act="resume">이 판에서 계속 굴리기</button>' : '';
     const actions = nav ? `
+        ${keep}
         <div class="result-actions">
           <button class="btn" data-act="select">스테이지 선택</button>
           <button class="btn" data-act="retry">다시</button>
@@ -97,13 +107,15 @@ export class Result {
         ${actions}
       </div>`;
 
-    if (nav) {
-      // 위임. 버튼이 세 개뿐이지만 조건부로 하나가 빠지므로 개별 바인딩은 분기가 늘어난다.
+    // `nav` 없이 `onResume` 만 있는 경로도 동작해야 한다 — 그래서 조건이 둘이다.
+    if (nav || onResume) {
+      // 위임. 조건부로 빠지는 버튼이 둘이라 개별 바인딩은 분기가 늘어난다.
       el.addEventListener('click', (e) => {
         switch ((e.target as HTMLElement).closest<HTMLElement>('.btn')?.dataset['act']) {
-          case 'next': if (next) nav.go(next); break;
-          case 'retry': nav.go(rule); break;
-          case 'select': nav.select(); break;
+          case 'resume': onResume?.(); break;
+          case 'next': if (next) nav?.go(next); break;
+          case 'retry': nav?.go(rule); break;
+          case 'select': nav?.select(); break;
         }
       });
     }

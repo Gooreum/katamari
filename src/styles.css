@@ -360,6 +360,22 @@ kbd {
 
 .result-record.new { color: #d9a441; font-weight: 700 }
 
+/**
+ * 「계속 굴리기」 — 나머지 셋은 이 판을 떠나는 문이고 이것만 안 떠나는 문이라
+ * 버튼 줄과 떼어 놓았다. 기본 동작(다음 별로)에서 눈을 안 뺏도록
+ * 테두리만 있는 모양으로 둔다.
+ */
+.btn.ghost {
+  display: block;
+  width: 100%;
+  margin: 14px 0 0;
+  background: transparent;
+  border: 1px dashed #d9c9a6;
+  color: #8a7f75;
+}
+
+.btn.ghost:hover { border-style: solid; border-color: #d9a441; color: #2a2320 }
+
 .select {
   position: fixed;
   inset: 0;

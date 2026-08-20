@@ -262,7 +262,8 @@ export class Game {
     // 결과 화면이 매번 "자기 기록 경신"이라고 말한다.
     const best = loadStars().get(this.rule.id) ?? 0;
     if (outcome === 'cleared') recordStar(this.rule.id, this.ball.diameter);
-    this.result.show(this.rule, outcome, this.summary, KING, this.nav, best);
+    this.result.show(this.rule, outcome, this.summary, KING, this.nav, best,
+      () => this.resume());
   }
 
   private resolveCollisions(): void {
