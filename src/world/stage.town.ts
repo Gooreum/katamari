@@ -1,4 +1,5 @@
-import type { CityBuilding, CityData, StageRoom } from './cityData';
+import { extentOf, type CityBuilding, type CityData, type StageRoom } from './cityData';
+import { TUNING } from '../game/tuning';
 import { TOWN_TABLE } from './generation';
 import {
   block, piece as kitPiece, pillar as kitPillar, ring as kitRing,
@@ -55,6 +56,29 @@ const OPEN_NORTH = 0.25;
 const OPEN_CAMP = 0.30;
 const OPEN_SITE = 0.35;
 const OPEN_ISLAND = 0.45;
+// 바깥 구역 — 8번(12m) 전용이다. 3·5번은 목표가 0.5·2.7m라 여기 못 온다.
+const OPEN_FIELD = 4.0;
+const OPEN_RIVER = 6.0;
+const OPEN_HILL = 8.0;
+
+/**
+ * **문 폭 = 개방 지름 × 이 값.** 문턱만큼 커진 공이 그 문을 지나가야 한다.
+ *
+ * 바깥 세 문을 2.4m로 뒀더니 4m에 열리는 야구장 문을 4m 공이 못 지나갔다.
+ * 25%는 조향 여유다 — 정확히 지름만 한 구멍은 직진으로만 통과된다.
+ */
+const GATE_CLEARANCE = 1.25;
+
+/**
+ * **안쪽 담장이 사라지는 지름(m).** 가장 넓은 안쪽 문(1.6m)이 기준이다.
+ *
+ * 문이 열려도 담장이 남으면 통로 폭이 문 폭 그대로다. 그래서 공이 1.5m부터
+ * 시작 마당에 갇히고 6m 넘으면 한 칸도 못 움직였다 — 담장·문을 전부 지운
+ * 세계에서는 12m 공도 3만8천 칸을 돈다. **막던 건 건물이 아니라 담장이었다.**
+ *
+ * 자기 문보다 커진 공 앞에서 담장은 할 일이 끝난다. 그때 사라진다.
+ */
+const D_INNER = 1.6;
 
 // ─── 구역 사각형 ─────────────────────────────────────────────
 //
@@ -70,6 +94,20 @@ const R_CAMP: Rect = [-15, 2, -6, 12];
 const R_SITE: Rect = [-15, -9, -2.5, -3];
 const R_LAKESIDE: Rect = [6, 8, 16, 15];
 const R_ISLAND: Rect = [8.5, 17.5, 13.5, 21.5];
+
+/**
+ * **바깥 세 구역 — 12m 공을 담으려고 붙였다.**
+ *
+ * 원작 Town에는 우리가 아직 안 만든 구역이 남아 있다(야구장 · 메추라기 강 · 참새 언덕).
+ * 별을 만들어라 8은 12m인데 안쪽 아홉 구역은 가장 넓은 방의 짧은 변이 9m라
+ * **공이 어디에도 안 들어간다.** 그래서 원작에 있는 구역을 큰 스케일로 덧붙였다.
+ *
+ * 문턱이 4·6·8m라 **3·5번(목표 0.5·2.7m)은 여기 못 들어온다** —
+ * 안쪽 아홉 구역의 밸런스는 한 글자도 안 건드렸다.
+ */
+const R_FIELD: Rect = [16, -14, 56, 14];
+const R_RIVER: Rect = [-63, -12, -15, 10];
+const R_HILL: Rect = [20, 14, 52, 46];
 
 /**
  * 도브 호수 — 연석으로 둘러싼 사각형. 안에 섬이 있다.
@@ -102,6 +140,9 @@ const F_ROAD = 0xb8b4ac;
 const F_CAMP = 0x8fae5c;
 const F_SITE = 0xc2a878;
 const F_ISLAND = 0xa9c56b;
+const F_FIELD = 0xc2a06a;
+const F_RIVER = 0x9fb98a;
+const F_HILL = 0x93b85e;
 
 /**
  * 구역 목록. **순서가 곧 바닥을 까는 순서다** — 뒤가 위로 온다.
@@ -120,6 +161,10 @@ export const TOWN_ROOMS: readonly StageRoom[] = [
   { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
   { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
   { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
+  // ── 바깥 세 구역 (8번 전용) ────────────────────────────────
+  { id: 'field', name: '야구장', rect: R_FIELD, floor: F_FIELD, sizeMin: 0.30, sizeMax: 3.00, count: 900, openAt: OPEN_FIELD },
+  { id: 'river', name: '메추라기 강', rect: R_RIVER, floor: F_RIVER, sizeMin: 0.40, sizeMax: 4.50, count: 800, openAt: OPEN_RIVER },
+  { id: 'hill', name: '참새 언덕', rect: R_HILL, floor: F_HILL, sizeMin: 0.50, sizeMax: 6.00, count: 900, openAt: OPEN_HILL },
 ];
 
 // ─── 얇은 래퍼 — 계산은 stage.kit.ts 가 한다 ──────────────────
@@ -161,12 +206,12 @@ const STREET_FURNITURE: ReadonlyArray<readonly [Rect, number, string]> = [
   // 호숫가 도로
   [[8.0, 8.6, 9.4, 9.2], 1.7, '자전거'],
   [[13.0, 12.6, 14.4, 13.2], 1.7, '자전거'],
-  [[14.6, 9.0, 15.4, 9.8], 1.3, '쓰레기통'],
+  [[12.6, 9.0, 13.4, 9.8], 1.3, '쓰레기통'],   // 야구장 문(x=16) 앞 1m를 비운다
   // 북 피죤타운
   [[-8.6, -13.0, -7.8, -12.2], 2.4, '전봇대'],
   [[7.4, -20.4, 8.2, -19.6], 2.4, '전봇대'],
   // 캠프장
-  [[-14.2, 9.6, -13.2, 10.6], 1.3, '드럼통'],
+  [[-13.6, 9.6, -12.6, 10.6], 1.3, '드럼통'],   // 강변 다리(x=-15) 앞 1m를 비운다
   [[-9.0, 3.0, -7.6, 4.4], 1.5, '평상'],
   // 공사장
   // 상점가 서쪽은 빵집·철물점이 x -6.4~-3.8을 z -11.5~-4.7까지 채운다.
@@ -188,6 +233,25 @@ const STREET_FURNITURE: ReadonlyArray<readonly [Rect, number, string]> = [
   [[-12.8, 6.6, -11.2, 8.2], 1.7, '장작더미'],
   [[-11.2, 5.0, -9.6, 6.6], 1.8, '캠프파이어'],
   [[-10.4, -8.4, -8.8, -6.8], 2.0, '파이프 더미'],
+];
+
+/**
+ * 랜드마크 — **별을 만들어라 8(12m)의 상단 사다리다.**
+ *
+ * 안쪽 구역의 최대 흡수 건물이 주택 6.4m라 `pickRatio 0.85` 기준 **7.5m에서
+ * 먹을 게 없어진다.** 아래 다섯 채가 6.4 → 14.0m를 잇는다.
+ *
+ * **원작 Town에 이런 건물이 있다는 뜻이 아니다** — 사다리를 위해 세운 것이다.
+ * 바닥면적을 작게 잡은 건 `size` 가 가로·세로·높이 중 **최대**라서다.
+ * 넓적하게 지으면 높이가 아니라 폭이 크기가 된다.
+ */
+const C_LANDMARK = 0xbfae8e;
+const TOWN_LANDMARKS: ReadonlyArray<readonly [Rect, number, string]> = [
+  [[18.0, -12.0, 22.0, -8.0], 7.5, '관람석'],
+  [[18.0, -6.0, 22.4, -1.6], 8.8, '조명탑'],
+  [[-61.0, -10.0, -56.0, -5.0], 10.4, '수문'],
+  [[22.0, 16.0, 27.4, 21.4], 12.2, '급수탑'],
+  [[22.0, 24.0, 27.8, 29.8], 14.0, '송전탑'],
 ];
 
 // ─── 마을 짓기 ───────────────────────────────────────────────
@@ -280,7 +344,8 @@ function buildTownWalls(): CityBuilding[] {
 
   // ── 캠프장 ──────────────────────────────────────────────
   // 동쪽 변(x=-12)의 광장 구간은 광장이 문을 냈다. 나머지 3면 + 남는 구간.
-  b.push(piece(cx0, cz0, cx1, cz0), piece(cx0, cz1, cx1, cz1), piece(cx0, cz0, cx0, cz1));
+  b.push(piece(cx0, cz0, cx1, cz0), piece(cx0, cz1, cx1, cz1));
+  b.push(piece(cx0, R_RIVER[3], cx0, cz1));   // 서쪽 변 중 강과 안 맞닿는 북쪽 구간만
   b.push(piece(cx1, cz0, cx1, zz0));
   b.push(
     block([-13.5, 3.6, -11.7, 5.4], 2.2, 'civic', 0xd9a441, '텐트'),
@@ -289,7 +354,7 @@ function buildTownWalls(): CityBuilding[] {
 
   // ── 공사장 ──────────────────────────────────────────────
   // 동쪽 변(x=-5)의 상점가 구간은 상점가가 문을 냈다.
-  b.push(piece(ox0, oz0, ox1, oz0), piece(ox0, oz1, ox1, oz1), piece(ox0, oz0, ox0, oz1));
+  b.push(piece(ox0, oz0, ox1, oz0), piece(ox0, oz1, ox1, oz1));   // 서쪽 변(x=-15)은 강이 주인
   b.push(
     block([-13.5, -8.0, -10.8, -6.2], 2.6, 'civic', C_CONTAINER, '컨테이너'),
     block([-9.5, -5.6, -6.8, -3.8], 2.6, 'civic', C_CONTAINER, '컨테이너'),
@@ -301,7 +366,7 @@ function buildTownWalls(): CityBuilding[] {
 
   // ── 호숫가 도로 ─────────────────────────────────────────
   // 서쪽 변(x=12)은 광장이 문을 냈다. 남쪽 변(z=30)은 호수 연석이 맡는다.
-  b.push(piece(lx0, lz0, lx1, lz0), piece(lx1, lz0, lx1, lz1));
+  b.push(piece(lx0, lz0, lx1, lz0));   // 동쪽 변(x=16)은 야구장 문이 주인이다
 
   /**
    * **호수를 연석으로 두른다.**
@@ -330,7 +395,102 @@ function buildTownWalls(): CityBuilding[] {
 
   b.push(...STREET_FURNITURE.map(([rect, h, name]) => block(rect, h, 'retail', C_STREET, name)));
 
-  return b;
+  // ── 바깥 세 구역 ────────────────────────────────────────
+  // 원작 Town의 야구장 · 메추라기 강 · 참새 언덕. 12m 공이 도는 곳이다.
+  const [fx0, fz0, fx1, fz1] = R_FIELD;
+  const [vx0, vz0, vx1, vz1] = R_RIVER;
+  const [hx0, hz0, hx1, hz1] = R_HILL;
+
+  // 야구장 — 서쪽 변(x=16)에서 호숫가 도로와 만난다
+  b.push(piece(fx0, fz0, fx1, fz0), piece(fx1, fz0, fx1, fz1));
+  b.push(piece(fx0, fz0, fx0, lz0));
+  b.push(...gateWall(fx0, lz0, fx0, fz1, 11.0, OPEN_FIELD * GATE_CLEARANCE, OPEN_FIELD, '야구장 문'));
+  b.push(piece(fx0, fz1, fx0, lz1));   // 호숫가 북쪽 끝까지 남는 1m
+  b.push(piece(fx0, fz1, hx0, fz1), piece(hx1, fz1, fx1, fz1));
+  b.push(...gateWall(hx0, fz1, hx1, fz1, 34, OPEN_HILL * GATE_CLEARANCE, OPEN_HILL, '언덕 오르막'));
+
+  // 메추라기 강 — 동쪽 변(x=-15)에서 캠프장과 만난다
+  b.push(piece(vx0, vz0, vx1, vz0), piece(vx0, vz1, vx1, vz1), piece(vx0, vz0, vx0, vz1));
+  b.push(piece(vx1, vz0, vx1, cz0));
+  b.push(...gateWall(vx1, cz0, vx1, vz1, 6, OPEN_RIVER * GATE_CLEARANCE, OPEN_RIVER, '강변 다리'));
+
+  // 참새 언덕 — 북쪽 변(z=14)에서 야구장과 만난다
+  b.push(piece(hx0, hz1, hx1, hz1), piece(hx0, hz0, hx0, hz1), piece(hx1, hz0, hx1, hz1));
+
+  b.push(...TOWN_LANDMARKS.map(([rect, h, name]) => block(rect, h, 'civic', C_LANDMARK, name)));
+
+  return dissolveWalls(b);
+}
+
+/** 점이 들어 있는 구역. 없으면 구역 밖(맵 가장자리·빈 땅)이다. */
+function roomAt(x: number, z: number): StageRoom | undefined {
+  return TOWN_ROOMS.find((r) => {
+    const [a, b, c, d] = r.rect;
+    return x >= a && x <= c && z >= b && z <= d;
+  });
+}
+
+/** 담장 양옆을 찔러볼 거리(m). 두께 절반 밖으로 이만큼 나간 점을 본다. */
+const PROBE = 0.3;
+
+/**
+ * 마을 전체의 바깥 테두리. 모든 구역을 감싼 사각형이다.
+ *
+ * **여기서 벗어나는 쪽을 가진 벽은 끝까지 남는다** — 그게 맵 가장자리다.
+ * 처음엔 "한쪽이 구역 밖이면 가장자리"로 봤는데, 구역과 구역 사이의 빈 땅도
+ * 구역 밖이라 시작 마당 담장이 안 사라졌고 6m 공이 마당에 갇혔다.
+ * 빈 땅은 마을 안이다. 가장자리가 아니다.
+ */
+const TOWN_BOUNDS: Rect = TOWN_ROOMS.reduce<[number, number, number, number]>(
+  (acc, r) => [
+    Math.min(acc[0], r.rect[0]), Math.min(acc[1], r.rect[1]),
+    Math.max(acc[2], r.rect[2]), Math.max(acc[3], r.rect[3]),
+  ],
+  [Infinity, Infinity, -Infinity, -Infinity],
+);
+
+function insideTown(x: number, z: number): boolean {
+  const [a, b, c, d] = TOWN_BOUNDS;
+  return x >= a && x <= c && z >= b && z <= d;
+}
+
+/**
+ * 담장에 **소멸 문턱**을 박는다.
+ *
+ * 두 구역 사이를 막는 담장만 대상이다. 한쪽이 구역 밖이면 그건 맵 가장자리라
+ * 끝까지 남긴다 — 안 그러면 12m 공이 동네 밖 허공으로 굴러 나간다.
+ *
+ * 문턱은 `max(D_INNER, 이웃 openAt × GATE_CLEARANCE)`. 이웃 구역의 문이
+ * 열리는 크기보다 먼저 담장이 사라지면 안 되니 개방값을 끌어올린 값을 쓴다.
+ *
+ * **`gate < size / pickRatio`를 못 지키는 벽에는 안 단다.** 그런 벽은 문턱보다
+ * 먼저 자기 크기에 먹혀 어차피 사라진다 — 게이트를 달면 불변식만 깨진다.
+ */
+function dissolveWalls(walls: CityBuilding[]): CityBuilding[] {
+  return walls.map((w) => {
+    if (w.kind !== 'wall' || w.gate !== undefined) return w;
+    const e = extentOf(w.outline, w.height);
+    const horizontal = e.width >= e.depth;
+    const off = (horizontal ? e.depth : e.width) / 2 + PROBE;
+
+    // 벽 하나가 여러 구역에 걸칠 수 있어 길이 방향으로 세 군데를 본다.
+    let open = 0;
+    for (const t of [0.15, 0.5, 0.85]) {
+      const px = horizontal ? e.cx + (t - 0.5) * e.width : e.cx;
+      const pz = horizontal ? e.cz : e.cz + (t - 0.5) * e.depth;
+      const lx = horizontal ? px : px - off;
+      const lz = horizontal ? pz - off : pz;
+      const hx = horizontal ? px : px + off;
+      const hz = horizontal ? pz + off : pz;
+      if (!insideTown(lx, lz) || !insideTown(hx, hz)) return w;   // 맵 가장자리
+      open = Math.max(open, roomAt(lx, lz)?.openAt ?? 0, roomAt(hx, hz)?.openAt ?? 0);
+    }
+
+    const dissolve = Math.max(D_INNER, open * GATE_CLEARANCE);
+    const size = Math.max(e.width, e.depth, w.height);
+    if (dissolve >= size / TUNING.pickRatio) return w;
+    return { ...w, gate: dissolve };
+  });
 }
 
 /**
@@ -345,7 +505,12 @@ export function buildTownStage(): CityData {
     slug: 'town',
     // 실제 좌표가 아니다. 스키마가 요구해서 채우는 값 — 이 스테이지는 OSM이 아니다.
     origin: { lat: 0, lon: 0 },
-    radius: 26,
+    /**
+     * 지면 원반의 반지름. **모든 구역을 덮어야 한다.**
+     * 26m였는데 바깥 세 구역이 x=56 · z=46까지 나가면서 지면 밖에 섰다 —
+     * 가장 먼 모서리(56, 46)가 72.5m라 여유를 붙여 80m로 잡는다.
+     */
+    radius: 80,
     spawn: { x: 0, z: 0 },
     buildings: buildTownWalls(),
     /**
