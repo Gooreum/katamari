@@ -277,6 +277,11 @@ kbd {
   display: grid;
   place-items: center;
   padding: 24px;
+  /**
+   * **여기는 반투명이 맞다.** 선택 화면과 다르다 — 결과 카드는 방금까지
+   * 굴리던 화면 **위에** 뜬다. 마지막 순간의 공과 지형이 뒤로 비쳐야
+   * "저걸 만들었다"가 보인다. 불투명하게 덮으면 그게 사라진다.
+   */
   background: rgba(20, 14, 34, .55);
   opacity: 0;
   transition: opacity .35s ease;
@@ -361,7 +366,16 @@ kbd {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(20, 14, 34, .55);
+  /**
+   * **반투명이 아니다.** 예전엔 `rgba(20, 14, 34, .55)` — 게임 화면 위에
+   * 얹는 값이었다. 그런데 이 화면 밑에 게임이 깔린 적이 없다:
+   * `?stage` 가 없으면 `boot()` 가 `new Game` 전에 돌아가고,
+   * 결과 화면의 「스테이지 선택」은 `navigate(null)` 로 리로드다.
+   *
+   * 그 55%가 body 의 하늘색(#87ceeb)과 섞여 **별을 띄워놓고 배경은 낮**이었다.
+   * 위가 살짝 밝은 건 지평선 잔광이다 — 평면 검정은 하늘이 아니라 벽이다.
+   */
+  background: radial-gradient(125% 85% at 50% 0%, #241a3d 0%, #150f24 55%, #0c0816 100%);
   opacity: 0;
   transition: opacity .35s ease;
   z-index: 30;
