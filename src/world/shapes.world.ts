@@ -53,12 +53,31 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   ]),
 
   // ── 61cm~1.15m (거리 설비) ────────────────────────────────
+  소화전: () => assemble([
+    part(new CylinderGeometry(0.10, 0.13, 0.14, 8), METAL, [0, -0.43, 0]),
+    part(new CylinderGeometry(0.17, 0.19, 0.62, 8), WHITE, [0, -0.05, 0]),
+    part(new SphereGeometry(0.17, 8, 5), WHITE, [0, 0.26, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.10, 6), METAL, [0, 0.40, 0]),
+    // 양옆 배출구가 소화전을 소화전으로 만든다. 이게 없으면 볼라드와 구별이 안 된다
+    part(new CylinderGeometry(0.08, 0.08, 0.16, 8), METAL, [0.22, 0.02, 0], LIE_X),
+    part(new CylinderGeometry(0.08, 0.08, 0.16, 8), METAL, [-0.22, 0.02, 0], LIE_X),
+  ]),
+
   볼라드: () => assemble([
     part(new CylinderGeometry(0.13, 0.15, 0.86, 10), WHITE, [0, -0.05, 0]),
     part(new SphereGeometry(0.13, 10, 5), WHITE, [0, 0.38, 0]),
     // 반사띠 둘 — 이게 없으면 그냥 기둥이다
     part(new CylinderGeometry(0.145, 0.145, 0.09, 10), PAPER, [0, 0.20, 0]),
     part(new CylinderGeometry(0.155, 0.155, 0.09, 10), PAPER, [0, -0.10, 0]),
+  ]),
+
+  입간판: () => assemble([
+    // A자 간판. 두 판이 위에서 만난다 — 옆에서 보면 삼각형이라야 입간판으로 읽힌다
+    part(new BoxGeometry(0.66, 0.86, 0.05), WHITE, [0, 0, 0.13], [0.28, 0, 0]),
+    part(new BoxGeometry(0.66, 0.86, 0.05), WHITE, [0, 0, -0.13], [-0.28, 0, 0]),
+    part(new BoxGeometry(0.52, 0.30, 0.02), PAPER, [0, 0.06, 0.17], [0.28, 0, 0]),
+    // 경첩. 두 판을 위에서 이어 붙여야 벌어진 판때기 둘로 안 보인다
+    part(new CylinderGeometry(0.02, 0.02, 0.30, 5), WOOD, [0, 0.36, 0], LIE_X),
   ]),
 
   // ── 버킷 5 (1.15~2.14m) ───────────────────────────────────
@@ -163,6 +182,20 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     ...[0, 1, 2].map((i) => part(
       new BoxGeometry(0.34, 0.04, 0.04), METAL, [-0.44, 0.28 + i * 0.24, 0],
     )),
+  ]),
+
+  정글짐: () => assemble([
+    // 기둥 4 + 가로대 8. 빈 격자라 실루엣이 곧 구조다 —
+    // 면으로 채우면 그냥 상자가 되어 미끄럼틀과 구별이 안 된다.
+    // 원작 어친타운의 선물 위치가 "정글짐 옆"이다.
+    ...[[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].map(([x, z]) =>
+      part(new CylinderGeometry(0.035, 0.035, 1.0, 5), WHITE, [x!, 0, z!])),
+    ...[0.16, -0.30].flatMap((y) => [
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [0, y, -0.4], LIE_X),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [0, y, 0.4], LIE_X),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [-0.4, y, 0], LIE_Z),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [0.4, y, 0], LIE_Z),
+    ]),
   ]),
 
   사람: () => assemble([
