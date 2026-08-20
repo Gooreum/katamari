@@ -83,6 +83,11 @@ export const SHAPE_COLOR: Record<string, readonly number[]> = {
   동전: [6], 꽃: [8, 10, 13, 16], '연어 캔': [6, 11], 쥐: [5], 골프공: [0],
   참새: [7], 페트병: [12, 0], 모종삽: [6], 비둘기: [3, 6], 삽: [6, 7],
   개밥그릇: [11, 8], 양동이: [11], 모래성: [9], 삼각콘: [8], 개: [7, 0],
+  // ── World 맵 전용 ───────────────────────────────────────────
+  // 오토바이가 검정이면 DARK 바퀴와 뭉쳐 덩어리가 된다
+  자전거: [4, 8], 오토바이: [8, 14], 우체통: [8], 표지판: [8, 14], 드럼통: [11, 8],
+  벤치: [7], 그네: [3, 11], 자판기: [8, 14], 미끄럼틀: [10, 11], 사람: [14, 8, 11],
+  승용차: [0, 8, 14], 가로수: [11],
 };
 
 export const GEOMETRY_COUNT = 4;
@@ -144,15 +149,31 @@ export const SHAPE_IDS_TOWN = [
   '개',
 ] as const;
 
+/**
+ * World 맵 전용 형태. shapes.world.ts 가 전부 구현해야 한다.
+ *
+ * World는 공이 **50cm에서 시작**해 6m까지 간다. 그 크기대의 물건은 집·동네 표에 없다 —
+ * 동네에서 이만한 것들은 전부 `CityBuilding`(못 먹는 배경)이었는데, 여기서는 먹는다.
+ * 원작 Urchin Town 특징(양쪽 끝의 **공원과 학교**, 주유소, 정글짐)에서 뽑았다.
+ */
+export const SHAPE_IDS_WORLD = [
+  // 버킷 5 (1.15~2.14m)
+  '자전거', '오토바이', '우체통', '표지판', '드럼통', '벤치', '그네',
+  // 버킷 6 (2.14~4m)
+  '자판기', '미끄럼틀', '사람', '승용차', '가로수',
+] as const;
+
 export const SHAPE_IDS = [
-  ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_TOWN,
+  ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE,
+  ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
 ];
 
 export type ShapeIdSmall = (typeof SHAPE_IDS_SMALL)[number];
 export type ShapeIdMid = (typeof SHAPE_IDS_MID)[number];
 export type ShapeIdLarge = (typeof SHAPE_IDS_LARGE)[number];
 export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
-export type ShapeId = ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdTown;
+export type ShapeIdWorld = (typeof SHAPE_IDS_WORLD)[number];
+export type ShapeId = ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdTown | ShapeIdWorld;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;
@@ -263,6 +284,39 @@ export const HOUSE_TABLE: LabelTable = {
 /** 동네 맵 — 경계는 집과 같고 이름만 다르다 */
 export const TOWN_TABLE: LabelTable = {
   buckets: TOWN_BUCKETS, min: LABEL_SIZE_MIN, max: LABEL_SIZE_MAX,
+};
+
+/**
+ * World 맵(Urchin Town)의 라벨 표.
+ *
+ * **경계가 다르다** — 5cm ~ 4m를 7등분하면 옥타브비가 약 1.87×다.
+ * 공이 50cm에서 시작하므로 집·동네의 1cm~1.2m 경계로는 소품 절반이
+ * 마지막 버킷에 뭉쳐 전부 「고양이·의자·스툴」이 된다.
+ *
+ *   5~9.4cm · 9.4~17.5 · 17.5~32.8 · 32.8~61.3 · 61.3cm~1.15m · 1.15~2.14m · 2.14~4m
+ *
+ * 앞 다섯 버킷은 **기존 형태를 그대로 쓴다** — 길에 있어도 어색하지 않은 것들이다.
+ * 뒤 두 버킷만 새로 만들었다.
+ */
+export const WORLD_BUCKETS: readonly (readonly string[])[] = [
+  // 5 ~ 9.4cm
+  ['크레용', '캐러멜', '체온계', '청개구리', '성냥갑', '건전지', '연어 캔'],
+  // 9.4 ~ 17.5cm
+  ['소시지', '껌', '달팽이', '사과', '찻잔', '전구', '페트병'],
+  // 17.5 ~ 32.8cm
+  ['신문', '연필깎이', '접시', '슬리퍼', '두루마리 휴지', '비둘기', '삽'],
+  // 32.8 ~ 61.3cm
+  ['백팩', '휴지통', '화분', '주전자', '양동이', '모래성', '삼각콘'],
+  // 61.3cm ~ 1.15m
+  ['고양이', '개', '의자', '스툴', '스탠드', '물뿌리개', '개밥그릇'],
+  // 1.15 ~ 2.14m
+  ['자전거', '오토바이', '우체통', '표지판', '드럼통', '벤치', '그네'],
+  // 2.14 ~ 4m
+  ['자판기', '미끄럼틀', '사람', '승용차', '가로수'],
+];
+
+export const WORLD_TABLE: LabelTable = {
+  buckets: WORLD_BUCKETS, min: 0.05, max: 4.0,
 };
 
 /**

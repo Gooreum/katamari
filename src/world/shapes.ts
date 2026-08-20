@@ -4,6 +4,7 @@ import { LARGE_BUILDERS } from './shapes.large';
 import { MID_BUILDERS } from './shapes.mid';
 import { SMALL_BUILDERS } from './shapes.small';
 import { TOWN_BUILDERS } from './shapes.town';
+import { WORLD_BUILDERS } from './shapes.world';
 
 export { withWhiteColors } from './shapes.kit';
 
@@ -15,6 +16,7 @@ export { withWhiteColors } from './shapes.kit';
  *   shapes.mid.ts    버킷 3~5 (8cm~63cm)
  *   shapes.large.ts  버킷 6~8 (63cm~5m)
  *   shapes.town.ts   동네 맵 전용 (집에 없는 것들)
+ *   shapes.world.ts  World 맵 전용 (1.15~4m — 동네에서는 배경이던 것들)
  * 조립 도구(part/assemble/normalize)와 형태 규약은 shapes.kit.ts 에 있다.
  *
  * 빌더를 한 파일에 두면 1,000줄이 넘어서 나눴다.
@@ -25,6 +27,7 @@ const BUILDERS: Record<ShapeId, () => BufferGeometry> = {
   ...MID_BUILDERS,
   ...LARGE_BUILDERS,
   ...TOWN_BUILDERS,
+  ...WORLD_BUILDERS,
 };
 
 /** SHAPE_IDS 순서 그대로. World가 기본 도형 4개 뒤에 이어붙인다. */

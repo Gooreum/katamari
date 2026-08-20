@@ -3,7 +3,9 @@ import {
   Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshLambertMaterial,
   OrthographicCamera, Scene, Vector3, WebGLRenderer,
 } from 'three';
-import { LABEL_BUCKETS, TOWN_BUCKETS, PALETTE, SHAPE_COLOR, SHAPE_IDS } from './world/generation';
+import {
+  HOUSE_TABLE, TOWN_TABLE, WORLD_TABLE, PALETTE, SHAPE_COLOR, SHAPE_IDS,
+} from './world/generation';
 import { buildShapeGeometries } from './world/shapes';
 
 /**
@@ -31,7 +33,10 @@ const params = new URLSearchParams(location.search);
  * **어느 라벨 표를 볼 것인가.** `?table=town` 이면 동네 맵 표.
  * 표가 스테이지마다 달라진 뒤로 집 표만 그리면 동네 형태 20종이 화면에 안 나온다.
  */
-const BUCKETS = params.get('table') === 'town' ? TOWN_BUCKETS : LABEL_BUCKETS;
+const TABLE = params.get('table') === 'town' ? TOWN_TABLE
+  : params.get('table') === 'world' ? WORLD_TABLE
+  : HOUSE_TABLE;
+const BUCKETS = TABLE.buckets;
 
 /** ?row=N (0~8) 이면 그 버킷만 크게 본다. 63개를 한 화면에 넣으면 하나하나가 너무 작다. */
 const rowParam = params.get('row');
@@ -41,10 +46,18 @@ const rowFilter = Number.isInteger(parsed) && parsed >= 0 && parsed < BUCKETS.le
   : null;
 
 /** 크기 구간 이름. generation.ts 의 LABEL_BUCKETS 주석과 같은 값이다. */
-const RANGES = [
-  '1~2cm', '2~4cm', '4~8cm', '8~16cm', '16~32cm',
-  '32~63cm', '63cm~1.26m', '1.26~2.51m', '2.51~5m',
-] as const;
+/**
+ * 줄 라벨은 **표의 경계에서 계산한다.**
+ * 예전엔 집 표(1cm~1.2m) 기준으로 하드코딩돼 있어서, World 표(5cm~4m)를 봐도
+ * "1~2cm"라고 찍혔다 — 눈으로 검수하는 화면이 거짓말을 하고 있었다.
+ */
+const fmtSize = (m: number): string =>
+  m < 1 ? `${Math.round(m * 100)}cm` : `${m.toFixed(m < 10 ? 2 : 1)}m`;
+
+const RANGES: readonly string[] = Array.from({ length: BUCKETS.length }, (_, i) => {
+  const step = Math.log(TABLE.max / TABLE.min) / BUCKETS.length;
+  return `${fmtSize(TABLE.min * Math.exp(step * i))}~${fmtSize(TABLE.min * Math.exp(step * (i + 1)))}`;
+});
 
 const canvas = document.getElementById('view') as HTMLCanvasElement;
 const renderer = new WebGLRenderer({ canvas, antialias: true });

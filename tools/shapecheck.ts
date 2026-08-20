@@ -16,7 +16,7 @@ import { buildShapeGeometries } from '../src/world/shapes';
 import {
   generateWorld, GENERATION, GEOMETRY_COUNT, SHAPE_IDS, SHAPE_IDS_LARGE, SHAPE_IDS_MID,
   SHAPE_IDS_SMALL, TOTAL_GEOMETRY_COUNT,
-  LABEL_BUCKETS, TOWN_BUCKETS, PALETTE, SHAPE_COLOR,
+  LABEL_BUCKETS, TOWN_BUCKETS, WORLD_BUCKETS, PALETTE, SHAPE_COLOR,
 } from '../src/world/generation';
 
 /** 규약 허용 오차. 부동소수 누적분만 봐주고 그 이상은 버그다. */
@@ -85,7 +85,9 @@ for (const geo of shapes) {
 
 // **스테이지마다 라벨 표가 다르다.** 집 표만 보면 동네 형태 20종이 전부
 // "죽은 지오메트리"로 잡힌다 — 실제로는 동네 맵이 쓰는 것들이다.
-const allLabels = new Set([...LABEL_BUCKETS.flat(), ...TOWN_BUCKETS.flat()]);
+const allLabels = new Set([
+  ...LABEL_BUCKETS.flat(), ...TOWN_BUCKETS.flat(), ...WORLD_BUCKETS.flat(),
+]);
 const missing = SHAPE_IDS.filter((id) => !allLabels.has(id));
 
 console.log(`\n${'─'.repeat(72)}`);
