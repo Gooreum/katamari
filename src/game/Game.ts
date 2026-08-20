@@ -41,6 +41,13 @@ export class Game {
 
   /** null이면 진행 중. 한 번 정해지면 안 바뀐다 */
   private outcome: StageOutcome = null;
+  /**
+   * **계속 굴리기.** 판정이 끝난 뒤 제한 없이 이어 굴리는 상태.
+   *
+   * 판정은 `outcome === null` 일 때만 도므로(`step` 참고) 여기서 다시 끌 게 없다.
+   * 이 값은 **HUD와 저장**에만 쓴다 — 목표·시계를 지우고, 최고 기록을 계속 갱신한다.
+   */
+  private eternal = false;
 
   /** 화자 트리거용 상태 */
   private nextMilestone = 0;
@@ -137,6 +144,23 @@ export class Game {
   start(): void {
     this.loop.start();
     this.narrator.fire('start', this.ball.diameter);
+  }
+
+  /**
+   * 판정이 끝난 뒤 **그 공 그대로** 이어 굴린다.
+   *
+   * `finish()` 가 `loop.stop()` 만 했으므로 월드도 공도 그대로 살아 있다 —
+   * 루프만 다시 켜면 된다. 판정은 `outcome` 이 남아 있어 다시 안 돈다.
+   *
+   * 원작 「에터널」은 그 판을 **시작 크기부터** 시간 제한 없이 다시 도는 것이다.
+   * 이건 그게 아니라 커진 공을 이어 굴리는 쪽이다 — 원작과 다른 점이다.
+   */
+  resume(): void {
+    if (this.outcome === null) return;   // 아직 안 끝났으면 할 일이 없다
+    this.eternal = true;
+    this.result.dispose();
+    this.subtitle.mark('계속');
+    this.loop.start();
   }
   stop(): void {
     this.loop.stop();
@@ -390,8 +414,9 @@ export class Game {
       this.world.pool.drawCalls + this.ball.drawCalls + this.debris.count +
         (this.world.city?.drawCalls ?? 0) + 1,
       this.ball.visibleAttached,
-      this.rule.target,
-      this.rule.limit > 0 ? this.rule.limit - this.elapsed : null,
+      // 계속 굴리는 동안엔 목표도 시계도 없다 — 남은 시간이 아니라 흐른 시간을 본다
+      this.eternal ? 0 : this.rule.target,
+      this.eternal || this.rule.limit <= 0 ? null : this.rule.limit - this.elapsed,
     );
   };
 
