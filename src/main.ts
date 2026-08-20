@@ -34,6 +34,9 @@ const OSM_DISTRICTS: Record<string, () => Promise<{ default: unknown }>> = {
  * 지형을 골랐는데, 판마다 맵이 다른 순간 그 슬러그는 거짓말이 된다.
  */
 async function buildArea(area: StageArea): Promise<CityData> {
+  if (area === 'world') {
+    return (await import('./world/stage.world')).buildWorldStage();
+  }
   if (area === 'town') {
     return (await import('./world/stage.town')).buildTownStage();
   }

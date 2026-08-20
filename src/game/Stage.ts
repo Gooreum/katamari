@@ -15,8 +15,12 @@
  *
  * 3번은 원작이 **동네 맵(Pigeon Town)**이다 — 북 피죤타운·상점가·도브 호수·
  * 캠프장·공사장. 평면 엔진이라 언덕과 강 깊이는 못 만들고 평면 투영으로 재현했다.
+ *
+ * **원작은 큰 맵이 셋(House / Town / World)이고 그 안에 구역이 있다.**
+ * 6·7번의 Urchin Town은 World 구역, 8번의 Roadway는 Town 구역이다.
+ * 여기 `'world'`는 그중 Urchin Town 하나를 가리킨다.
  */
-export type StageArea = 'living' | 'house' | 'town';
+export type StageArea = 'living' | 'house' | 'town' | 'world';
 
 export interface StageRule {
   readonly id: string;

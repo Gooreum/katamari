@@ -35,8 +35,6 @@ import {
 
 /** 블록 담장 */
 const FENCE: SlabStyle = { t: 0.45, h: 3.0, color: 0xd8c9a4 };
-/** 화단·연석 — 낮지만 50cm 공에게는 벽이다 */
-const KERB: SlabStyle = { t: 0.60, h: 1.2, color: 0xb9b3a4 };
 /** 게이트 문짝. `gate < size / 0.85` 여유를 넉넉히 두려고 높다 */
 const GATE: SlabStyle = { t: 0.45, h: 5.0, color: 0xf2e6c6 };
 
@@ -67,7 +65,7 @@ const R_PLAZA: Rect = [-8, -8, 8, 8];
 const R_AVENUE: Rect = [-5, -26, 5, -8];
 const R_SCHOOL: Rect = [-22, -52, 22, -26];
 const R_GAS: Rect = [-30, -24, -5, -10];
-const R_SHOPS: Rect = [8, -24, 30, -8];
+const R_SHOPS: Rect = [8, -24, 30, 8];
 const R_CROSS: Rect = [-6, 8, 6, 22];
 const R_PARK: Rect = [-32, 8, -6, 30];
 const R_PIER: Rect = [6, 14, 34, 34];
@@ -118,6 +116,42 @@ function gateWall(
   return kitWallWithDoor(x0, z0, x1, z1, at, w, gate, name, FENCE, GATE);
 }
 
+/**
+ * 큰 건물 — **소품 상한(4m) 위를 잇는 사다리다.**
+ *
+ * 소품이 4m에서 끊기면 `pickRatio 0.85` 기준 4.7m에서 먹을 게 없어진다.
+ * 7번 목표가 6m라 그 위가 필요하다. 이웃 크기 비가 1.30을 크게 안 넘게 놓는다.
+ *
+ * **자리는 손으로 찍지 않고 구역 안 빈 칸을 계산으로 뽑았다** — 동네에서 철물점이
+ * 공사장 문을 막아 35cm에서 안 열린 적이 있고, 모래 포대 자리를 세 번 옮겼다.
+ * 게이트 개구부에서 3m를 비운다 (50cm 공이 지나갈 폭).
+ */
+const WORLD_BLOCKS: ReadonlyArray<readonly [Rect, number, CityBuilding['kind'], number, string]> = [
+  // ── 4.7~7.7m 이음매 ───────────────────────────────────────
+  // 소품이 4m에서 끊기는데 처음 세운 건물이 6.5m라 **4.7~7.65m가 비어 있었다**
+  // (6.5m를 먹으려면 7.65m 공이 필요하다). 바닥면적을 작게, 높이만 올려 메운다 —
+  // `size` 는 가로·세로·높이 중 **최대**라 넓적하게 지으면 그 폭이 곧 크기가 된다.
+  [[-2.5, 11.5, 0.1, 14.1], 4.6, 'retail', C_SHOP, '전화부스'],
+  [[-30.5, 25.5, -27.5, 28.5], 5.4, 'civic', C_TREE, '가로수'],
+  [[9.5, -13.5, 12.9, -10.1], 6.2, 'retail', C_SHOP, '간판탑'],
+  [[-9.5, -32.5, -5.7, -28.7], 7.2, 'civic', C_SCHOOL, '시계탑'],
+  // 공원
+  [[-30.5, 9.5, -22.5, 17.5], 4.8, 'civic', C_TREE, '느티나무'],
+  [[-30.5, 18.5, -24.5, 24.5], 6.5, 'civic', C_TREE, '느티나무'],
+  // 주유소
+  [[-28.5, -22.5, -20.5, -16.5], 6.0, 'retail', C_GAS, '주유소'],
+  // 상가
+  [[9.5, -22.5, 19.5, -14.5], 8.0, 'commercial', C_SHOP, '상가'],
+  [[20.5, -22.5, 28.5, -16.5], 5.0, 'commercial', C_SHOP, '분식집'],
+  // 학교 — 원작 Urchin Town 의 그 학교. 교정이 넓다
+  [[-20.5, -50.5, -4.5, -40.5], 12.0, 'civic', C_SCHOOL, '학교'],
+  [[-20.5, -39.5, -10.5, -31.5], 7.0, 'civic', C_SCHOOL, '체육관'],
+  [[-9.5, -39.5, -1.5, -33.5], 9.5, 'civic', C_SCHOOL, '급식동'],
+  // 부두
+  [[7.5, 22.5, 19.5, 30.5], 10.5, 'lowrise', C_SHOP, '창고'],
+  [[9.5, 15.5, 17.5, 21.5], 13.5, 'civic', 0xc9a24a, '크레인'],
+];
+
 // ─── 마을 짓기 ───────────────────────────────────────────────
 
 /**
@@ -167,8 +201,10 @@ function buildWorldWalls(): CityBuilding[] {
   // ── 상가 ────────────────────────────────────────────────
   // 서쪽 변(x=8)은 광장이 문을 냈다. 남(z=-8)은 부두 쪽으로 이어진다.
   b.push(piece(sx0, sz0, sx1, sz0), piece(sx1, sz0, sx1, sz1));
-  b.push(piece(sx0, sz1, ix0, sz1), piece(ix1, sz1, sx1, sz1));
-  b.push(piece(sx0, zz1, sx0, sz1));                 // 광장 문 아래 구간
+  b.push(piece(sx0, sz1, sx1, sz1));
+  // 서쪽 변 중 **광장 문 구간(z -8~8)은 광장이 냈다.** 그 위만 세운다 —
+  // 여기에 통짜 벽을 또 세웠더니 문을 열어도 뒤에 벽이 남아 1.6m에서 상가가 안 열렸다.
+  b.push(piece(sx0, sz0, sx0, zz0));
 
   // ── 교차로 ──────────────────────────────────────────────
   // 서(x=-6)는 공원, 동(x=6)은 부두.
@@ -181,12 +217,14 @@ function buildWorldWalls(): CityBuilding[] {
   // ── 공원 ────────────────────────────────────────────────
   // 원작 Urchin Town은 양쪽 끝에 공원과 학교가 있다.
   b.push(piece(px0, pz0, px1, pz0), piece(px0, pz1, px1, pz1), piece(px0, pz0, px0, pz1));
-  b.push(piece(px1, pz0, px1, cz1));                 // 교차로 문 위 구간
-  b.push(piece(px1, cz1, px1, pz1));                 // 교차로 문 아래 구간
+  // 동쪽 변 중 **교차로와 맞닿는 구간(z 8~22)은 교차로가 문을 냈다.** 그 아래만 세운다.
+  b.push(piece(px1, cz1, px1, pz1));
 
   // ── 부두 ────────────────────────────────────────────────
   b.push(piece(ix0, iz0, ix1, iz0), piece(ix0, iz1, ix1, iz1), piece(ix1, iz0, ix1, iz1));
   b.push(piece(ix0, cz1, ix0, iz1));                 // 교차로 문 아래 구간
+
+  b.push(...WORLD_BLOCKS.map(([rect, h, kind, color, name]) => block(rect, h, kind, color, name)));
 
   return b;
 }
@@ -212,5 +250,4 @@ export function buildWorldStage(): CityData {
   };
 }
 
-/** 큰 건물·랜드마크는 Step 2에서 붙인다 */
-export { KERB, C_SHOP, C_SCHOOL, C_TREE, C_GAS, block };
+
