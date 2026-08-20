@@ -12,6 +12,7 @@ import { generateWorld, GENERATION, type GenerationParams, type ObjectSpec } fro
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '../src/game/tuning';
 import { buildHouseStage } from '../src/world/stage.house';
 import { buildTownStage } from '../src/world/stage.town';
+import { buildWorldStage } from '../src/world/stage.world';
 import { extentOf } from '../src/world/cityData';
 import { STAGES, type StageArea } from '../src/game/Stage';
 
@@ -26,9 +27,12 @@ import { STAGES, type StageArea } from '../src/game/Stage';
 //             여기서만 드러난다** — 거실 물건만으로 5cm → 10cm가 되어야 한다.
 /** 이 실행이 재는 구역. `curve` 는 **이 구역을 쓰는 판만** 판정한다. */
 const AREA: StageArea = process.argv.includes('--town') ? 'town'
+  : process.argv.includes('--world') ? 'world'
   : process.argv.includes('--living') ? 'living'
   : 'house';
-const STAGE = AREA === 'town' ? buildTownStage() : buildHouseStage(AREA);
+const STAGE = AREA === 'town' ? buildTownStage()
+  : AREA === 'world' ? buildWorldStage()
+  : buildHouseStage(AREA);
 const ROOMS = process.argv.includes('--donut') ? undefined : STAGE.placement?.rooms;
 
 /**
@@ -55,10 +59,47 @@ function buildingSpecs(): ObjectSpec[] {
       } as ObjectSpec;
     });
 }
+/**
+ * `--probe=시작:목표,…` — **아직 `STAGES` 에 없는 판을 미리 재본다.**
+ *
+ * 맵을 먼저 만들고 규칙을 나중에 붙이는 순서라, 규칙이 붙기 전에 그 맵이
+ * 목표 크기까지 가는지 알아야 한다. 붙인 뒤엔 이 플래그가 필요 없다.
+ */
+const PROBES: Array<[number, number]> = (
+  process.argv.find((a) => a.startsWith('--probe='))?.slice(8) ?? ''
+).split(',').filter(Boolean).map((p) => {
+  const [start, target] = p.split(':').map(Number);
+  return [start!, target!] as [number, number];
+});
+
 /** 라벨 표도 스테이지가 갖는다 — 동네에 밥솥이 나오면 사다리 이름이 거짓말이 된다 */
 const LABELS = process.argv.includes('--donut') ? undefined : STAGE.placement?.labels;
 
 interface Sample { t: number; diameter: number; eaten: number }
+
+/**
+ * 물체 하나 + **그게 놓인 구역이 열리는 지름**.
+ *
+ * 시뮬이 게이트를 안 보면 아직 잠긴 방 물건까지 먹는다. 동네에 바깥 세 구역
+ * (4·6·8m에 열린다)이 생기고 나서 이게 치명적이 됐다 — 별 3(50cm)이 야구장
+ * 물건을 먹어서 곡선이 좋아진 것처럼 보인다. **게임에서는 못 먹는 것들이다.**
+ *
+ * 공은 줄지 않으므로 "한 번이라도 이 크기에 닿았나"는 곧 "지금 이 크기인가"다.
+ */
+interface Item { s: ObjectSpec; gate: number }
+
+/** 물체가 놓인 구역의 개방 지름. 구역 밖이면 0 — 처음부터 열려 있다. */
+function gateOf(x: number, z: number): number {
+  if (!ROOMS) return 0;
+  for (const r of ROOMS) {
+    const [a, b, c, d] = r.rect;
+    if (x >= a && x <= c && z >= b && z <= d) return r.openAt;
+  }
+  return 0;
+}
+
+const withGates = (specs: ObjectSpec[]): Item[] =>
+  specs.map((s) => ({ s, gate: gateOf(s.x, s.z) }));
 
 interface Result {
   samples: Sample[];
@@ -68,8 +109,8 @@ interface Result {
   stalledAt: number | null;
 }
 
-function simulate(specs: ObjectSpec[], startRadius = TUNING.startRadius): Result {
-  const alive = specs.map((s) => ({ s, dead: false }));
+function simulate(items: Item[], startRadius = TUNING.startRadius): Result {
+  const alive = items.map((it) => ({ ...it, dead: false }));
   let px = 0, pz = 0;
   let radius = startRadius;
   let volume = volumeFromRadius(radius);
@@ -83,12 +124,12 @@ function simulate(specs: ObjectSpec[], startRadius = TUNING.startRadius): Result
     eaten++;
   };
 
-  for (let guard = 0; guard < specs.length + 10; guard++) {
+  for (let guard = 0; guard < items.length + 10; guard++) {
     // 1) 가장 가까운 흡수 가능 물체
     let best = -1, bestDist = Infinity;
     for (let i = 0; i < alive.length; i++) {
       const a = alive[i]!;
-      if (a.dead || !canAbsorb(radius, a.s.size)) continue;
+      if (a.dead || a.gate > radius * 2 || !canAbsorb(radius, a.s.size)) continue;
       const d = Math.hypot(a.s.x - px, a.s.z - pz);
       if (d < bestDist) { bestDist = d; best = i; }
     }
@@ -106,7 +147,7 @@ function simulate(specs: ObjectSpec[], startRadius = TUNING.startRadius): Result
     const corridor: Array<{ i: number; along: number }> = [];
     for (let i = 0; i < alive.length; i++) {
       const a = alive[i]!;
-      if (a.dead) continue;
+      if (a.dead || a.gate > radius * 2) continue;
       const along = (a.s.x - px) * ux + (a.s.z - pz) * uz;
       if (along < 0 || along > len) continue;
       const perp = Math.abs(-(a.s.x - px) * uz + (a.s.z - pz) * ux);
@@ -140,7 +181,7 @@ function simulate(specs: ObjectSpec[], startRadius = TUNING.startRadius): Result
     samples,
     finalDiameter: radius * 2,
     eaten,
-    total: specs.length,
+    total: items.length,
     stalledAt: remaining.length > 0 ? smallestLeft : null,
   };
 }
@@ -172,7 +213,7 @@ function bar(value: number, max: number, width = 26): string {
 }
 
 function report(label: string, overrides: Partial<GenerationParams> = {}): Result {
-  const specs = [...generateWorld(1337, overrides, undefined, ROOMS, LABELS), ...buildingSpecs()];
+  const specs = withGates([...generateWorld(1337, overrides, undefined, ROOMS, LABELS), ...buildingSpecs()]);
   /**
    * **이 구역을 쓰는 판만 본다.**
    * 거실 전용 월드(최대 28cm)에서 별 4(1m)를 재면 당연히 "도달 실패"가 나온다 —
@@ -223,6 +264,14 @@ function report(label: string, overrides: Partial<GenerationParams> = {}): Resul
       + (stage.limit > 0 && hit.t > stage.limit ? '  ⚠ 제한 초과' : '')
       : `  ${stage.name}: ${fmt(stage.target)} **도달 실패**`);
   }
+  for (const [start, target] of PROBES) {
+    const run = simulate(specs, start / 2);
+    const hit = run.samples.find((x) => x.diameter >= target);
+    console.log(hit
+      ? `  [탐침] 시작 ${fmt(start)} → ${fmt(target)} 도달 ${hit.t.toFixed(0)}초`
+        + ` (실플레이 ×3 ≈ ${(hit.t * 3).toFixed(0)}초)`
+      : `  [탐침] 시작 ${fmt(start)} → ${fmt(target)} **도달 실패** (최종 ${fmt(run.finalDiameter)})`);
+  }
   console.log(`  두 배 소요시간 편차(CV): ${cv.toFixed(3)}   ← 낮을수록 곡선이 매끄럽다`);
   if (r.stalledAt !== null) {
     console.log(`  ⚠ 막힘: ${fmt(r.stalledAt)} 짜리를 못 먹고 멈춤`);
@@ -246,7 +295,7 @@ if (process.argv.includes('--sweep')) {
 }
 
 if (process.argv.includes('--csv')) {
-  const specs = [...generateWorld(1337, {}, undefined, ROOMS, LABELS), ...buildingSpecs()];
+  const specs = withGates([...generateWorld(1337, {}, undefined, ROOMS, LABELS), ...buildingSpecs()]);
   const r = simulate(specs);
   console.log('\nt,diameter,eaten');
   for (const s of r.samples) {
