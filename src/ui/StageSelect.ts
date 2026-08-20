@@ -1,5 +1,6 @@
 import type { StageRule } from '../game/Stage';
 import { isUnlocked } from '../game/Progress';
+import { skyHtml } from './Sky';
 import { formatSize } from './Hud';
 import { escapeHtml } from './Result';
 
@@ -18,11 +19,15 @@ export class StageSelect {
 
   show(
     stages: readonly StageRule[],
-    cleared: ReadonlySet<string>,
+    /** 판 id → 그 판에서 만든 최고 지름(m). 하늘에 뜰 별이 여기서 나온다 */
+    stars: ReadonlyMap<string, number>,
     intro: string,
     onPick: (rule: StageRule) => void,
   ): void {
     if (this.el) return;   // 두 번 띄우지 않는다
+
+    // 해금 판정은 크기를 안 본다 — 깼는지만 본다
+    const cleared = new Set(stars.keys());
 
     const el = document.createElement('div');
     el.className = 'select';
@@ -40,7 +45,9 @@ export class StageSelect {
         </button>`;
     }).join('');
 
+    // **하늘이 카드보다 먼저 와야 뒤에 깔린다.** 순서를 바꾸면 별이 카드를 덮는다.
     el.innerHTML = `
+      ${skyHtml(stars)}
       <div class="select-card">
         <div class="select-head">별을 만들어라</div>
         <p class="select-king">${escapeHtml(intro)}</p>

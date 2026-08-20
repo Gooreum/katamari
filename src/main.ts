@@ -5,7 +5,7 @@ import {
   STAGES, stageFromSlug, stageSearch,
   type StageArea, type StageNav,
 } from './game/Stage';
-import { loadCleared } from './game/Progress';
+import { loadStars } from './game/Progress';
 import { StageSelect } from './ui/StageSelect';
 import { KING } from './narrative/script.king';
 import type { CityData } from './world/cityData';
@@ -82,7 +82,7 @@ async function boot(): Promise<void> {
    * `?stage=star1`이 붙어 있으면 통째로 건너뛴다. 도구·e2e·판 전환이 그 문으로 들어온다.
    */
   if (params.get('stage') === null) {
-    new StageSelect().show(STAGES, loadCleared(), KING.select, (rule) => nav.go(rule));
+    new StageSelect().show(STAGES, loadStars(), KING.select, (rule) => nav.go(rule));
     mark('스테이지 선택');
     return;
   }
