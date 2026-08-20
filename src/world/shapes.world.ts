@@ -9,7 +9,7 @@ const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
 
 /**
- * World 맵(Urchin Town) 전용 형태 — **1.15m ~ 4m**.
+ * World 맵(Urchin Town) 전용 형태 — **19cm ~ 4m**.
  *
  * 동네에서 이만한 것들은 전부 `CityBuilding`(못 먹는 배경)이었다.
  * World는 공이 **50cm에서 시작**해 6m까지 가므로 여기서는 **먹는 물건**이다.
@@ -17,8 +17,50 @@ const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
  *
  * 원작 Urchin Town 특징(양쪽 끝의 공원과 학교, 주유소, 정글짐)에서 뽑았다.
  * 규약은 `shapes.kit.ts` 그대로 — 단위 정육면체, 바닥 y=−0.5, 최장축 1.0.
+ *
+ * **아래쪽(19cm~1.15m)이 나중에 붙었다.** 처음에는 1.15m 위쪽만 만들고 그 아래를
+ * 집 표로 때웠는데, 50cm에서 시작하는 광장에 의자·주전자·물뿌리개가 깔렸다.
+ * 거리 스케일에서 자주 밟히는 구간이라 오히려 여기가 더 눈에 띈다.
  */
 export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
+  // ── 19~32cm (길바닥) ──────────────────────────────────────
+  벽돌: () => assemble([
+    // 구멍 셋이 실루엣의 전부다. 없으면 그냥 상자다.
+    part(new BoxGeometry(1.0, 0.42, 0.46), WHITE),
+    part(new BoxGeometry(0.16, 0.44, 0.16), DARK, [-0.26, 0, 0]),
+    part(new BoxGeometry(0.16, 0.44, 0.16), DARK, [0, 0, 0]),
+    part(new BoxGeometry(0.16, 0.44, 0.16), DARK, [0.26, 0, 0]),
+  ]),
+
+  축구공: () => assemble([
+    part(new SphereGeometry(0.5, 12, 9), WHITE),
+    // 검은 조각 다섯. 구면에 살짝 박아 실루엣은 안 건드린다 —
+    // 밖으로 튀어나오면 normalize() 가 그만큼 전체를 줄여서 공이 작아진다.
+    part(new SphereGeometry(0.15, 6, 4), DARK, [0, 0.44, 0]),
+    part(new SphereGeometry(0.13, 6, 4), DARK, [0.40, 0.10, 0.22]),
+    part(new SphereGeometry(0.13, 6, 4), DARK, [-0.40, 0.10, 0.22]),
+    part(new SphereGeometry(0.13, 6, 4), DARK, [0.22, 0.05, -0.42]),
+    part(new SphereGeometry(0.13, 6, 4), DARK, [-0.22, 0.05, -0.42]),
+  ]),
+
+  // ── 33~61cm (주유소·노변) ─────────────────────────────────
+  타이어: () => assemble([
+    // 눕혀 놓은 폐타이어. Torus 는 기본이 XY 평면(구멍이 Z축)이라
+    // 세로로 서 있다 — 눕히려면 LIE_Z 를 걸어야 한다.
+    part(new TorusGeometry(0.34, 0.16, 6, 16), DARK, [0, 0, 0], LIE_Z),
+    // 가운데 휠. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다
+    part(new CylinderGeometry(0.20, 0.20, 0.22, 10), WHITE),
+  ]),
+
+  // ── 61cm~1.15m (거리 설비) ────────────────────────────────
+  볼라드: () => assemble([
+    part(new CylinderGeometry(0.13, 0.15, 0.86, 10), WHITE, [0, -0.05, 0]),
+    part(new SphereGeometry(0.13, 10, 5), WHITE, [0, 0.38, 0]),
+    // 반사띠 둘 — 이게 없으면 그냥 기둥이다
+    part(new CylinderGeometry(0.145, 0.145, 0.09, 10), PAPER, [0, 0.20, 0]),
+    part(new CylinderGeometry(0.155, 0.155, 0.09, 10), PAPER, [0, -0.10, 0]),
+  ]),
+
   // ── 버킷 5 (1.15~2.14m) ───────────────────────────────────
   자전거: () => assemble([
     // 바퀴 둘이 실루엣의 전부다. 프레임은 그 사이를 잇는 선이면 족하다.
