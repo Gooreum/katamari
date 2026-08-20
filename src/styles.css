@@ -34,6 +34,18 @@ html, body {
   color: #fff;
 }
 
+/**
+ * **고르는 동안은 게임 UI가 할 말이 없다.**
+ * 굴리고 있는 공이 없는데 「5.0cm」가, 조작할 게 없는데 「WASD 이동」이 뜬다.
+ * `index.html` 에 정적으로 박힌 것들이라 JS 가 아니라 여기서 접는다.
+ *
+ * **`#credit` 은 뺐다** — 출처 표기가 CSS 클래스 하나로 사라질 수 있으면 안 된다.
+ * (선택 화면에서는 `main.ts` 가 채우기 전이라 어차피 빈 칸이다)
+ */
+body.picking #hud,
+body.picking #feed,
+body.picking #help { display: none }
+
 #size {
   font-family: var(--font-display);
   font-weight: 800;

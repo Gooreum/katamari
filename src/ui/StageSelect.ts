@@ -64,6 +64,13 @@ export class StageSelect {
       if (rule) onPick(rule);
     });
 
+    /**
+     * **이 화면은 오버레이가 아니다.** `?stage` 가 없으면 `boot()` 가 `new Game`
+     * 전에 돌아가므로 밑에 깔린 게임이 없다. 그런데 HUD·조작 힌트는
+     * `index.html` 에 정적으로 박혀 있어서 **가릴 사람이 없다** —
+     * 고를 것만 있는 화면에 「5.0cm / 0 objects」와 「WASD 이동」이 뜬다.
+     */
+    document.body.classList.add('picking');
     document.body.appendChild(el);
     // 한 프레임 뒤에 클래스를 붙여야 전환이 돈다 (`Result`와 같은 이유)
     requestAnimationFrame(() => {
@@ -77,6 +84,9 @@ export class StageSelect {
   }
 
   dispose(): void {
+    // `show()` 와 대칭. 실제 앱은 판을 고르면 리로드라 여기 안 오지만,
+    // 검사는 같은 문서에서 띄웠다 거뒀다 한다 — 클래스가 남으면 다음 검사가 거짓말이 된다.
+    document.body.classList.remove('picking');
     this.el?.remove();
     this.el = null;
   }
