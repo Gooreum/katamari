@@ -1,8 +1,7 @@
-import { extentOf, type CityBuilding, type CityData, type StageRoom } from './cityData';
-import { TUNING } from '../game/tuning';
+import type { CityBuilding, CityData, StageRoom } from './cityData';
 import { TOWN_TABLE } from './generation';
 import {
-  block, piece as kitPiece, pillar as kitPillar, ring as kitRing,
+  block, boundary, dissolveWalls, piece as kitPiece, pillar as kitPillar, ring as kitRing,
   wallWithDoor as kitWallWithDoor,
   type PieceOpts, type Rect, type SlabStyle,
 } from './stage.kit';
@@ -36,6 +35,8 @@ const FENCE: SlabStyle = { t: 0.18, h: 1.0, color: 0xc79a5e };
 const KERB: SlabStyle = { t: 0.30, h: 0.45, color: 0xb9b3a4 };
 /** 게이트 문짝. 담장보다 높아야 `gate < size/pickRatio` 여유가 넉넉하다 */
 const GATE: SlabStyle = { t: 0.18, h: 1.6, color: 0xf3e7c8 };
+/** 맵 테두리. 길이가 곧 크기라 안 먹힌다 — 높이는 시야를 안 막을 만큼만 */
+const EDGE: SlabStyle = { t: 0.6, h: 2.0, color: 0xbfae8e };
 
 const C_HOUSE = 0xe8d9b8;
 const C_SHOP = 0xd9c9a6;
@@ -419,78 +420,11 @@ function buildTownWalls(): CityBuilding[] {
 
   b.push(...TOWN_LANDMARKS.map(([rect, h, name]) => block(rect, h, 'civic', C_LANDMARK, name)));
 
-  return dissolveWalls(b);
-}
-
-/** 점이 들어 있는 구역. 없으면 구역 밖(맵 가장자리·빈 땅)이다. */
-function roomAt(x: number, z: number): StageRoom | undefined {
-  return TOWN_ROOMS.find((r) => {
-    const [a, b, c, d] = r.rect;
-    return x >= a && x <= c && z >= b && z <= d;
-  });
-}
-
-/** 담장 양옆을 찔러볼 거리(m). 두께 절반 밖으로 이만큼 나간 점을 본다. */
-const PROBE = 0.3;
-
-/**
- * 마을 전체의 바깥 테두리. 모든 구역을 감싼 사각형이다.
- *
- * **여기서 벗어나는 쪽을 가진 벽은 끝까지 남는다** — 그게 맵 가장자리다.
- * 처음엔 "한쪽이 구역 밖이면 가장자리"로 봤는데, 구역과 구역 사이의 빈 땅도
- * 구역 밖이라 시작 마당 담장이 안 사라졌고 6m 공이 마당에 갇혔다.
- * 빈 땅은 마을 안이다. 가장자리가 아니다.
- */
-const TOWN_BOUNDS: Rect = TOWN_ROOMS.reduce<[number, number, number, number]>(
-  (acc, r) => [
-    Math.min(acc[0], r.rect[0]), Math.min(acc[1], r.rect[1]),
-    Math.max(acc[2], r.rect[2]), Math.max(acc[3], r.rect[3]),
-  ],
-  [Infinity, Infinity, -Infinity, -Infinity],
-);
-
-function insideTown(x: number, z: number): boolean {
-  const [a, b, c, d] = TOWN_BOUNDS;
-  return x >= a && x <= c && z >= b && z <= d;
-}
-
-/**
- * 담장에 **소멸 문턱**을 박는다.
- *
- * 두 구역 사이를 막는 담장만 대상이다. 한쪽이 구역 밖이면 그건 맵 가장자리라
- * 끝까지 남긴다 — 안 그러면 12m 공이 동네 밖 허공으로 굴러 나간다.
- *
- * 문턱은 `max(D_INNER, 이웃 openAt × GATE_CLEARANCE)`. 이웃 구역의 문이
- * 열리는 크기보다 먼저 담장이 사라지면 안 되니 개방값을 끌어올린 값을 쓴다.
- *
- * **`gate < size / pickRatio`를 못 지키는 벽에는 안 단다.** 그런 벽은 문턱보다
- * 먼저 자기 크기에 먹혀 어차피 사라진다 — 게이트를 달면 불변식만 깨진다.
- */
-function dissolveWalls(walls: CityBuilding[]): CityBuilding[] {
-  return walls.map((w) => {
-    if (w.kind !== 'wall' || w.gate !== undefined) return w;
-    const e = extentOf(w.outline, w.height);
-    const horizontal = e.width >= e.depth;
-    const off = (horizontal ? e.depth : e.width) / 2 + PROBE;
-
-    // 벽 하나가 여러 구역에 걸칠 수 있어 길이 방향으로 세 군데를 본다.
-    let open = 0;
-    for (const t of [0.15, 0.5, 0.85]) {
-      const px = horizontal ? e.cx + (t - 0.5) * e.width : e.cx;
-      const pz = horizontal ? e.cz : e.cz + (t - 0.5) * e.depth;
-      const lx = horizontal ? px : px - off;
-      const lz = horizontal ? pz - off : pz;
-      const hx = horizontal ? px : px + off;
-      const hz = horizontal ? pz + off : pz;
-      if (!insideTown(lx, lz) || !insideTown(hx, hz)) return w;   // 맵 가장자리
-      open = Math.max(open, roomAt(lx, lz)?.openAt ?? 0, roomAt(hx, hz)?.openAt ?? 0);
-    }
-
-    const dissolve = Math.max(D_INNER, open * GATE_CLEARANCE);
-    const size = Math.max(e.width, e.depth, w.height);
-    if (dissolve >= size / TUNING.pickRatio) return w;
-    return { ...w, gate: dissolve };
-  });
+  // 테두리는 소멸 대상이 아니다 — `dissolveWalls` 뒤에 붙인다
+  return [
+    ...dissolveWalls(b, TOWN_ROOMS, { inner: D_INNER, clearance: GATE_CLEARANCE }),
+    ...boundary(TOWN_ROOMS, EDGE),
+  ];
 }
 
 /**
@@ -510,7 +444,7 @@ export function buildTownStage(): CityData {
      * 26m였는데 바깥 세 구역이 x=56 · z=46까지 나가면서 지면 밖에 섰다 —
      * 가장 먼 모서리(56, 46)가 72.5m라 여유를 붙여 80m로 잡는다.
      */
-    radius: 80,
+    radius: 90,
     spawn: { x: 0, z: 0 },
     buildings: buildTownWalls(),
     /**

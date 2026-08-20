@@ -1,4 +1,5 @@
-import type { CityBuilding } from './cityData';
+import { extentOf, type CityBuilding, type StageRoom } from './cityData';
+import { TUNING } from '../game/tuning';
 
 /**
  * 손배치 스테이지 조립 도구 — 집·동네가 같이 쓴다.
@@ -152,4 +153,105 @@ export function block(
     color,
     ...(name !== undefined ? { name } : {}),
   };
+}
+
+// ─── 담장 소멸 ────────────────────────────────────────────────
+
+/** 담장 양옆을 찔러볼 거리(m). 두께 절반 밖으로 이만큼 나간 점을 본다. */
+const PROBE = 0.3;
+
+export interface DissolveOpts {
+  /**
+   * 안쪽 담장이 사라지는 최소 지름(m).
+   * 그 맵에서 **가장 넓은 문의 폭**으로 잡는다 — 그보다 커진 공은 어느 문으로도
+   * 못 지나가므로 담장이 더는 통로를 만들지 못한다.
+   */
+  readonly inner: number;
+  /** 문 폭 = 개방 지름 × 이 값. 소멸 문턱도 같은 배수를 쓴다 */
+  readonly clearance: number;
+}
+
+/**
+ * 구역을 나누는 담장에 **소멸 문턱**을 박는다.
+ *
+ * 문이 열려도 담장이 남으면 통로 폭이 문 폭 그대로다. 그래서 동네에서 공이
+ * 1.5m부터 시작 마당에 갇히고 6m 넘으면 한 칸도 못 움직였다 — 담장·문을 전부
+ * 지운 세계에서는 12m 공도 3만8천 칸을 돈다. **막던 건 건물이 아니라 담장이었다.**
+ * 자기 문보다 커진 공 앞에서 담장은 할 일이 끝난다. 그때 사라진다.
+ *
+ * 대상은 **양옆이 모두 맵 안인 벽**뿐이다. 한쪽이 `bounds` 밖이면 그건 맵
+ * 가장자리라 끝까지 남긴다 — 안 그러면 공이 맵 밖 허공으로 굴러 나간다.
+ * (처음엔 "한쪽이 구역 밖이면 가장자리"로 봤는데, 구역과 구역 사이의 빈 땅도
+ * 구역 밖이라 시작 마당 담장이 안 사라졌다. 빈 땅은 맵 안이다.)
+ *
+ * **`gate < size / pickRatio` 를 못 지키는 벽에는 안 단다.** 그런 벽은 문턱보다
+ * 먼저 자기 크기에 먹혀 어차피 사라진다 — 게이트를 달면 불변식만 깨진다.
+ */
+export function dissolveWalls(
+  walls: readonly CityBuilding[], rooms: readonly StageRoom[], o: DissolveOpts,
+): CityBuilding[] {
+  const bounds = rooms.reduce<[number, number, number, number]>(
+    (a, r) => [
+      Math.min(a[0], r.rect[0]), Math.min(a[1], r.rect[1]),
+      Math.max(a[2], r.rect[2]), Math.max(a[3], r.rect[3]),
+    ],
+    [Infinity, Infinity, -Infinity, -Infinity],
+  );
+  const inside = (x: number, z: number) =>
+    x >= bounds[0] && x <= bounds[2] && z >= bounds[1] && z <= bounds[3];
+  const roomAt = (x: number, z: number) => rooms.find((r) => {
+    const [a, b, c, d] = r.rect;
+    return x >= a && x <= c && z >= b && z <= d;
+  });
+
+  return walls.map((w) => {
+    if (w.kind !== 'wall' || w.gate !== undefined) return w;
+    const e = extentOf(w.outline, w.height);
+    const horizontal = e.width >= e.depth;
+    const off = (horizontal ? e.depth : e.width) / 2 + PROBE;
+
+    // 벽 하나가 여러 구역에 걸칠 수 있어 길이 방향으로 세 군데를 본다.
+    let open = 0;
+    for (const t of [0.15, 0.5, 0.85]) {
+      const px = horizontal ? e.cx + (t - 0.5) * e.width : e.cx;
+      const pz = horizontal ? e.cz : e.cz + (t - 0.5) * e.depth;
+      const lx = horizontal ? px : px - off;
+      const lz = horizontal ? pz - off : pz;
+      const hx = horizontal ? px : px + off;
+      const hz = horizontal ? pz + off : pz;
+      if (!inside(lx, lz) || !inside(hx, hz)) return w;          // 맵 가장자리
+      open = Math.max(open, roomAt(lx, lz)?.openAt ?? 0, roomAt(hx, hz)?.openAt ?? 0);
+    }
+
+    const dissolve = Math.max(o.inner, open * o.clearance);
+    const size = Math.max(e.width, e.depth, w.height);
+    if (dissolve >= size / TUNING.pickRatio) return w;
+    return { ...w, gate: dissolve };
+  });
+}
+
+/**
+ * **맵 바깥 테두리.** 구역 전체를 감싸는 벽 네 장.
+ *
+ * `dissolveWalls` 가 안쪽 담장을 없애고 나면 구역과 구역 사이의 빈 땅이 열린다.
+ * 그 자체는 의도한 것이다 — 12m 공은 그 빈 땅을 지나 바깥 구역으로 간다.
+ * 문제는 **테두리에 벽이 없는 구간**이다. 어친타운에서 3m 공이 구역 경계를
+ * 8,751칸 넘어 지면 원반 밖까지 굴러 나갔다.
+ *
+ * 길이가 곧 `size` 라 (`extentOf` 는 가로·세로·높이 중 최대를 본다) 수십 미터짜리
+ * 이 벽들은 어떤 크기에도 안 먹힌다. 그래서 높이는 낮게 둬도 된다 —
+ * 12m 공을 막겠다고 12m 담장을 두르면 스카이라인이 벽으로 막힌다.
+ */
+export function boundary(
+  rooms: readonly StageRoom[], style: SlabStyle, margin = 3,
+): CityBuilding[] {
+  const b = rooms.reduce<[number, number, number, number]>(
+    (a, r) => [
+      Math.min(a[0], r.rect[0]), Math.min(a[1], r.rect[1]),
+      Math.max(a[2], r.rect[2]), Math.max(a[3], r.rect[3]),
+    ],
+    [Infinity, Infinity, -Infinity, -Infinity],
+  );
+  const rect: Rect = [b[0] - margin, b[1] - margin, b[2] + margin, b[3] + margin];
+  return ring(rect, style, { name: '맵 경계' });
 }

@@ -1,7 +1,7 @@
 import type { CityBuilding, CityData, StageRoom } from './cityData';
 import { WORLD_TABLE } from './generation';
 import {
-  block, piece as kitPiece, pillar as kitPillar,
+  block, boundary, dissolveWalls, piece as kitPiece, pillar as kitPillar,
   wallWithDoor as kitWallWithDoor,
   type PieceOpts, type Rect, type SlabStyle,
 } from './stage.kit';
@@ -37,6 +37,8 @@ import {
 const FENCE: SlabStyle = { t: 0.45, h: 3.0, color: 0xd8c9a4 };
 /** 게이트 문짝. `gate < size / 0.85` 여유를 넉넉히 두려고 높다 */
 const GATE: SlabStyle = { t: 0.45, h: 5.0, color: 0xf2e6c6 };
+/** 맵 테두리. 길이가 곧 크기라 안 먹힌다 — 높이는 시야를 안 막을 만큼만 */
+const EDGE: SlabStyle = { t: 0.6, h: 3.0, color: 0xb9ac8c };
 
 const C_SHOP = 0xd9c9a6;
 const C_SCHOOL = 0xe4d7b4;
@@ -106,9 +108,32 @@ function pillar(x: number, z: number): CityBuilding {
   return kitPillar(x, z, FENCE, 0.35);
 }
 /**
+ * **안쪽 담장이 사라지는 지름(m).** 가장 넓은 문(학교 정문 3.5m)이 기준이다.
+ *
+ * 이게 없으면 4m 공이 시작 광장에 갇힌다 — 도달 검사가 자유 칸 7,379(3m)에서
+ * 529(4m)로 떨어지는 걸 잡았다. star7 목표가 6m라 거기서 판이 끝난다.
+ *
+ * 기준은 **가장 좁은 문(3.0m)**이다. 3.5m(가장 넓은 문)로 잡았더니 3.0~3.5m
+ * 구간에 구멍이 생겼다 — 3.05m 공은 3.0m 문을 못 지나가는데 담장은 아직 3.5m를
+ * 기다리고 있었다.
+ */
+const D_INNER = 3.0;
+
+/** 문 폭 = 개방 지름 × 이 값. 문턱만큼 커진 공이 그 문을 지나가야 한다 */
+const GATE_CLEARANCE = 1.25;
+
+/**
  * 담장에 문 하나. 문짝 폭 최소 3m·높이 5m라 size가 5m 이상이고,
  * 가장 큰 개방값 3.0m는 5 / 0.85 = 5.88m 보다 작다 — 불변식이 지켜진다.
  */
+/**
+ * 문 폭. **문턱만큼 커진 공이 그 문을 지나가야 한다.**
+ * 개방값이 작은 문은 최소 폭(`floor`)이 이미 넉넉하므로 그대로 쓴다.
+ */
+function doorWidth(gate: number, floor: number): number {
+  return Math.max(floor, gate * GATE_CLEARANCE);
+}
+
 function gateWall(
   x0: number, z0: number, x1: number, z1: number,
   at: number, w: number, gate: number, name: string,
@@ -175,20 +200,20 @@ function buildWorldWalls(): CityBuilding[] {
   // ── 시작 광장 ────────────────────────────────────────────
   // 북(z=-8)은 큰길과, 남(z=8)은 교차로와, 동(x=8)은 상가와 맞닿는다.
   b.push(piece(zx0, zz0, ax0, zz0), piece(ax1, zz0, zx1, zz0));
-  b.push(...gateWall(ax0, zz0, ax1, zz0, 0, 3.0, OPEN_AVENUE, '큰길 입구'));
+  b.push(...gateWall(ax0, zz0, ax1, zz0, 0, doorWidth(OPEN_AVENUE, 3.0), OPEN_AVENUE, '큰길 입구'));
   b.push(piece(zx0, zz1, cx0, zz1), piece(cx1, zz1, zx1, zz1));
-  b.push(...gateWall(cx0, zz1, cx1, zz1, 0, 3.0, OPEN_CROSS, '교차로 입구'));
+  b.push(...gateWall(cx0, zz1, cx1, zz1, 0, doorWidth(OPEN_CROSS, 3.0), OPEN_CROSS, '교차로 입구'));
   b.push(piece(zx0, zz0, zx0, zz1));
-  b.push(...gateWall(zx1, zz0, zx1, zz1, 0, 3.0, OPEN_SHOPS, '상가 골목'));
+  b.push(...gateWall(zx1, zz0, zx1, zz1, 0, doorWidth(OPEN_SHOPS, 3.0), OPEN_SHOPS, '상가 골목'));
   b.push(pillar(zx0, zz0), pillar(zx1, zz0), pillar(zx0, zz1), pillar(zx1, zz1));
 
   // ── 큰길 ────────────────────────────────────────────────
   // 좌우만 막는다. 북(z=-26)은 학교, 서(x=-5)의 일부는 주유소.
   b.push(piece(ax1, az0, ax1, az1));
   b.push(piece(ax0, gz1, ax0, az1));                 // 주유소 아래 구간
-  b.push(...gateWall(ax0, gz0, ax0, gz1, -17, 3.0, OPEN_GAS, '주유소 진입로'));
+  b.push(...gateWall(ax0, gz0, ax0, gz1, -17, doorWidth(OPEN_GAS, 3.0), OPEN_GAS, '주유소 진입로'));
   b.push(piece(ax0, az0, ax0, gz0));                 // 주유소 위 구간
-  b.push(...gateWall(ax0, az0, ax1, az0, 0, 3.5, OPEN_SCHOOL, '학교 정문'));
+  b.push(...gateWall(ax0, az0, ax1, az0, 0, doorWidth(OPEN_SCHOOL, 3.5), OPEN_SCHOOL, '학교 정문'));
 
   // ── 학교 ────────────────────────────────────────────────
   // 원작 Urchin Town의 학교 — 큰 교정에 정글짐이 있다. 램프는 평면이라 못 만든다.
@@ -210,9 +235,9 @@ function buildWorldWalls(): CityBuilding[] {
   // 서(x=-6)는 공원, 동(x=6)은 부두.
   b.push(piece(cx0, cz1, cx1, cz1));
   b.push(piece(cx0, cz0, cx0, pz0));
-  b.push(...gateWall(cx0, pz0, cx0, cz1, 15, 3.0, OPEN_PARK, '공원 문'));
+  b.push(...gateWall(cx0, pz0, cx0, cz1, 15, doorWidth(OPEN_PARK, 3.0), OPEN_PARK, '공원 문'));
   b.push(piece(cx1, cz0, cx1, iz0));
-  b.push(...gateWall(cx1, iz0, cx1, cz1, 18, 3.0, OPEN_PIER, '부두 문'));
+  b.push(...gateWall(cx1, iz0, cx1, cz1, 18, doorWidth(OPEN_PIER, 3.0), OPEN_PIER, '부두 문'));
 
   // ── 공원 ────────────────────────────────────────────────
   // 원작 Urchin Town은 양쪽 끝에 공원과 학교가 있다.
@@ -226,7 +251,11 @@ function buildWorldWalls(): CityBuilding[] {
 
   b.push(...WORLD_BLOCKS.map(([rect, h, kind, color, name]) => block(rect, h, kind, color, name)));
 
-  return b;
+  // 테두리는 소멸 대상이 아니다 — `dissolveWalls` 뒤에 붙인다
+  return [
+    ...dissolveWalls(b, WORLD_ROOMS, { inner: D_INNER, clearance: GATE_CLEARANCE }),
+    ...boundary(WORLD_ROOMS, EDGE),
+  ];
 }
 
 /**
@@ -241,7 +270,7 @@ export function buildWorldStage(): CityData {
     slug: 'world',
     // 실제 좌표가 아니다. 스키마가 요구해서 채우는 값 — 이 스테이지는 OSM이 아니다.
     origin: { lat: 0, lon: 0 },
-    radius: 60,
+    radius: 75,
     spawn: { x: 0, z: 0 },
     buildings: buildWorldWalls(),
     water: [],
