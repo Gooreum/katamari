@@ -330,6 +330,19 @@ kbd {
 }
 
 /* 스테이지 선택 — 결과 카드와 같은 오버레이·카드 규칙을 그대로 쓴다 */
+/**
+ * 자기 기록 한 줄. 통계와 왕의 평가 사이에 낀다 —
+ * 왕이 말하기 전에 숫자가 먼저 보여야 "무슨 소린가" 싶지 않다.
+ */
+.result-record {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #8a7f75;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-record.new { color: #d9a441; font-weight: 700 }
+
 .select {
   position: fixed;
   inset: 0;

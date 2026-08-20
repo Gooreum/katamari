@@ -55,7 +55,17 @@ export class Result {
       }
     };
 
-    void best;   // 화면 표시는 Phase 3에서 붙인다
+    /**
+     * 자기 기록. **첫 클리어(best 0)면 아무것도 안 보인다** — 비교할 게 없다.
+     *
+     * 원작에서 왕은 더 좋은 공을 가져오면 옛 별을 부수고 갈아 끼운다.
+     * 그 교체가 일어났는지를 숫자로만 알려준다 — **왕의 대사는 안 늘린다.**
+     * 대본에 없는 말을 여기서 지어내면 그때부터 왕이 두 사람이 된다.
+     */
+    const record = best <= 0 ? ''
+      : summary.diameter > best
+        ? `<p class="result-record new">최고 기록 경신 · 이전 ${formatSize(best)}</p>`
+        : `<p class="result-record">이 판 최고 기록 ${formatSize(best)}</p>`;
 
     const rows = script.result.units
       .map((u) => `<dt>${u.label}</dt><dd>${escapeHtml(value(u.from))}</dd>`)
@@ -82,6 +92,7 @@ export class Result {
           ${cleared ? '목표 달성' : '시간 종료'} · 목표 ${formatSize(rule.target)}
         </div>
         <dl class="result-stats">${rows}</dl>
+        ${record}
         <p class="result-king">${escapeHtml(verdict.text)}</p>
         ${actions}
       </div>`;
