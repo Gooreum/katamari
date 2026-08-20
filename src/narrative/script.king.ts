@@ -82,6 +82,8 @@ export const KING: Script = {
       { minDiameter: 0.50, text: '훌륭하다. 어젯밤 일은 이걸로 없던 것이 되었다. 그렇지?' },
       { minDiameter: 1.00, text: '미터라. 짐이 셈을 다시 해야 하는 크기구나. 귀찮게.' },
       { minDiameter: 2.50, text: '이 정도면 별이라 불러도 아무도 항의하지 않겠다. 짐 빼고.' },
+      { minDiameter: 5.00, text: '5미터라. 지구인들이 저것을 뭐라 부르는지 짐은 모른다. 알 필요도 없고.' },
+      { minDiameter: 10.00, text: '이만하면 짐이 부순 것 하나쯤은 덮겠구나. 하나쯤은.' },
     ],
   },
 };

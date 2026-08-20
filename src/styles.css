@@ -346,6 +346,13 @@ kbd {
 
 .select-card {
   width: min(420px, 100%);
+  /**
+   * 판이 여덟이 되면서 카드가 짧은 창(노트북 가로 모드)보다 길어졌다.
+   * 넘치면 잘린 채 스크롤도 안 돼서 마지막 판을 못 고른다 — 목록만 굴린다.
+   */
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
   padding: 26px 28px 22px;
   border-radius: 14px;
   background: #fdf8ec;
@@ -376,6 +383,9 @@ kbd {
   display: grid;
   gap: 8px;
   margin-top: 18px;
+  overflow-y: auto;
+  /* 스크롤 막대가 행 테두리를 먹지 않게 */
+  padding-right: 2px;
 }
 
 .select-row {
