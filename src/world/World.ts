@@ -9,6 +9,7 @@ import { generateWorld, GENERATION, PALETTE, type BlockedFn, type ObjectSpec } f
 import { buildShapeGeometries, withWhiteColors } from './shapes';
 import { City } from './City';
 import { FLOOR_TEX, TILE_M } from './floors';
+import { buildPrintAtlas } from './atlas';
 import type { CityData, CityRug, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
@@ -127,12 +128,29 @@ export class World {
     // vertexColors를 켠다. 정점색은 팔레트 색에 **곱해지는 계수**라
     // 흰색(1,1,1)만 들어 있는 기본 도형 4개는 지금까지와 똑같이 보인다.
     // 형태 지오메트리만 바퀴·창문 같은 내부 대비를 갖는다.
+    /**
+     * 팔레트별 머티리얼. `promote()` 가 **공으로 날아가는 물건**에 쓴다.
+     *
+     * 인스턴스 머티리얼과 같이 아틀라스를 물린다 — 안 물리면 물건을 집는 순간
+     * 인쇄가 사라져서 주사위가 민짜 상자로 변한다. 타일 0이 순백이라
+     * 인쇄를 안 받는 형태는 지금까지와 똑같다.
+     */
+    const printAtlas = buildPrintAtlas();
     for (const c of PALETTE) {
-      this.materials.push(new MeshLambertMaterial({ color: c, flatShading: true, vertexColors: true }));
+      this.materials.push(new MeshLambertMaterial({
+        color: c, flatShading: true, vertexColors: true, map: printAtlas,
+      }));
     }
-    // 인스턴스는 색을 instanceColor로 받으므로 머티리얼 하나면 충분하다.
+    /**
+     * 인스턴스는 색을 instanceColor로 받으므로 머티리얼 하나면 충분하다.
+     *
+     * 인쇄는 **아틀라스 한 장**으로 붙인다. 물건마다 텍스처를 주면 머티리얼이
+     * 갈라져서 드로우콜이 물건 종류만큼 는다 — 이 구조의 전제가 무너진다.
+     * 타일 0이 순백이라 인쇄를 안 받는 형태는 지금까지와 똑같이 보인다.
+     */
     const instanceMaterial = new MeshLambertMaterial({
       color: 0xffffff, flatShading: true, vertexColors: true,
+      map: printAtlas,
     });
 
     // InstancedMesh는 생성 시 크기가 고정이므로 geometry별 개수를 먼저 센다.

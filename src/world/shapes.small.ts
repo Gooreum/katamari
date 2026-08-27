@@ -4,6 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdSmall } from './generation';
 import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE } from './shapes.kit';
+import { TILE } from './atlas';
 
 /** 눕힌 원기둥을 만들 때 쓰는 회전. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다. */
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -81,11 +82,10 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
   // ─── 버킷 1 (2~4cm) ──────────────────────────────────────────
 
   주사위: () => assemble([
-    part(new BoxGeometry(0.9, 0.9, 0.9), WHITE, [0, 0.45, 0]),
-    // 윗면 1점, 앞면 2점. 점을 다 새기면 이 크기에서 삼각형 낭비다
-    part(new CylinderGeometry(0.11, 0.11, 0.06, 6), DARK, [0, 0.90, 0]),
-    part(new CylinderGeometry(0.09, 0.09, 0.06, 6), DARK, [-0.16, 0.61, 0.45], [Math.PI / 2, 0, 0]),
-    part(new CylinderGeometry(0.09, 0.09, 0.06, 6), DARK, [0.16, 0.29, 0.45], [Math.PI / 2, 0, 0]),
+    // **눈을 인쇄로 새긴다.** 예전엔 원기둥 셋을 박아 윗면 1점·앞면 2점만 냈다 —
+    // 나머지 네 면은 민짜였고, 그 셋이 삼각형 예산의 절반을 먹었다.
+    // 아틀라스 한 칸이 여섯 면을 다 덮으면서 부품이 하나로 준다.
+    part(new BoxGeometry(0.9, 0.9, 0.9), WHITE, [0, 0.45, 0], undefined, TILE.DICE),
   ]),
 
   나사: () => assemble([
@@ -106,9 +106,11 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
   ]),
 
   지우개: () => assemble([
-    // 모서리가 닳은 직육면체 + 종이 띠. 띠가 있어야 지우개로 읽힌다
+    // 모서리가 닳은 직육면체 + 종이 띠. 띠가 있어야 지우개로 읽힌다.
+    // **그 띠를 인쇄로 바꿨다** — PAPER 계수는 본체 대비 1.2:1 이라
+    // 「띠가 있어야 읽힌다」고 적어놓고 실제로는 안 보이고 있었다.
     part(new BoxGeometry(0.94, 0.36, 0.44), WHITE, [0, 0.18, 0]),
-    part(new BoxGeometry(0.52, 0.38, 0.46), PAPER, [0.04, 0.18, 0]),
+    part(new BoxGeometry(0.52, 0.38, 0.46), WHITE, [0.04, 0.18, 0], undefined, TILE.ERASER),
     part(new BoxGeometry(0.20, 0.30, 0.40), WHITE, [-0.50, 0.15, 0], [0, 0, 0.22]),
   ]),
 
@@ -176,14 +178,14 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
 
   성냥갑: () => assemble([
     // 서랍이 살짝 빠진 갑. 빠진 단이 있어야 상자가 아니라 성냥갑이다
-    part(new BoxGeometry(0.86, 0.24, 0.56), WHITE, [0, 0.12, 0]),
+    part(new BoxGeometry(0.86, 0.24, 0.56), WHITE, [0, 0.12, 0], undefined, TILE.MATCHBOX),
     part(new BoxGeometry(0.34, 0.20, 0.52), PAPER, [0.52, 0.11, 0]),
     // 옆면 마찰지
     part(new BoxGeometry(0.86, 0.16, 0.02), DARK, [0, 0.12, 0.285]),
   ]),
 
   건전지: () => assemble([
-    part(new CylinderGeometry(0.28, 0.28, 0.86, 10), WHITE, [0, 0.43, 0]),
+    part(new CylinderGeometry(0.28, 0.28, 0.86, 10), WHITE, [0, 0.43, 0], undefined, TILE.BATTERY),
     // +극 돌기. 이거 하나로 건전지가 된다
     part(new CylinderGeometry(0.10, 0.10, 0.08, 7), METAL, [0, 0.89, 0]),
     part(new CylinderGeometry(0.285, 0.285, 0.10, 10), METAL, [0, 0.06, 0]),

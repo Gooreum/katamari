@@ -7,6 +7,7 @@ import {
   HOUSE_TABLE, TOWN_TABLE, WORLD_TABLE, PALETTE, SHAPE_COLOR, SHAPE_IDS,
 } from './world/generation';
 import { buildShapeGeometries } from './world/shapes';
+import { buildPrintAtlas } from './world/atlas';
 
 /**
  * 형태 검토용 미리보기. **dev 전용 페이지다** —
@@ -79,6 +80,9 @@ const geometries = buildShapeGeometries();
  * 버킷 순서로 7개씩 정렬돼 있다는 전제였는데, 라벨 표가 스테이지마다 달라진
  * 뒤로는 성립하지 않는다 — 동네 표는 기존 형태를 재사용하고 줄 길이도 다르다.
  */
+/** 인쇄 아틀라스. 형태마다 만들면 텍스처가 88장 생긴다 — 한 장을 공유한다. */
+const atlas = buildPrintAtlas();
+
 const byName = new Map<string, BufferGeometry>(SHAPE_IDS.map((id, i) => [id, geometries[i]!]));
 const rows = rowFilter === null
   ? Array.from({ length: BUCKETS.length }, (_, i) => i)
@@ -105,10 +109,14 @@ rows.forEach((bucket, rowIndex) => {
       // 색은 그 형태에 **실제로 배정된 색**을 쓴다 (여러 색이면 첫 번째).
       // 예전에는 열 번호로 돌렸는데, 그러면 미리보기를 봐도 게임과 다른 색이라
       // 색 검수 자체가 성립하지 않는다.
+      //
+      // **인쇄 아틀라스도 같이 물린다.** 안 물리면 인쇄를 받은 형태가 여기서만
+      // 민짜로 보여서 「게임과 같은 구성」이라는 위 주석이 거짓말이 된다.
       new MeshLambertMaterial({
         color: PALETTE[SHAPE_COLOR[names[col]!]?.[0] ?? 0]!,
         flatShading: true,
         vertexColors: true,
+        map: atlas,
       }),
     );
     // 지오메트리 바닥이 y=-0.5 이므로 0.5 올리면 발이 줄 기준선에 닿는다

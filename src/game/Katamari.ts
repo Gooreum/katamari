@@ -368,6 +368,16 @@ export class Katamari {
 
       const geo = mesh.geometry.clone();
       geo.applyMatrix4(mesh.matrix);
+      /**
+       * **uv 는 여기서 지운다 — 인쇄 아틀라스가 생긴 뒤에도 그대로다.**
+       *
+       * 형태 지오메트리(`shapes.kit.assemble`)는 이제 전부 uv 를 갖지만
+       * **건물(`City.ts`)은 uv 를 지운다.** 둘이 섞이면 `mergeGeometries` 가
+       * 속성 구성 불일치로 null 을 돌려주고, 아래 `if (!merged) return` 이
+       * 조용히 넘어가서 **공에 붙은 물건이 통째로 사라진다.**
+       * 그래서 여기서 한쪽으로 맞춘다. 공에 붙은 뒤 인쇄가 없어지는 건
+       * 그 대가다 — 살리려면 City 도 uv 를 갖게 만드는 게 먼저다.
+       */
       geo.deleteAttribute('uv');
 
       // 정점색은 머티리얼 색에 **곱해지는 계수**다 — 덮어쓰면 안 된다.

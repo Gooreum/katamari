@@ -210,5 +210,12 @@ export function buildPrintAtlas(): CanvasTexture {
   tex.magFilter = NearestFilter;
   tex.generateMipmaps = false;
   tex.minFilter = NearestFilter;
+  /**
+   * **뒤집지 않는다.** three 는 기본으로 캔버스를 세로 반전해서 올린다(`flipY = true`).
+   * 그런데 `tileUv()` 는 캔버스 좌표(위→아래) 그대로 칸을 계산한다 — 반전이 끼면
+   * 칸이 어긋나서 주사위 자리에서 빈 칸을 읽는다. 실제로 주사위가 민짜로 나왔다.
+   * 좌표계를 하나로 맞추는 게 UV 쪽에 보정을 넣는 것보다 헷갈릴 여지가 적다.
+   */
+  tex.flipY = false;
   return tex;
 }

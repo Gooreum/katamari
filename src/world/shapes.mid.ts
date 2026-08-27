@@ -4,6 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdMid } from './generation';
 import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -29,7 +30,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   껌: () => assemble([
     // 은박에 싸인 판형 껌 (8.5cm)
     part(new BoxGeometry(0.90, 0.10, 0.32), WHITE, [0, 0.05, 0]),
-    part(new BoxGeometry(0.62, 0.11, 0.33), METAL, [0.10, 0.05, 0]),
+    part(new BoxGeometry(0.62, 0.11, 0.33), WHITE, [0.10, 0.05, 0], undefined, TILE.GUM),
     part(new BoxGeometry(0.10, 0.09, 0.30), PAPER, [-0.44, 0.05, 0]),
   ]),
 
@@ -45,7 +46,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   '캐러멜 상자': () => assemble([
     // 세워둔 갑 (11.3cm). 뚜껑 단이 있어야 상자가 아니라 캐러멜 갑이다
-    part(new BoxGeometry(0.44, 0.90, 0.24), WHITE, [0, 0.45, 0]),
+    part(new BoxGeometry(0.44, 0.90, 0.24), WHITE, [0, 0.45, 0], undefined, TILE.CARAMEL),
     part(new BoxGeometry(0.46, 0.16, 0.26), PAPER, [0, 0.82, 0]),
     part(new BoxGeometry(0.40, 0.34, 0.02), [0.85, 0.45, 0.15], [0, 0.42, 0.13]),
   ]),
@@ -77,8 +78,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   찌라시: () => assemble([
     // 바닥에 떨어져 살짝 휜 낱장 (16.8cm). 각도가 다른 판 셋이면 '버려진' 게 된다
-    part(new BoxGeometry(0.94, 0.012, 0.68), WHITE, [0, 0.01, 0]),
-    part(new BoxGeometry(0.60, 0.012, 0.52), PAPER, [0.16, 0.03, 0.06], [0.06, 0.2, 0.03]),
+    part(new BoxGeometry(0.94, 0.012, 0.68), WHITE, [0, 0.01, 0], undefined, TILE.FLYER),
+    part(new BoxGeometry(0.60, 0.012, 0.52), WHITE, [0.16, 0.03, 0.06], [0.06, 0.2, 0.03], TILE.FLYER),
     part(new BoxGeometry(0.34, 0.012, 0.30), [0.85, 0.3, 0.25], [-0.24, 0.02, -0.14], [0, -0.4, 0]),
   ]),
 
@@ -86,7 +87,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 접어서 쌓아둔 신문 (21.5cm). 층이 보여야 한 장이 아니라 신문이다
     part(new BoxGeometry(0.92, 0.10, 0.62), WHITE, [0, 0.05, 0]),
     part(new BoxGeometry(0.88, 0.08, 0.58), PAPER, [0.02, 0.13, 0.01], [0, 0.05, 0]),
-    part(new BoxGeometry(0.84, 0.06, 0.54), WHITE, [-0.02, 0.19, -0.01], [0, -0.04, 0]),
+    part(new BoxGeometry(0.84, 0.06, 0.54), WHITE, [-0.02, 0.19, -0.01], [0, -0.04, 0], TILE.NEWSPAPER),
     // 접힌 등
     part(new CylinderGeometry(0.05, 0.05, 0.62, 6), PAPER, [-0.44, 0.10, 0], LIE_Z),
     part(new BoxGeometry(0.50, 0.02, 0.10), DARK, [0.10, 0.23, 0.10]),
