@@ -56,6 +56,8 @@ const FENCE_H = 1.2;
  * 아니라 **면 자체가 색을 갖기** 때문이라, 채도를 올리고 명도를 벌린다.
  */
 const C_WALL = 0xfbf0d2;   // 회벽
+const C_BASE = 0x6b4a2a;   // 걸레받이 — 벽 밑을 두르는 나무 띠
+const C_OUTLET = 0xf2ece0; // 콘센트 판
 const C_PILLAR = 0xc2762c; // 기둥·문틀 나무
 const C_DOOR = 0xfffaea;   // 장지문 창호지
 const C_FENCE = 0xc07d33;  // 판자 담장
@@ -130,6 +132,35 @@ const DOOR: SlabStyle = { t: WALL_T, h: DOOR_H, color: C_DOOR };
 
 type SlabOpts = PieceOpts;
 
+/**
+ * 걸레받이. 벽 밑을 두르는 낮은 나무 띠.
+ *
+ * 원작 거실 화면에서 벽과 바닥이 만나는 자리에 이 띠가 있고, 그게 "방"이라는
+ * 인상을 만든다. 없으면 벽이 바닥에 그냥 꽂혀 있는 판때기로 보인다.
+ *
+ * **벽과 같은 선 위에 둔다.** 새로 막는 게 아니라 이미 있는 벽을 두껍게 보이게
+ * 할 뿐이라, 공의 이동 가능 영역이 안 바뀐다.
+ */
+function baseboard(x0: number, z0: number, x1: number, z1: number): CityBuilding {
+  return kitPiece(x0, z0, x1, z1, { t: WALL_T + 0.04, h: 0.06, color: C_BASE });
+}
+
+/**
+ * 콘센트. 벽에 붙은 작은 판.
+ *
+ * 원작 거실에도 콘센트가 있고 코드가 바닥으로 늘어진다. 판 하나만으로도
+ * 벽이 "빈 면"이 아니라 생활하는 벽이 된다.
+ */
+function outlet(x: number, z: number, alongX: boolean): CityBuilding {
+  const half = 0.05;
+  return kitPiece(
+    alongX ? x - half : x, alongX ? z : z - half,
+    alongX ? x + half : x, alongX ? z : z + half,
+    { t: WALL_T + 0.03, h: 0.06, color: C_OUTLET },
+    { h: 0.06 },
+  );
+}
+
 function piece(x0: number, z0: number, x1: number, z1: number, o: SlabOpts = {}): CityBuilding {
   return kitPiece(x0, z0, x1, z1, WALL, o);
 }
@@ -175,6 +206,11 @@ function buildWalls(area: StageArea): CityBuilding[] {
       piece(lx0, lz0, lx0, lz1), piece(lx1, lz0, lx1, lz1),
       piece(lx0, lz0, lx1, lz0), piece(lx0, lz1, lx1, lz1),
       pillar(lx0, lz0), pillar(lx1, lz0), pillar(lx0, lz1), pillar(lx1, lz1),
+      // 벽 밑 나무 띠 네 면. 벽과 같은 선이라 막는 범위는 안 바뀐다
+      baseboard(lx0, lz0, lx0, lz1), baseboard(lx1, lz0, lx1, lz1),
+      baseboard(lx0, lz0, lx1, lz0), baseboard(lx0, lz1, lx1, lz1),
+      // 콘센트 둘 — 북벽과 서벽에 하나씩. 벽이 빈 면이 아니게 된다
+      outlet(-1.1, lz0, true), outlet(lx0, 0.7, false),
     );
     return b;
   }
