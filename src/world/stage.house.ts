@@ -1,4 +1,4 @@
-import type { CityBuilding, CityData, StageRoom } from './cityData';
+import type { CityBuilding, CityData, CityRug, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
 import {
   piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
@@ -265,5 +265,21 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
     water: [],
     landmarks: [],
     placement: { rooms },
+    rugs: buildRugs(area),
   };
+}
+
+/**
+ * 깔개. 지금은 거실 한 장뿐이다.
+ *
+ * 원작 거실에서 분홍 카펫이 다다미를 **비스듬히** 가로지른다 — 그 대각선이
+ * "바닥이 여러 재질"이라는 인상을 만든다. 축에 맞춰 깔면 방바닥을 한 번 더
+ * 나눈 것에 그치고 재질이 둘이라는 게 안 읽힌다.
+ *
+ * 거실은 5.4m × 4.5m 다. 2.4 × 1.6m 면 바닥의 약 16% — 다다미를 가리지 않으면서
+ * 화면 안에서 한 덩어리로 읽히는 크기다.
+ */
+function buildRugs(area: StageArea): CityRug[] {
+  if (area !== 'living' && area !== 'house') return [];
+  return [{ cx: 0.35, cz: -0.25, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' }];
 }

@@ -48,6 +48,17 @@ export type BuildingKind =
   | 'wall'         // 방 벽·기둥·담장 — 구역을 막는 것
   | 'door';        // 미닫이문·문턱 — 크기가 차면 사라지는 것
 
+/** 바닥 깔개 한 장. y 는 World 가 방바닥 위로 띄운다. */
+export interface CityRug {
+  readonly cx: number;
+  readonly cz: number;
+  readonly w: number;
+  readonly d: number;
+  /** 라디안. 0 이면 축 정렬 — 그러면 깔개를 둔 의미가 없다 */
+  readonly rotY: number;
+  readonly tex: FloorTex;
+}
+
 export interface CityBuilding {
   /** 시계방향 무관. 월드 좌표(m). 첫 점과 끝 점을 중복해서 넣지 말 것. */
   readonly outline: ReadonlyArray<readonly [number, number]>;
@@ -140,6 +151,14 @@ export interface CityData {
    * 필수로 만들면 그 파일들이 전부 스키마 위반이 된다.
    */
   readonly roads?: readonly CityRoad[];
+  /**
+   * 바닥에 깔린 깔개. **렌더 전용** — 충돌·물체 배치·성장 곡선에 안 쓴다 (`roads` 와 같다).
+   *
+   * 원작 거실에서 분홍 카펫이 다다미를 **대각선으로** 가른다. 그 한 장이
+   * "바닥이 여러 재질"이라는 인상의 절반을 만든다 — 그래서 `rect`(축 정렬)가 아니라
+   * 중심 + 크기 + `rotY` 로 받는다. 축에 맞춰 깔면 방바닥을 한 번 더 나눈 것에 그친다.
+   */
+  readonly rugs?: readonly CityRug[];
   /**
    * 손배치 스테이지 전용 배치 규칙.
    *

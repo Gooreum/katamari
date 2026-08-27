@@ -9,7 +9,7 @@ import { generateWorld, GENERATION, PALETTE, type BlockedFn, type ObjectSpec } f
 import { buildShapeGeometries, withWhiteColors } from './shapes';
 import { City } from './City';
 import { FLOOR_TEX, TILE_M } from './floors';
-import type { CityData, StageRoom } from './cityData';
+import type { CityData, CityRug, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
 const CELL = 4;
@@ -183,6 +183,8 @@ export class World {
       // 깔고 그 위에 방 바닥을 얹는다. 방 7개면 드로우콜 +8.
       scene.add(this.buildFlatGround(0x7a6a4e));
       for (const r of rooms) scene.add(this.buildRoomFloor(r));
+      // 깔개는 방바닥 **뒤에** 더한다 — 먼저 깔면 방바닥이 덮는다
+      for (const g of cityData?.rugs ?? []) scene.add(this.buildRug(g));
     } else {
       scene.add(this.buildGround());
     }
@@ -316,6 +318,26 @@ export class World {
    * y = 4mm. 바탕(0)보다 위, 수면(12mm)·도로(20mm)보다 아래 — 어차피 집 맵에는
    * 물도 도로도 없지만 규약을 깨지 않는다.
    */
+  /**
+   * 깔개 한 장. 방바닥(y=0.004) 위 0.002m 에 띄운다 —
+   * 같은 높이에 두면 z-fighting 으로 깜빡인다.
+   *
+   * **`rotY` 를 그대로 쓴다.** 축에 맞춰 눕히면 방바닥을 한 번 더 나눈 것에 불과하고,
+   * 원작에서 카펫이 다다미를 비스듬히 자르는 그 인상이 안 나온다.
+   */
+  private buildRug(rug: CityRug): Mesh {
+    const tex = FLOOR_TEX[rug.tex]();
+    tex.repeat.set(rug.w / TILE_M, rug.d / TILE_M);
+    const mesh = new Mesh(
+      new PlaneGeometry(rug.w, rug.d),
+      new MeshLambertMaterial({ map: tex }),
+    );
+    mesh.rotation.set(-Math.PI / 2, 0, rug.rotY);
+    mesh.position.set(rug.cx, 0.006, rug.cz);
+    mesh.name = 'rug';
+    return mesh;
+  }
+
   private buildRoomFloor(room: StageRoom): Mesh {
     const [x0, z0, x1, z1] = room.rect;
     const w = x1 - x0, d = z1 - z0;
