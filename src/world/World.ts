@@ -135,10 +135,17 @@ export class World {
      * 인쇄가 사라져서 주사위가 민짜 상자로 변한다. 타일 0이 순백이라
      * 인쇄를 안 받는 형태는 지금까지와 똑같다.
      */
-    const printAtlas = buildPrintAtlas();
+    /**
+     * **DOM 이 없으면 안 만든다.** 아틀라스는 `document.createElement('canvas')` 를
+     * 쓰는데 `tools/placecheck.ts` 같은 검사는 Node 에서 `World` 를 그대로 생성한다.
+     * 생성자에서 무조건 부르면 그 도구들이 통째로 죽는다 — 실제로 죽였다.
+     * 도구는 배치 숫자만 보므로 텍스처가 없어도 재는 값이 안 달라진다.
+     */
+    const printAtlas = typeof document === 'undefined' ? null : buildPrintAtlas();
+    const printMap = printAtlas ? { map: printAtlas } : {};
     for (const c of PALETTE) {
       this.materials.push(new MeshLambertMaterial({
-        color: c, flatShading: true, vertexColors: true, map: printAtlas,
+        color: c, flatShading: true, vertexColors: true, ...printMap,
       }));
     }
     /**
@@ -150,7 +157,7 @@ export class World {
      */
     const instanceMaterial = new MeshLambertMaterial({
       color: 0xffffff, flatShading: true, vertexColors: true,
-      map: printAtlas,
+      ...printMap,
     });
 
     // InstancedMesh는 생성 시 크기가 고정이므로 geometry별 개수를 먼저 센다.

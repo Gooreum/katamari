@@ -18,7 +18,19 @@ import type { CityData } from '../src/world/cityData';
 
 // World 는 CanvasTexture 를 만들기 때문에 document 가 필요하다 (spawncheck 과 같은 수법).
 const g = globalThis as unknown as Record<string, unknown>;
-g['document'] = { createElement: () => ({ width: 0, height: 0, getContext: () => ({ fillStyle: '', fillRect() {} }) }) };
+g['document'] = {
+  createElement: () => ({
+    width: 0,
+    height: 0,
+    // 아틀라스(atlas.ts)가 쓰는 것까지 받아준다. 스텁은 코드가 쓰는 만큼 자라야 한다 —
+    // 없는 메서드를 부르면 도구가 통째로 죽고, 그게 배치 숫자와는 무관한 죽음이라 더 나쁘다.
+    getContext: () => ({
+      fillStyle: '',
+      fillRect() {}, save() {}, restore() {}, translate() {},
+      beginPath() {}, rect() {}, clip() {}, arc() {}, fill() {},
+    }),
+  }),
+};
 g['window'] = {}; g['self'] = g;
 
 const { World } = await import('../src/world/World');
