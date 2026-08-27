@@ -109,12 +109,12 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0 },
-  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0 },
+  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS },
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS },
   { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS },
-  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD },
+  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD },
   { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD },
 ];
 

@@ -8,6 +8,7 @@ import { SpatialHash } from './SpatialHash';
 import { generateWorld, GENERATION, PALETTE, type BlockedFn, type ObjectSpec } from './generation';
 import { buildShapeGeometries, withWhiteColors } from './shapes';
 import { City } from './City';
+import { FLOOR_TEX, TILE_M } from './floors';
 import type { CityData, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
@@ -317,9 +318,17 @@ export class World {
    */
   private buildRoomFloor(room: StageRoom): Mesh {
     const [x0, z0, x1, z1] = room.rect;
+    const w = x1 - x0, d = z1 - z0;
+    /**
+     * 텍스처가 있으면 **색은 흰색으로 둔다.** `MeshLambertMaterial` 은 `color` 를
+     * `map` 에 곱하므로 둘 다 주면 바닥이 두 번 어두워진다.
+     * 타일 한 장이 `TILE_M`(1.8m)을 덮으니 방 크기로 나눠 반복 횟수를 낸다.
+     */
+    const tex = room.floorTex ? FLOOR_TEX[room.floorTex]() : null;
+    if (tex) tex.repeat.set(w / TILE_M, d / TILE_M);
     const mesh = new Mesh(
-      new PlaneGeometry(x1 - x0, z1 - z0),
-      new MeshLambertMaterial({ color: room.floor }),
+      new PlaneGeometry(w, d),
+      new MeshLambertMaterial(tex ? { map: tex } : { color: room.floor }),
     );
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2);

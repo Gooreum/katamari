@@ -45,10 +45,11 @@ export function buildTatamiTexture(): CanvasTexture {
   cx.fillStyle = '#c8d27a';               // 기존 F_TATAMI 와 같은 색을 바탕으로 쓴다
   cx.fillRect(0, 0, 128, 128);
 
-  // 짜임결. 2px 주기 1px 줄이라 NearestFilter 가 아니면 살아남지 못한다.
+  // 짜임결. 3px 주기 1px 줄. 2px 주기 + 강한 대비로 처음 그렸더니 골덴처럼 보였다 —
+  // 원작 다다미는 결이 훨씬 은근하고, 매트를 가르는 건 결이 아니라 헤리다.
   const grain = (ox: number, oy: number, vertical: boolean): void => {
-    cx.fillStyle = '#bdc76c';
-    for (let k = 0; k < 64; k += 2) {
+    cx.fillStyle = '#c1cb72';
+    for (let k = 0; k < 64; k += 3) {
       if (vertical) cx.fillRect(ox + k, oy, 1, 64);
       else cx.fillRect(ox, oy + k, 64, 1);
     }

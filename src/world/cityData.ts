@@ -10,6 +10,7 @@
  * 위도 1도가 111km라 그대로 쓰면 도시가 찌그러지기 때문이다.
  */
 
+import type { FloorTex } from './floors';
 import type { LabelTable, RoomPlacement } from './generation';
 
 /**
@@ -21,8 +22,20 @@ import type { LabelTable, RoomPlacement } from './generation';
  */
 export interface StageRoom extends RoomPlacement {
   readonly name: string;
-  /** 바닥색(0xRRGGBB). 원작 실내 바닥은 텍스처가 아니라 색면 하나다 */
+  /**
+   * 바닥색(0xRRGGBB). `floorTex` 가 없는 방은 이 색면 하나로 칠한다.
+   *
+   * **여기 「원작 실내 바닥은 텍스처가 아니라 색면 하나다」라고 적혀 있었는데 틀렸다.**
+   * Katamari Damacy REROLL 거실 화면을 확인하니 다다미는 짜임결과 헤리(테두리 천)가
+   * 있고, 그 위를 카펫이 대각선으로 가른다. 색면 하나가 아니다.
+   */
   readonly floor: number;
+  /**
+   * 바닥 텍스처. 없으면 `floor` 색면을 그대로 쓴다 —
+   * **선택 필드다.** 필수로 만들면 기존 방 정의가 전부 스키마 위반이 된다
+   * (`roads` 를 선택으로 둔 것과 같은 이유).
+   */
+  readonly floorTex?: FloorTex;
 }
 
 export type BuildingKind =
