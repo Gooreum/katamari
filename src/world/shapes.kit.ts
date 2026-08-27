@@ -1,5 +1,6 @@
 import { BufferAttribute, BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { TILE, tileUv } from './atlas';
 
 /**
  * 형태 조립 도구. 빌더 파일(shapes.small/mid/large.ts)이 쓰는 공통 부품.
@@ -43,7 +44,7 @@ export const PAPER: RGB = [0.92, 0.9, 0.86];
 /** 나무·흙 */
 export const WOOD: RGB = [0.5, 0.38, 0.26];
 
-export interface Part { geo: BufferGeometry; rgb: RGB }
+export interface Part { geo: BufferGeometry; rgb: RGB; tile: number }
 
 export type Vec3 = readonly [number, number, number];
 const ZERO: Vec3 = [0, 0, 0];
@@ -52,12 +53,51 @@ const ZERO: Vec3 = [0, 0, 0];
  * 부품 하나. 회전(라디안)을 먼저, 그 다음 이동을 지오메트리에 구워 넣는다.
  * 순서가 반대면 물체가 원점을 중심으로 휘둘린다.
  */
-export function part(geo: BufferGeometry, rgb: RGB, pos: Vec3 = ZERO, rot: Vec3 = ZERO): Part {
+export function part(
+  geo: BufferGeometry, rgb: RGB, pos: Vec3 = ZERO, rot: Vec3 = ZERO,
+  /**
+   * 인쇄 아틀라스의 칸 번호. **기본값이 순백 칸**이라 안 주면 지금까지와 똑같다 —
+   * 그래서 기존 호출부 88종을 한 줄도 안 고쳤다.
+   */
+  tile: number = TILE.BLANK,
+): Part {
   if (rot[0]) geo.rotateX(rot[0]);
   if (rot[1]) geo.rotateY(rot[1]);
   if (rot[2]) geo.rotateZ(rot[2]);
   if (pos[0] || pos[1] || pos[2]) geo.translate(pos[0], pos[1], pos[2]);
-  return { geo, rgb };
+  return { geo, rgb, tile };
+}
+
+/**
+ * 부품의 UV 를 **자기 칸 안으로 접는다.**
+ *
+ * 기본 도형의 uv 는 0~1 로 아틀라스 **전체**를 훑는다. 그대로 두면 주사위 한 면에
+ * 16칸이 전부 찍힌다. 0~1 을 그 칸의 사각형으로 다시 매핑해야 한다.
+ *
+ * uv 가 아예 없는 지오메트리(회전·병합 과정에서 빠진 것)도 있으므로 없으면 만든다 —
+ * `mergeGeometries` 는 부품들의 **속성 구성이 같기를 요구**해서, 하나라도 uv 가
+ * 없으면 병합이 통째로 실패한다.
+ */
+function clamp01(v: number): number {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
+export function foldUv(geo: BufferGeometry, tile: number): void {
+  const n = geo.attributes['position']!.count;
+  const [u0, v0, u1, v1] = tileUv(tile);
+  const src = geo.getAttribute('uv') as BufferAttribute | undefined;
+  const uv = new Float32Array(n * 2);
+  for (let i = 0; i < n; i++) {
+    // **0~1 로 물린 뒤에 접는다.** `SphereGeometry` 의 uv 는 0~1 이 아니다 —
+    // three 가 극점 왜곡을 줄이려고 -0.0714 ~ 1.0714 까지 밀어낸다(7분할 기준).
+    // 그대로 접으면 구를 쓰는 형태가 **옆 칸을 침범해서** 남의 인쇄를 끌어온다.
+    // 실제로 88종 중 34종이 그랬다.
+    const su = clamp01(src ? src.getX(i) : 0.5);
+    const sv = clamp01(src ? src.getY(i) : 0.5);
+    uv[i * 2] = u0 + su * (u1 - u0);
+    uv[i * 2 + 1] = v0 + sv * (v1 - v0);
+  }
+  geo.setAttribute('uv', new BufferAttribute(uv, 2));
 }
 
 /** 정점 전체에 같은 색을 칠한다. */
@@ -74,14 +114,18 @@ export function paint(geo: BufferGeometry, rgb: RGB): void {
 
 /**
  * 부품들을 하나로 합치고 규약에 맞춘다.
- * uv는 지운다 — 머티리얼에 텍스처가 없고, Katamari.bake()가 어차피 지워서
- * 남겨두면 병합할 때 속성 구성만 안 맞는다.
+ * uv는 **살린다.** 예전엔 지웠는데(머티리얼에 텍스처가 없었다) 이제 월드 인스턴스가
+ * 인쇄 아틀라스를 쓴다. 부품마다 자기 칸으로 접어두면 모든 부품이 uv를 갖게 되어
+ * 병합의 속성 구성도 맞는다. 공에 붙는 경로는 `Katamari.bake()`가 여전히 uv를 지운다.
  */
 export function assemble(parts: Part[]): BufferGeometry {
   if (parts.length === 0) throw new Error('형태에 부품이 하나도 없습니다');
 
-  for (const { geo, rgb } of parts) {
-    geo.deleteAttribute('uv');
+  for (const { geo, rgb, tile } of parts) {
+    // **uv 를 지우지 않는다.** 예전엔 지웠다 — 머티리얼에 텍스처가 없었으니까.
+    // 이제 월드 인스턴스가 인쇄 아틀라스를 쓰므로 각 부품을 자기 칸으로 접는다.
+    // 공에 붙을 때는 `Katamari.bake()` 가 어차피 uv 를 지우므로 그 경로는 그대로다.
+    foldUv(geo, tile);
     paint(geo, rgb);
   }
   const merged = mergeGeometries(parts.map((p) => p.geo), false);
@@ -119,5 +163,8 @@ export function normalize(geo: BufferGeometry): BufferGeometry {
  */
 export function withWhiteColors(geo: BufferGeometry): BufferGeometry {
   paint(geo, WHITE);
+  // 기본 도형 4개도 uv를 순백 칸으로 접는다. 안 접으면 0~1 uv가 아틀라스
+  // **전체**를 훑어서 상자 한 면에 인쇄 16칸이 다 찍힌다.
+  foldUv(geo, TILE.BLANK);
   return geo;
 }
