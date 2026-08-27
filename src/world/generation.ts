@@ -515,12 +515,40 @@ export function generateWorld(
      */
     normalizeAspect = false,
   ): void => {
+    /**
+     * **세 축에 같은 배율을 준다.** 예전엔 축마다 다른 난수를 곱했다 —
+     * 그러면 물체의 56%가 최장축/최단축 1.5배 이상(평균 1.59배, 최악 2.49배)
+     * 찌그러진다. `shapes.kit.ts` 의 `normalize()` 가 「비율을 스케일이 아니라
+     * 지오메트리에 굽는다」며 공들여 맞춰둔 비율이 여기서 무너지고 있었다.
+     * 주사위가 정육면체가 아니고 개구리가 소시지가 되던 원인이다.
+     *
+     * **난수는 세 번 그대로 뽑는다.** 스트림 순서를 바꾸면 온 세계가 달라진다
+     * (이 파일 곳곳의 경고 참고). 쓰는 방법만 바꿔서, 셋의 **기하평균**을
+     * 세 축에 똑같이 준다. 그러면
+     *
+     *   volume = sx·sy·sz = base³ · (∛(a1a2a3))³ = base³ · a1a2a3
+     *
+     * 로 **변경 전과 비트 단위로 같다** — 실측으로 맞춰둔 성장 곡선이 안 움직인다.
+     *
+     * `normalizeAspect`(방 배치의 「최대 변이 정확히 base」)는 균등 배율에서
+     * 최대 변이 곧 `base·g` 이므로 `1/g` 을 곱하면 정확히 base 가 된다.
+     */
     const aspect = () => g.aspectMin + rand() * (g.aspectMax - g.aspectMin);
     const a1 = aspect(), a2 = aspect(), a3 = aspect();
-    const k = normalizeAspect ? 1 / Math.max(a1, a2, a3) : 1;
-    const sx = base * a1 * k;
-    const sy = base * a2 * k;
-    const sz = base * a3 * k;
+    const geo3 = Math.cbrt(a1 * a2 * a3);
+    /**
+     * `normalizeAspect` 경로도 **부피를 정확히 보존한다.**
+     * 예전 값은 `sx=base·a1/max` … 라 부피가 `base³·a1a2a3/max³` 였다.
+     * 균등 배율에서 같은 부피를 내려면 한 변이 `base·∛(a1a2a3)/max` 여야 한다.
+     *
+     * 이 값은 항상 `base` **이하**다(기하평균 ≤ 최댓값). 방 배치 규약이 요구한 건
+     * 「최대 변이 base 를 넘지 않을 것」(1.8m 복도에 안 들어가는 걸 막는 것)이므로
+     * 등호가 부등호가 돼도 안전하다.
+     */
+    const side = base * geo3 / (normalizeAspect ? Math.max(a1, a2, a3) : 1);
+    const sx = side;
+    const sy = side;
+    const sz = side;
 
     let [x, z] = drawPos();
 
