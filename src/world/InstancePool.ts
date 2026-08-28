@@ -33,6 +33,15 @@ export class InstancePool {
       // count를 0으로 둬서 렌더를 건너뛴다. 63종이 다 채워지면 기본 도형 4개는
       // 아무 물체도 안 쓰는데, 그대로 두면 빈 InstancedMesh 4개가 드로우콜만 먹는다.
       const mesh = new InstancedMesh(geometry, material, Math.max(count, 1));
+      /**
+       * **그림자를 던지되 받지는 않는다.**
+       *
+       * 소품끼리의 그림자는 이 크기(1~30cm)에서 화면에 안 잡힌다. 반대로
+       * `receiveShadow` 를 켜면 인스턴스 4,200개가 프래그먼트마다 그림자 맵을
+       * 한 번 더 샘플링한다 — 안 보이는 것에 값을 치르는 셈이다.
+       * 물건이 「바닥에 놓여 있다」로 읽히게 하는 건 **바닥이 받는 그림자**다.
+       */
+      mesh.castShadow = true;
       mesh.count = count;
       mesh.frustumCulled = false;   // 인스턴스 전체 AABB가 월드만 하므로 컬링 의미 없음
       for (let i = 0; i < mesh.count; i++) {

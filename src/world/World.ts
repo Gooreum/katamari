@@ -517,6 +517,8 @@ export class World {
     // `y` 가 있으면 상판·선반이다. 없으면 지금까지처럼 방바닥(0.004) 위 2mm
     mesh.position.set(rug.cx, (rug.y ?? 0) + 0.006, rug.cz);
     mesh.name = rug.y === undefined ? 'rug' : 'surface';
+    // 깔개 위에 놓인 물건의 그림자가 여기 떨어진다
+    mesh.receiveShadow = true;
     if (rug.hideAt !== undefined) this.fading.push({ mesh, at: rug.hideAt });
     return mesh;
   }
@@ -567,6 +569,8 @@ export class World {
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2);
     mesh.name = `floor_${room.id}`;
+    // **물건이 「바닥에 놓여 있다」로 읽히는 건 이 면이 받는 그림자다**
+    mesh.receiveShadow = true;
     return mesh;
   }
 
@@ -578,6 +582,8 @@ export class World {
     );
     mesh.rotation.x = -Math.PI / 2;
     mesh.name = 'ground';
+    // 방 바닥 밖(툇마루 아래·벽 밑)에 선 물건도 그림자를 남겨야 한다
+    mesh.receiveShadow = true;
     return mesh;
   }
 

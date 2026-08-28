@@ -1,5 +1,5 @@
 import {
-  Color, DirectionalLight, Fog, HemisphereLight, Quaternion, Scene,
+  Color, DirectionalLight, Fog, HemisphereLight, PCFSoftShadowMap, Quaternion, Scene,
   Vector3, WebGLRenderer,
 } from 'three';
 import { InputManager } from '../core/Input';
@@ -121,6 +121,44 @@ export class Game {
     this.scene.add(sun);
 
     this.world = new World(this.scene, city);
+
+    /**
+     * **접지 그림자.**
+     *
+     * 여태 씬에 그림자가 **하나도 없었다.** 그래서 아무것도 바닥에 「닿아」 보이지
+     * 않았다 — 물건이 전부 바닥 위에 떠 있는 스티커처럼 보였다.
+     * 저폴리 씬에서 「거기 놓여 있다」를 만드는 건 폴리곤이 아니라 이것이다.
+     *
+     * **실내 판에서만 켠다.** 잠실은 반경 2.8km라 정사영 그림자 카메라 하나로는
+     * 못 덮는다(캐스케이드가 필요하다). 안개를 `groundSize > 1200` 으로 가른 것과
+     * 같은 기준을 쓴다 — 「실내인가 도시인가」를 이 값 하나로 판단하고 있다.
+     */
+    if (this.world.groundSize <= 1200) {
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = PCFSoftShadowMap;
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      /**
+       * 절두체를 **방 크기에 딱 맞춘다.** 집 맵은 한 변 12m 인데 카메라를 크게 잡으면
+       * 2048² 텍셀이 빈 마당에 뿌려져서 정작 거실 그림자가 뭉갠다.
+       * `groundSize` 는 지형 반경의 2.6배라 그 절반이면 지형 전체를 덮는다.
+       */
+      const R = this.world.groundSize / 2;
+      const cam = sun.shadow.camera;
+      cam.left = -R; cam.right = R; cam.top = R; cam.bottom = -R;
+      cam.near = 0.5; cam.far = R * 4 + 10;
+      cam.updateProjectionMatrix();
+      // 광원을 지형 위로 물려서 절두체 안에 방이 들어오게 한다.
+      // 방향(1, 2.2, 1.4)은 그대로 — 그림자 각도가 바뀌면 명암 판단이 무너진다
+      sun.position.set(1, 2.2, 1.4).normalize().multiplyScalar(R * 1.6);
+      this.scene.add(sun.target);
+      // **얇은 물건에서 그림자 여드름(acne)이 난다.** 신문·화투는 두께가 5mm 라
+      // 기본 bias 로는 자기 그림자가 표면에 찍힌다. normalBias 가 그걸 법선 방향으로 민다
+      // **얇은 물건이 관건이다.** 화투·신문은 두께가 5mm 라 normalBias 를 2cm 로 두면
+      // 그림자가 통째로 법선 방향으로 밀려나 사라진다. 물건 두께보다 한참 작게 잡는다
+      sun.shadow.bias = -0.0004;
+      sun.shadow.normalBias = 0.004;
+    }
     /**
      * 안개는 **먼 배경을 하늘에 녹이는 용도로만** 남긴다.
      *

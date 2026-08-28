@@ -89,6 +89,9 @@ export class Katamari {
       new SphereGeometry(1, 28, 20),
       new MeshLambertMaterial({ color: 0x39304f }),
     );
+    // **공 밑의 그림자가 「내가 여기 있다」를 만든다.** 없으면 공이 바닥 위에 떠 있다
+    this.core.castShadow = true;
+    this.core.receiveShadow = true;
     this.group.add(this.core);
     this.squash.add(this.group);
     this.pivot.add(this.squash);
@@ -168,6 +171,8 @@ export class Katamari {
    *      물체가 표면을 뚫고 나오도록 거리를 계산한다
    */
   absorb(mesh: Mesh, volume: number, size: number, label: string): void {
+    // 공에 붙은 물건도 그림자를 던진다 — 안 그러면 공만 동그란 그림자를 남긴다
+    mesh.castShadow = true;
     this.group.attach(mesh);
     const from = mesh.position.clone();
 
