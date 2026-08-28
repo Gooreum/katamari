@@ -88,9 +88,11 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   찌라시: () => assemble([
     // 바닥에 떨어져 살짝 휜 낱장 (16.8cm). 각도가 다른 판 셋이면 '버려진' 게 된다
-    part(new BoxGeometry(0.94, 0.012, 0.68), WHITE, [0, 0.01, 0], undefined, TILE.FLYER),
-    part(new BoxGeometry(0.60, 0.012, 0.52), WHITE, [0.16, 0.03, 0.06], [0.06, 0.2, 0.03], TILE.FLYER),
-    part(new BoxGeometry(0.34, 0.012, 0.30), [0.85, 0.3, 0.25], [-0.24, 0.02, -0.14], [0, -0.4, 0]),
+    // **완전 평면은 공 눈높이에서 선 한 줄이다.** 종이는 실제로 바닥에 딱 안 붙는다 —
+    // 모서리가 말려 올라간다. 낱장을 기울여 «면»이 보이게 한다
+    part(new BoxGeometry(0.94, 0.014, 0.68), WHITE, [0, 0.012, 0], [0.05, 0, 0.03], TILE.FLYER),
+    part(new BoxGeometry(0.60, 0.014, 0.52), WHITE, [0.16, 0.06, 0.06], [0.22, 0.2, 0.10], TILE.FLYER),
+    part(new BoxGeometry(0.34, 0.014, 0.30), [0.85, 0.3, 0.25], [-0.26, 0.05, -0.14], [-0.30, -0.4, 0.14]),
   ]),
 
   신문: () => assemble([
@@ -126,10 +128,12 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   ]),
 
   접시: () => assemble([
-    // 얕은 원반 + 굽. 원작 부엌의 그것
-    part(new CylinderGeometry(0.50, 0.36, 0.14, 20), WHITE, [0, 0.09, 0], undefined, TILE.PLATE),
-    part(new CylinderGeometry(0.22, 0.22, 0.05, 14), WHITE, [0, 0.025, 0]),
-    part(new TorusGeometry(0.44, 0.03, 4, 20), [0.55, 0.62, 0.75], [0, 0.15, 0], LIE_Z),
+    // **얕은 웅덩이가 접시의 정체다.** 원반은 코스터고, 깊이 파면 사발이 된다
+    ...hollow(0.50, 0.38, 0.15, 0.045, 0.055, 20, WHITE, [0.90, 0.92, 0.96], TILE.PLATE),
+    // 굽 — 접시를 살짝 띄운다
+    part(new CylinderGeometry(0.24, 0.26, 0.05, 16), WHITE, [0, 0.025, 0]),
+    // 청색 테두리 — 흰 원반을 «접시»로 만드는 건 이 띠다
+    part(new TorusGeometry(0.475, 0.022, 5, 20), [0.55, 0.62, 0.75], [0, 0.14, 0], LIE_Z),
   ]),
 
   슬리퍼: () => assemble([
@@ -187,11 +191,10 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   ]),
 
   휴지통: () => assemble([
-    part(new CylinderGeometry(0.42, 0.32, 0.80, 20), WHITE, [0, 0.40, 0]),
-    // 테두리 링. 원기둥만 두면 컵이다
-    part(new TorusGeometry(0.42, 0.035, 4, 20), WHITE, [0, 0.79, 0], LIE_Z),
-    // 안쪽 그림자 — 비어 있는 게 보여야 통이다
-    part(new CylinderGeometry(0.36, 0.28, 0.04, 20), DARK, [0, 0.74, 0]),
+    // **진짜로 판다.** 예전엔 어두운 원반을 위에 얹어 「비어 있는 척」만 했다
+    ...hollow(0.42, 0.32, 0.80, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.40]),
+    // 구겨진 종이 한 덩이 — 통 «안»이 보인다는 걸 확실히 한다
+    part(new SphereGeometry(0.16, 10, 7), PAPER, [0.06, 0.20, -0.04]),
   ]),
 
   전화기: () => assemble([
@@ -216,12 +219,12 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   ]),
 
   화분: () => assemble([
-    // 뒷마당의 토마토 화분. 흙과 줄기가 있어야 화분이다
-    part(new CylinderGeometry(0.38, 0.28, 0.52, 20), WHITE, [0, 0.26, 0]),
-    part(new CylinderGeometry(0.40, 0.40, 0.08, 20), WHITE, [0, 0.48, 0]),
-    part(new CylinderGeometry(0.33, 0.33, 0.04, 20), [0.28, 0.22, 0.16], [0, 0.50, 0]),
-    part(new CylinderGeometry(0.03, 0.025, 0.44, 5), [0.35, 0.55, 0.25], [0, 0.72, 0]),
-    part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.92, 0]),
+    // 뒷마당의 토마토 화분. 흙과 줄기가 있어야 화분이다.
+    // **파야 흙이 «담긴» 것으로 보인다** — 통짜 위에 얹은 흙은 뚜껑이다
+    ...hollow(0.38, 0.28, 0.52, 0.035, 0.06, 20, WHITE, [0.42, 0.30, 0.22]),
+    part(new CylinderGeometry(0.33, 0.33, 0.04, 20), [0.28, 0.22, 0.16], [0, 0.40, 0]),
+    part(new CylinderGeometry(0.03, 0.025, 0.44, 5), [0.35, 0.55, 0.25], [0, 0.64, 0]),
+    part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0]),
   ]),
 
   주전자: () => assemble([
