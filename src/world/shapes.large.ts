@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, GLASS, METAL, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -93,6 +93,10 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     // 갓 안쪽 — 밝게 둬야 불이 켜진 것처럼 보인다
     part(new CylinderGeometry(0.30, 0.17, 0.04, 14), [1, 0.95, 0.75], [0, 0.66, 0]),
     part(new SphereGeometry(0.10, 8, 6), GLASS, [0, 0.72, 0]),
+    // 갓 위아래 테. **갓의 윤곽을 그리는 건 천이 아니라 이 테다** —
+    // 원뿔대 하나만 있으면 옆에서 사다리꼴 색면으로 보인다
+    part(new TorusGeometry(0.335, 0.016, 4, 16), PAPER, [0, 0.64, 0], LIE_Z),
+    part(new TorusGeometry(0.195, 0.014, 4, 14), PAPER, [0, 1.00, 0], LIE_Z),
   ]),
 
   물뿌리개: () => assemble([
