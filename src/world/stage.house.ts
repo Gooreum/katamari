@@ -2,7 +2,7 @@ import type { CityBuilding, CityData, CityRug, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
 import { ROOM_TABLES } from './generation';
 import {
-  piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
+  block, piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
   type PieceOpts, type SlabStyle,
 } from './stage.kit';
 
@@ -74,6 +74,15 @@ const C_SHOJI_RAIL = 0x8a5a24;
 const C_PILLAR = 0xc2762c; // 기둥·문틀 나무
 const C_DOOR = 0xfffaea;   // 장지문 창호지
 const C_FENCE = 0xc07d33;  // 판자 담장
+
+// ─── 가구 색 ─────────────────────────────────────────────────
+//
+// 벽과 같은 규칙이다 — 실물색이 아니라 화면색. 가구는 벽(0xfbf0d2)·바닥(다다미
+// 0xc8d27a) 위에 얹히므로 **둘 다와 대비가 나야** 덩어리로 읽힌다.
+
+const C_WOOD = 0x9a6b3f;   // 서랍장·책장·상다리
+const C_TV = 0x4a4744;     // 브라운관
+const C_METAL = 0xc9ccd1;  // 스탠드 기둥
 
 // ─── 구역 개방 지름 (m) ──────────────────────────────────────
 
@@ -362,6 +371,76 @@ function buildWalls(area: StageArea): CityBuilding[] {
   return b;
 }
 
+// ─── 가구 ────────────────────────────────────────────────────
+
+/**
+ * 상판 없는 **다리 넷.**
+ *
+ * `City.geometryFor()`의 압출은 바닥(y=0)에서 시작해 **공중에 뜬 면을 못 만든다**
+ * (장지문에 가로 살이 없는 것과 같은 이유). 그래서 밥상·책상·식탁·평상은
+ * 상판을 못 얹는다.
+ *
+ * **타협이 아니라 오히려 정답에 가깝다.** 원작에서 5cm 왕자는 밥상 *밑을* 지나간다.
+ * 다리만 있으면 작은 공은 사이로 빠지고 큰 공은 다리를 먹는다 — 그 감각이 그대로 남는다.
+ *
+ * 다리 하나의 `size`는 가로·세로·높이 중 최대라 **곧 다리 높이**다. 0.30m짜리
+ * 밥상 다리는 지름 35cm부터 먹힌다(`pickRatio` 0.85).
+ */
+function legs(
+  x0: number, z0: number, x1: number, z1: number, h: number, w = 0.07,
+): CityBuilding[] {
+  const at: ReadonlyArray<readonly [number, number]> = [[x0, z0], [x1, z0], [x0, z1], [x1, z1]];
+  return at.map(([x, z]) =>
+    block([x - w / 2, z - w / 2, x + w / 2, z + w / 2], h, 'retail', C_WOOD, '상다리'));
+}
+
+/**
+ * 방 안의 가구.
+ *
+ * ## 가구는 새 개념이 아니라 `CityBuilding` 이다
+ *
+ * 동네 맵이 이미 그렇게 한다(집 5채·상점 4채·자판기·텐트). `kind`를 `'wall'`/`'door'`가
+ * 아닌 값으로 주면 세 가지가 **공짜로** 따라온다:
+ *
+ *   1. `Game.resolveCity()`가 크기가 차면 먹는다 — 원작에서 서랍장·TV를 삼키는 그 순간
+ *   2. `World.buildBlocked()`가 바닥면을 비운다 — 소품이 가구 속에 안 파묻힌다
+ *   3. `ladder`·`curve`가 자동으로 센다 (`kind !== 'wall' && kind !== 'door'`)
+ *
+ * 새 충돌 코드도 새 렌더 경로도 한 줄이 필요 없다.
+ *
+ * ## 왜 넣나 — 측정된 이유가 있다
+ *
+ * `ladder --city house`가 **78cm~2m 구간 14개(권장 16 이상)** 를 구멍으로 잡고 있었다.
+ * 그 크기대는 원래 가구가 채우는 자리인데 집에 가구가 한 점도 없었다.
+ * 방이 텅 빈 사각형이라 "무슨 방인지" 안 보이는 것과 같은 원인이다.
+ *
+ * ## 좌표 규약
+ *
+ * 벽 **안쪽 면** 기준이다. 벽은 두께 0.10이 중심선에 걸리고 걸레받이가 0.14라,
+ * 거실(±2.7, ±2.25)의 안쪽 면은 **x ±2.63 · z ±2.18** 이다.
+ * 콘센트(북벽 x=−2.05 · 서벽 z=0.7)와 장지문 폭(x −1.8~1.8)은 피한다 —
+ * 앞선 작업이 「화면에 안 보이던 결함」을 고쳐가며 세운 것들이라 가구로 덮으면 안 된다.
+ */
+function buildFurniture(area: StageArea): CityBuilding[] {
+  const b: CityBuilding[] = [
+    // ── 거실 ────────────────────────────────────────────────
+    // 서쪽 벽에 서랍장 + TV. 콘센트가 z=0.7 이라 그 북쪽 구간만 쓴다
+    block([-2.60, -1.90, -2.15, -1.00], 0.62, 'retail', C_WOOD, '서랍장'),
+    block([-2.58, -0.85, -2.18, -0.35], 0.46, 'retail', C_TV, '텔레비전'),
+    // 북벽 동쪽 끝 — 장지문(x −1.8~1.8) 밖의 민벽
+    block([1.95, -2.15, 2.60, -1.85], 1.05, 'civic', C_WOOD, '책장'),
+    // 동벽. 스탠드는 1.2m라 star1(10cm)·star2(20cm)에서는 끝까지 못 먹는다
+    block([2.35, -0.20, 2.55, 0.00], 1.20, 'retail', C_METAL, '스탠드'),
+    block([2.25, 1.55, 2.58, 1.90], 0.58, 'retail', C_WOOD, '전화대'),
+    // 밥상 — 깔개(중심 0.35,−0.25 · 2.4×1.6 · 0.34rad) 위에 올린다.
+    // 스폰(0,0)에서 0.55m 떨어뜨렸다 — 시작하자마자 다리에 박히면 안 된다
+    ...legs(0.55, -0.70, 1.35, -0.05, 0.30),
+  ];
+  if (area === 'living') return b;   // star1은 거실 한 칸뿐이다
+
+  return b;
+}
+
 /**
  * 원작 타케다 저택 1층.
  *
@@ -386,7 +465,7 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
     origin: { lat: 0, lon: 0 },
     radius: 12,
     spawn: { x: 0, z: 0 },
-    buildings: buildWalls(area),
+    buildings: [...buildWalls(area), ...buildFurniture(area)],
     water: [],
     landmarks: [],
     placement: { rooms },
