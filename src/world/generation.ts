@@ -234,6 +234,28 @@ const SHAPE_INDEX = new Map<string, number>(
 );
 
 /**
+ * 라벨 → `World.geometries` 인덱스. 없는 이름이면 `null`.
+ *
+ * **난수 생성기를 거치지 않고 이름으로 형상을 고르는 유일한 통로다.**
+ * 지금까지 형상은 `generateWorld` 가 크기 버킷에서 뽑는 것뿐이었다 —
+ * 「여기에 텔레비전을 놓아라」라고 말할 방법이 없어서 가구가 전부
+ * `CityBuilding`(2D 외곽선을 바닥부터 압출)이었고, 그래서 상자였다.
+ */
+export function geoIndexOf(label: string): number | null {
+  return SHAPE_INDEX.get(label) ?? null;
+}
+
+/**
+ * 라벨의 대표 색(PALETTE 인덱스).
+ *
+ * `generateWorld` 는 `SHAPE_COLOR[label]` 에서 난수로 하나를 고르는데, 손배치는
+ * 난수가 없으므로 **첫 번째**를 쓴다. 표에 없으면 종이 흰색(0).
+ */
+export function colorOf(label: string): number {
+  return SHAPE_COLOR[label]?.[0] ?? 0;
+}
+
+/**
  * 크기 구간별 이름. 구간 자체는 연속이고, 라벨만 로그 버킷으로 고른다.
  *
  * 버킷 경계는 `sizeMin`~`sizeMax`의 로그 범위를 버킷 수로 나눈 것이다.

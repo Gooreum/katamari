@@ -81,6 +81,42 @@ export interface CityRug {
   readonly hideAt?: number;
 }
 
+/**
+ * 손으로 놓는 물건 하나. **가구·가전이 여기 들어간다.**
+ *
+ * ## 왜 필요한가
+ *
+ * 지금까지 가구는 `CityBuilding` 이었다 — 2D 외곽선을 y=0부터 위로 뽑는 것뿐이라
+ * **프리즘밖에 못 만든다.** 텔레비전이 상자 두 개, 밥상이 각기둥 네 개에 상판은
+ * 떠 있는 텍스처였던 이유다. 정작 바닥에 굴러다니는 소품은 `shapes.*.ts` 로
+ * 진짜 형상을 만든다(곰인형 부품 12개). **방을 방으로 만들어야 할 가구가
+ * 씬에서 제일 대충 만든 물건이었다.**
+ *
+ * 여기 들어가면 소품과 **완전히 같은 경로**를 탄다 — 같은 지오메트리, 같은
+ * 인스턴스 풀, 같은 충돌(3D 구 vs AABB), 같은 흡수. 새 렌더·충돌 코드가 없다.
+ *
+ * ## 크기가 `size` 하나뿐인 이유
+ *
+ * 가로세로 비율은 **형상이 갖고 있다.** `assemble()` 이 최장축을 1.0으로 정규화하면서
+ * 비율을 지오메트리에 굽기 때문이다(`shapes.kit.ts`). 그래서 「텔레비전을 55cm로」라고만
+ * 적으면 나머지는 형상이 정한다.
+ */
+export interface StageProp {
+  /** `SHAPE_IDS` 에 있는 이름. 없으면 `World` 가 시끄럽게 죽는다 */
+  readonly label: string;
+  readonly x: number;
+  readonly z: number;
+  /** 최대 변(m). 흡수 문턱이 `size / TUNING.pickRatio` 다 */
+  readonly size: number;
+  /** 라디안. 0이면 축 정렬 */
+  readonly rotY?: number;
+  /**
+   * 이 높이에 **떠서** 놓는다(m). 없으면 바닥.
+   * TV장 위의 텔레비전처럼 「가구 위의 가구」에 쓴다.
+   */
+  readonly y?: number;
+}
+
 export interface CityBuilding {
   /** 시계방향 무관. 월드 좌표(m). 첫 점과 끝 점을 중복해서 넣지 말 것. */
   readonly outline: ReadonlyArray<readonly [number, number]>;
@@ -211,6 +247,12 @@ export interface CityData {
      * **개수는 방에서 뺀 만큼**이라 밀도가 안 는다.
      */
     readonly spots?: readonly RoomPlacement[];
+    /**
+     * **손으로 놓는 물건.** 가구·가전이 여기 들어간다 — `StageProp` 주석 참고.
+     *
+     * `buildings` 와 달리 압출이 아니라 **진짜 형상**이고, 소품과 같은 경로를 탄다.
+     */
+    readonly props?: readonly StageProp[];
   };
 }
 
