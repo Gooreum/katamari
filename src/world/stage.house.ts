@@ -196,7 +196,7 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
  * 자리 사각형은 방과 같은 축이라 자리 모서리에 맞추면 벽에 맞추는 것과 같은 방향이 나온다.
  */
 export const HOUSE_SPOTS: readonly RoomPlacement[] = [
-  // ── 거실 — 바닥 자리 60 + 표면 30 (방 30 + 90 = 120) ──────
+  // ── 거실 — 바닥 자리 60 + 표면 110 (방 30 + 170 = 200) ────
   //
   // **개수를 280 → 120 으로 줄였다.** 24.3m² 에 바닥 소품 250개가 깔려 있으면
   // 무슨 짓을 해도 쓰레기장이다. `curve` 로 재보면 star1(10cm)은 그중 **25개만
@@ -213,29 +213,50 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   { id: 'spot-chest-front', rect: [-2.10, 0.95, -1.65, 1.75], sizeMin: 0.010, sizeMax: 0.18, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
   // 책장 앞
   { id: 'spot-shelf-front', rect: [1.95, -1.60, 2.60, -1.20], sizeMin: 0.010, sizeMax: 0.16, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '화투'] },
-  // 남서 구석 — 쓸어 모아둔 자리. 작은 것만 모인다
-  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.04, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정', '개미'] },
+  // 남서 구석 — 쓸어 모아둔 자리. 작은 것만 모인다.
+  // **개미를 뺐다.** 쓸려 나온 물건 셋(클립·단추·압정)과 달리 개미는 «쓸어 모은» 것이
+  // 아니다. 방 흩뿌림으로는 여전히 나온다 — 표에서 뺀 게 아니라 이 자리에서만 뺐다
+  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.04, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정'] },
   // 툇마루 문 앞 — 드나들며 놓고 가는 자리
   { id: 'spot-door-south', rect: [-0.60, 1.75, 0.60, 2.10], sizeMin: 0.020, sizeMax: 0.20, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '접시'] },
 
-  // ── 거실 표면 30 — `y` 가 있으면 그 높이에 얹힌다 ────────
+  // ── 거실 표면 110 — `y` 가 있으면 그 높이에 얹힌다 ───────
   //
   // **star1(10cm)에서 하나도 안 먹힌다** — 올려다보기만 하는 물건이고
   // 그게 「저건 나중에」라는 원작의 감각이다. star4(1m)에서 상 위를 쓸어간다.
-  // **높이는 형상의 실측 상판 높이다.** 눈대중으로 적었다가 서랍장에서 걸렸다 —
-  // 서랍장 형상은 최장축이 높이라 `size: 1.00` 이면 **1m 짜리 장롱**인데
-  // 물건을 0.62m 에 얹고 있었다. 서랍 앞면 한가운데 떠 있던 셈이다.
-  // 값은 `지오메트리 y비율 × size` 로 계산해 박았다:
-  //   밥상 0.325 · TV장 0.445 · 서랍장 1.000 · 책장 선반 0.315/0.588 ·
-  //   신문더미 0.145 · 화분대 0.550 · 방석더미 0.196
-  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.020, sizeMax: 0.14, count: 9, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.325, only: ['찻잔', '사과', '캐러멜', '캐러멜 상자'] },
-  { id: 'surf-tv-stand', rect: [-2.50, -1.20, -2.20, -0.50], sizeMin: 0.020, sizeMax: 0.12, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.445, only: ['건전지', '성냥갑'] },
-  { id: 'surf-chest', rect: [-2.55, 1.00, -2.22, 1.70], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 1.00, only: ['전화기', '도장'] },
-  { id: 'surf-shelf-low', rect: [2.08, -2.14, 2.48, -1.86], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.315, only: ['신문', '화투'] },
-  { id: 'surf-shelf-high', rect: [2.08, -2.14, 2.48, -1.86], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.588, only: ['찌라시', '화투'] },
-  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.020, sizeMax: 0.18, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.145, only: ['신문', '찌라시'] },
-  { id: 'surf-plant', rect: [2.30, 1.02, 2.46, 1.18], sizeMin: 0.020, sizeMax: 0.14, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55, only: ['찻잔', '사과'] },
-  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.020, sizeMax: 0.12, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.196, only: ['껌', '사탕'] },
+  //
+  // **높이는 형상에서 뽑은 실측 수평면이다.** 눈대중으로 적었다가 두 번 걸렸다 —
+  // 처음엔 서랍장 물건을 서랍 앞면 한가운데(0.62)에 띄웠고, 고친 뒤에도
+  // 책장 선반을 «가운데» 높이(0.315·0.588)로 적어서 물건이 1.7cm 씩 박혀 있었다.
+  // 진짜 선반 윗면은 0.332 · 0.605 · 0.878 이다.
+  //
+  // **`only` 는 크기가 맞는 것끼리 묶는다.** 크기와 이름을 따로 뽑기 때문에
+  // 6cm 화투와 22cm 책을 한 자리에 넣으면 22cm 화투와 6cm 책이 나온다.
+  //
+  // **책장은 칸 사이가 0.273m 다** — 그보다 큰 물건은 위 선반을 뚫는다.
+  // 맨 위 칸은 천장까지 0.172m 뿐이라 더 낮게 잡았다.
+
+  // 밥상 위 — 차 마시는 자리. 이 방에서 제일 눈에 띄는 면이다
+  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.070, sizeMax: 0.130, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.325, only: ['찻잔', '귤', '재떨이'] },
+  // TV장 위
+  { id: 'surf-tv-stand', rect: [-2.50, -1.20, -2.20, -0.50], sizeMin: 0.120, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.445, only: ['비디오테이프', '탁상시계'] },
+  // TV장 «가운데 칸» — 앞이 뚫린 수납칸이다. 형상에는 있는데 여태 비어 있었다
+  { id: 'surf-tv-shelf', rect: [-2.52, -1.25, -2.18, -0.45], sizeMin: 0.170, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.218, only: ['비디오테이프'] },
+  // 텔레비전 «위» — 브라운관 위에 액자와 시계를 올려두는 그 자리
+  { id: 'surf-tv-top', rect: [-2.45, -1.00, -2.21, -0.70], sizeMin: 0.120, sizeMax: 0.200, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.760, only: ['액자', '탁상시계'] },
+  // 서랍장 위 — 전화기 자리
+  { id: 'surf-chest', rect: [-2.55, 1.00, -2.22, 1.70], sizeMin: 0.220, sizeMax: 0.300, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 1.00, only: ['전화기', '액자'] },
+  // 책장 아래 칸 — 책이 꽂혀 있어야 책장이다. 여태 세 권이었다
+  { id: 'surf-shelf-low', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.332, only: ['책', '신문'] },
+  { id: 'surf-shelf-mid', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.605, only: ['책'] },
+  // 맨 위 칸 — 천장까지 0.172m 라 낮은 것만
+  { id: 'surf-shelf-high', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.100, sizeMax: 0.160, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.878, only: ['책', '화투'] },
+  // 신문더미 위
+  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.180, sizeMax: 0.260, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.145, only: ['신문', '찌라시'] },
+  // 화분대 위
+  { id: 'surf-plant', rect: [2.30, 1.02, 2.46, 1.18], sizeMin: 0.070, sizeMax: 0.120, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55, only: ['찻잔', '귤'] },
+  // 방석더미 위
+  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.030, sizeMax: 0.100, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.196, only: ['껌', '사탕'] },
 
   // ── 복도 40 ─────────────────────────────────────────────
   { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
