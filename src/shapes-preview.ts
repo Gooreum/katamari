@@ -25,9 +25,6 @@ import { buildPrintAtlas } from './world/atlas';
  * 조명은 **게임과 똑같아야 한다.** 다른 조명으로 보여주면 인게임과 다른 그림을 승인받게 된다.
  */
 
-/** 크기 버킷당 종 수. 라벨 표의 각 줄과 같다 (줄마다 다를 수 있다). */
-const COLS = 7;
-
 const params = new URLSearchParams(location.search);
 
 /**
@@ -87,6 +84,16 @@ const byName = new Map<string, BufferGeometry>(SHAPE_IDS.map((id, i) => [id, geo
 const rows = rowFilter === null
   ? Array.from({ length: BUCKETS.length }, (_, i) => i)
   : [rowFilter];
+
+/**
+ * 화면에 담아야 할 **가장 긴 줄의 종 수.**
+ *
+ * 예전엔 7 고정이었다. 집 표의 모든 줄이 정확히 7종이던 시절의 값인데,
+ * 방 정체성 물건 16종이 들어오면서 15~30cm 줄이 14종이 됐다.
+ * 고정값으로 두면 카메라 프레임이 좁아서 **양 끝 물건이 화면 밖으로 잘린다** —
+ * 검토용 화면에서 물체가 사라지는 건 이 파일이 `FIT` 주석에 이미 적어둔 함정이다.
+ */
+const COLS = Math.max(...rows.map((i) => BUCKETS[i]!.length));
 
 const SPACING = 1.6;
 /** 줄 간격. 물체 높이가 1이므로 1.5면 위아래가 안 겹친다. */
