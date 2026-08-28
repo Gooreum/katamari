@@ -1,5 +1,6 @@
 import type { CityBuilding, CityData, CityRug, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
+import { ROOM_TABLES } from './generation';
 import {
   piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
   type PieceOpts, type SlabStyle,
@@ -113,6 +114,16 @@ type Rect = readonly [number, number, number, number];
  *
  * 개수는 방 넓이에 대충 비례하되 **거실을 두껍게** 준다. 원작 1스테이지가
  * 거실에서만 5cm → 10cm를 만들어야 해서, 여기 밀도가 곧 초반 재미다.
+ *
+ * ## `labels` — 방마다 자기 물건
+ *
+ * 이게 없던 시절에는 표가 스테이지당 하나라 크기만으로 이름이 정해졌다.
+ * 20cm짜리는 부엌에 있든 화장실에 있든 같은 여덟 이름에서 뽑혔고, 그래서
+ * **부엌에 크레용·리모컨이, 화장실에 밥솥·전화기가** 깔렸다.
+ * 방 이름은 '부엌'인데 내용물이 거실이었다.
+ *
+ * 표는 `generation.ts`가 갖는다(`ROOM_TABLES`) — 도구가 게임과 **같은 이름 목록**을
+ * 읽어야 하고, 그 파일이 THREE를 모르는 쪽이기 때문이다. 여기서는 골라 물기만 한다.
  */
 /** 바닥색. 벽과 같은 규칙 — 재료색이 아니라 화면색이다. */
 const F_TATAMI = 0xc8d27a;
@@ -123,13 +134,13 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0 },
-  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS },
-  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS },
-  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS },
-  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0, labels: ROOM_TABLES['living']! },
+  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
+  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
+  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! },
+  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']! },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
