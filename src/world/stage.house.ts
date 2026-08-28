@@ -58,6 +58,18 @@ const FENCE_H = 1.2;
 const C_WALL = 0xfbf0d2;   // 회벽
 const C_BASE = 0x6b4a2a;   // 걸레받이 — 벽 밑을 두르는 나무 띠
 const C_OUTLET = 0xf2ece0; // 콘센트 판
+const C_SLOT = 0x2a2724;   // 콘센트 구멍 — 판을 콘센트로 만드는 건 이 두 점이다
+/**
+ * 창호지. **`C_DOOR`(0xfffaea)를 쓰면 안 보인다** — 벽(0xfbf0d2)과 대비가 1.06:1 이라
+ * 둘 다 near-white 라서 원리상 구별이 안 된다(실제로 넣어보고 화면에서 확인했다).
+ *
+ * 명도로는 못 벌린다. 벽보다 밝게 만들 수가 없기 때문이다 — 벽이 이미 251,240,210 이다.
+ * 그래서 **색상**으로 벌린다. 벽은 따뜻한 크림, 창호지는 바깥빛이 비치는 **찬 흰색**.
+ * 레퍼런스에서도 장지문 쪽이 회벽보다 푸르게 뜬다.
+ */
+const C_SHOJI = 0xe8eef2;
+/** 창호문 아래를 두르는 나무 판(코시이타). 격자의 대비는 종이가 아니라 이 나무가 만든다 */
+const C_SHOJI_RAIL = 0x8a5a24;
 const C_PILLAR = 0xc2762c; // 기둥·문틀 나무
 const C_DOOR = 0xfffaea;   // 장지문 창호지
 const C_FENCE = 0xc07d33;  // 판자 담장
@@ -146,19 +158,77 @@ function baseboard(x0: number, z0: number, x1: number, z1: number): CityBuilding
 }
 
 /**
- * 콘센트. 벽에 붙은 작은 판.
+ * 붙박이 장지문 한 짝. **문이 아니다** — `gate`를 안 주므로 열리지 않는다.
  *
- * 원작 거실에도 콘센트가 있고 코드가 바닥으로 늘어진다. 판 하나만으로도
- * 벽이 "빈 면"이 아니라 생활하는 벽이 된다.
+ * ## 왜 필요한가
+ *
+ * star1(`area === 'living'`)은 **문이 하나도 없는 판**이라(아래 `buildWalls` 주석 참고)
+ * 5.4m 벽이 통짜 한 면이었다. 화면 상단 15%를 재보니 **최빈색이 85.6%** — 사실상 한 색이다.
+ * 레퍼런스(REROLL 거실)의 같은 자리는 8.1%다. `house` 분기(star2·star4)의 거실에는
+ * 미닫이문·창호문이 있어서 그 밝은 문짝이 벽을 갈라주는데, star1에만 그게 없었다.
+ *
+ * 그래서 **열리지 않는 장지문**을 넣는다. `gate`가 없으니 `City.openGates()`가
+ * 첫 줄에서 빠져나오는 것도 그대로다.
+ *
+ * ## 가로 살이 없는 이유
+ *
+ * `City.geometryFor()`의 `ExtrudeGeometry`는 **바닥(y=0)부터** 뽑는다. 공중에 뜬 조각을
+ * 못 만들어서 1.2m 높이의 가로 살은 원리상 불가능하다. 대신 높이 단차가 가로선을 만든다 —
+ * 걸레받이 윗선(0.06) · 창호지 윗선(1.8) · 벽 윗선(2.4).
  */
-function outlet(x: number, z: number, alongX: boolean): CityBuilding {
-  const half = 0.05;
-  return kitPiece(
-    alongX ? x - half : x, alongX ? z : z - half,
-    alongX ? x + half : x, alongX ? z : z + half,
-    { t: WALL_T + 0.03, h: 0.06, color: C_OUTLET },
-    { h: 0.06 },
-  );
+function shoji(x0: number, x1: number, z: number): CityBuilding[] {
+  const b: CityBuilding[] = [
+    // 창호지. **돌출량을 걸레받이(WALL_T + 0.04)와 같게 둔다** —
+    // 물체 배치 여유(generation.ts 의 ROOM_MARGIN 0.06)를 넘기면 벽에 물건이 박힌다
+    kitPiece(x0, z, x1, z, { t: WALL_T + 0.04, h: DOOR_H, color: C_SHOJI }),
+    // 코시이타 — 창호문 아랫단의 나무 판. 종이보다 앞에 둬야 보인다.
+    // 걸레받이(0.06)보다 높아야 파묻히지 않는다
+    kitPiece(x0, z, x1, z, { t: WALL_T + 0.07, h: 0.28, color: C_SHOJI_RAIL }),
+  ];
+  // 세로 살. **격자의 대비는 종이가 아니라 이 나무가 만든다** —
+  // 종이와 벽은 둘 다 near-white 라 붙여놔도 경계가 안 보인다.
+  // 살 간격 0.33m — 실제 장지문 살이 그 정도다. 7등분(0.51m)으로 시작했더니
+  // 벽 띠 최빈색이 67.4%로 목표(65%)를 못 넘었다. 간격을 좁히는 게 정답이다
+  const N = 11;
+  for (let i = 0; i <= N; i++) {
+    const x = x0 + ((x1 - x0) * i) / N;
+    b.push(kitPiece(x - 0.022, z, x + 0.022, z,
+      { t: WALL_T + 0.09, h: DOOR_H, color: C_PILLAR }));
+  }
+  return b;
+}
+
+/**
+ * 콘센트. 판 + 구멍 둘.
+ *
+ * ## 예전 것은 두 겹으로 안 보였다
+ *
+ *   1. **색**: `C_OUTLET`(0xf2ece0) 대 `C_WALL`(0xfbf0d2) 대비가 **1.05:1** —
+ *      둘 다 near-white 라 원리상 구별이 안 된다
+ *   2. **위치**: 두께 `WALL_T + 0.03`(0.13) 에 높이 0.06 인데, 걸레받이가
+ *      `WALL_T + 0.04`(0.14) 에 높이 0.06 이다. **더 두껍고 같은 높이라
+ *      콘센트가 걸레받이 속에 통째로 파묻혀 있었다.**
+ *
+ * 「콘센트를 화면으로 확인 못 했다」고 남겨뒀던 게 이거였다. 못 본 게 아니라 없었다.
+ *
+ * 그래서 판을 걸레받이보다 **두껍고 높게** 올리고, 구멍을 **어두운 조각**으로 판다.
+ * 콘센트를 콘센트로 만드는 건 판이 아니라 그 두 구멍이다.
+ *
+ * 높이 0.16m 는 실제 콘센트보다 낮다. `City.geometryFor()` 의 압출이 바닥에서
+ * 시작해서 공중에 뜬 조각을 못 만드는 게 이유다 — 이 파일의 「평면 엔진의 한계」와 같은 계열.
+ */
+function outlet(x: number, z: number, alongX: boolean): CityBuilding[] {
+  const bar = (w: number, t: number, h: number, color: number, off: number): CityBuilding =>
+    kitPiece(
+      alongX ? x + off - w : x, alongX ? z : z + off - w,
+      alongX ? x + off + w : x, alongX ? z : z + off + w,
+      { t, h, color },
+    );
+  return [
+    bar(0.06, WALL_T + 0.08, 0.16, C_OUTLET, 0),
+    bar(0.010, WALL_T + 0.11, 0.12, C_SLOT, -0.022),
+    bar(0.010, WALL_T + 0.11, 0.12, C_SLOT, +0.022),
+  ];
 }
 
 function piece(x0: number, z0: number, x1: number, z1: number, o: SlabOpts = {}): CityBuilding {
@@ -206,12 +276,20 @@ function buildWalls(area: StageArea): CityBuilding[] {
       piece(lx0, lz0, lx0, lz1), piece(lx1, lz0, lx1, lz1),
       piece(lx0, lz0, lx1, lz0), piece(lx0, lz1, lx1, lz1),
       pillar(lx0, lz0), pillar(lx1, lz0), pillar(lx0, lz1), pillar(lx1, lz1),
+      // 중간 기둥. 벽 한 장이 5.4m·4.5m 라 **모서리 기둥만으로는 안 끊긴다** —
+      // 실제로 화면 상단 15%의 최빈색이 85.6%였다. 남북은 장지문 폭(±1.8) 바깥에,
+      // 동서는 한가운데.
+      pillar(-2.25, lz0), pillar(2.25, lz0), pillar(-2.25, lz1), pillar(2.25, lz1),
+      pillar(lx0, 0), pillar(lx1, 0),
       // 벽 밑 나무 띠 네 면. 벽과 같은 선이라 막는 범위는 안 바뀐다
       baseboard(lx0, lz0, lx0, lz1), baseboard(lx1, lz0, lx1, lz1),
       baseboard(lx0, lz0, lx1, lz0), baseboard(lx0, lz1, lx1, lz1),
-      // 콘센트 둘 — 북벽과 서벽에 하나씩. 벽이 빈 면이 아니게 된다
-      outlet(-1.1, lz0, true), outlet(lx0, 0.7, false),
     );
+    // 붙박이 장지문 — 북(복도 쪽)·남(툇마루 쪽). `house` 분기에서 문이 서는 자리다.
+    // 여기서는 열리지 않는다 — 이 판에는 갈 곳이 없다.
+    b.push(...shoji(-1.8, 1.8, lz0), ...shoji(-1.8, 1.8, lz1));
+    // 콘센트 둘 — 북벽과 서벽에 하나씩. 북쪽은 **장지문 폭 밖의 민벽**에 붙인다
+    b.push(...outlet(-2.05, lz0, true), ...outlet(lx0, 0.7, false));
     return b;
   }
 
