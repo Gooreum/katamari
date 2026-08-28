@@ -222,14 +222,18 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   // **이게 이 작업의 핵심이다.** 물건이 전부 바닥에 있던 게 「나뒹군다」의 정체였다.
   // 여기 30개는 star1(10cm)에서 **하나도 안 먹힌다** — 올려다보기만 하는 물건이고
   // 그게 「저건 나중에」라는 원작의 감각이다. star4(1m)에서 비로소 상 위를 쓸어간다.
-  { id: 'surf-table', rect: [0.40, 0.10, 1.10, 0.80], sizeMin: 0.020, sizeMax: 0.14, count: 9, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.32 },
-  { id: 'surf-tv', rect: [-2.28, -1.30, -2.07, -0.40], sizeMin: 0.020, sizeMax: 0.16, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.42 },
-  { id: 'surf-chest', rect: [-2.55, 0.95, -2.20, 1.75], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.62 },
-  { id: 'surf-shelf-low', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.32 },
-  { id: 'surf-shelf-high', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.66 },
-  { id: 'surf-papers', rect: [-2.55, -2.10, -2.25, -1.80], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.22 },
-  { id: 'surf-plant', rect: [2.30, 1.00, 2.53, 1.25], sizeMin: 0.020, sizeMax: 0.16, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.55 },
-  { id: 'surf-cushions', rect: [2.25, 1.50, 2.55, 1.90], sizeMin: 0.020, sizeMax: 0.18, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.28 },
+  //
+  // **`align` 을 준다.** 안 줬더니 벽에 붙은 표면(서랍장 위·책장 칸·신문더미)의
+  // 물건만 각도가 제멋대로여서 방 전체 벽 근처 정렬률이 100% → 97.9%로 떨어졌다.
+  // 선반 위 물건이 비스듬히 놓여 있으면 「얹었다」가 아니라 「던져놨다」로 보인다.
+  { id: 'surf-table', rect: [0.40, 0.10, 1.10, 0.80], sizeMin: 0.020, sizeMax: 0.14, count: 9, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.32 },
+  { id: 'surf-tv', rect: [-2.28, -1.30, -2.07, -0.40], sizeMin: 0.020, sizeMax: 0.16, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.42 },
+  { id: 'surf-chest', rect: [-2.55, 0.95, -2.20, 1.75], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.62 },
+  { id: 'surf-shelf-low', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.32 },
+  { id: 'surf-shelf-high', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.66 },
+  { id: 'surf-papers', rect: [-2.55, -2.10, -2.25, -1.80], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.22 },
+  { id: 'surf-plant', rect: [2.30, 1.00, 2.53, 1.25], sizeMin: 0.020, sizeMax: 0.16, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55 },
+  { id: 'surf-cushions', rect: [2.25, 1.50, 2.55, 1.90], sizeMin: 0.020, sizeMax: 0.18, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.28 },
 
   // ── 복도 40 ─────────────────────────────────────────────
   { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
@@ -596,11 +600,15 @@ function buildFurniture(area: StageArea): CityBuilding[] {
     // 다리 사이로 지나갈 수 있고, 상판(`buildRugs`)은 그 위에 뜬다
     ...legs(0.42, 0.12, 1.08, 0.78, 0.32, 0.08),
 
-    // 방석 셋 — 상 둘레. 높이 0.06 은 5cm 공에게 **넘을 수 없는 턱**이라
-    // 방 한가운데가 미로가 된다. **서쪽 한 면은 비워둔다** — 스폰에서 오는 길이다
+    // 방석 넷 — 상 둘레. 원작 차노마는 상에 둘러앉는 방이라 넷이 맞다.
+    // 높이 0.06 은 5cm 공에게 **넘을 수 없는 턱**이라 방 한가운데가 미로가 된다.
+    // 서쪽 것이 스폰(0,0)에서 **0.30m** 다. 처음엔 서쪽을 비웠더니 스폰에서
+    // 서·북쪽이 2.7m 뚫려 있었고, 0.20m 로 붙였더니 이번엔 시작하자마자 턱에 낀다.
+    // 0.30m — 눈앞에 있되 끼이지는 않는 거리다
     block([0.50, -0.60, 1.00, -0.10], 0.06, 'retail', C_CUSHION, '방석'),
     block([1.40, 0.20, 1.90, 0.70], 0.06, 'retail', C_CUSHION, '방석'),
     block([0.50, 1.00, 1.00, 1.50], 0.06, 'retail', C_CUSHION, '방석'),
+    block([-0.45, 0.30, 0.05, 0.80], 0.06, 'retail', C_CUSHION, '방석'),
 
     // 서벽 — 텔레비전. **두 조각으로 계단 실루엣을 만든다.** 조각 하나짜리 상자면
     // 그냥 벽이고, 뒤가 높고 앞이 낮으면 「받침 위에 TV」로 읽힌다.
