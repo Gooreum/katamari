@@ -232,6 +232,28 @@ export class World {
     if (this.city) scene.add(this.city.group);
   }
 
+  /**
+   * 사라질 표면들. **`hideAt` 이 있는 것만** 담는다 —
+   * `City.gateEntries` 와 같은 이유다. 매 프레임 훑는 목록이라 전부를 담을 수 없다.
+   */
+  private readonly fading: Array<{ mesh: Mesh; at: number }> = [];
+
+  /**
+   * 상판·선반을 지운다. `City.openGates()` 의 짝이고 `Game` 이 같은 자리에서 부른다.
+   *
+   * 밥상 다리를 다 먹었는데 상판만 공중에 떠 있으면 안 된다. 다 지우고 나면
+   * 배열이 비어서 첫 줄에서 빠져나온다.
+   */
+  updateSurfaces(diameter: number): void {
+    if (this.fading.length === 0) return;
+    for (let i = this.fading.length - 1; i >= 0; i--) {
+      const f = this.fading[i]!;
+      if (diameter < f.at) continue;
+      f.mesh.visible = false;
+      this.fading.splice(i, 1);
+    }
+  }
+
   /** 흡수된 오브젝트를 개별 Mesh로 승격. 인스턴스에서는 지운다. */
   promote(obj: WorldObject): Mesh {
     this.pool.hide(obj.combo, obj.slot);
@@ -374,8 +396,10 @@ export class World {
       new MeshLambertMaterial({ map: tex }),
     );
     mesh.rotation.set(-Math.PI / 2, 0, rug.rotY);
-    mesh.position.set(rug.cx, 0.006, rug.cz);
-    mesh.name = 'rug';
+    // `y` 가 있으면 상판·선반이다. 없으면 지금까지처럼 방바닥(0.004) 위 2mm
+    mesh.position.set(rug.cx, (rug.y ?? 0) + 0.006, rug.cz);
+    mesh.name = rug.y === undefined ? 'rug' : 'surface';
+    if (rug.hideAt !== undefined) this.fading.push({ mesh, at: rug.hideAt });
     return mesh;
   }
 

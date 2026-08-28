@@ -64,6 +64,21 @@ export interface CityRug {
   /** 라디안. 0 이면 축 정렬 — 그러면 깔개를 둔 의미가 없다 */
   readonly rotY: number;
   readonly tex: FloorTex;
+  /**
+   * 바닥에서 띄우는 높이(m). 없으면 0 = 지금까지의 깔개.
+   *
+   * **이 한 필드가 상판·선반이 된다.** 깔개는 이미 「충돌 없는 렌더 전용 평면」이고
+   * 상판도 정확히 그것이다 — 충돌은 다리·몸통(`CityBuilding`)이 맡으므로 공은
+   * 상 **밑으로 지나가고**, 그 위에 놓인 물건은 흡수 판정이 3D라 커진 뒤에야 닿는다.
+   * 새 개념을 만들 이유가 없었다.
+   */
+  readonly y?: number;
+  /**
+   * 공이 이 지름(m)에 닿으면 사라진다. `CityBuilding.gate` 와 같은 규약.
+   *
+   * 밥상 다리(0.32m)는 지름 0.38m에 먹힌다. 그때 상판만 공중에 남으면 안 된다.
+   */
+  readonly hideAt?: number;
 }
 
 export interface CityBuilding {

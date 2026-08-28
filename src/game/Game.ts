@@ -223,6 +223,8 @@ export class Game {
     // 문이 열리는 건 흡수가 아니라 **사건**이다. 소리와 대사를 둘 다 붙인다.
     // 게이트가 없는 스테이지(OSM 도시)에서는 첫 줄에서 바로 빠져나온다.
     const opened = this.world.city?.openGates(this.ball.diameter);
+    // 상판·선반도 같은 규약으로 지운다 — 다리를 먹었는데 상판이 공중에 남으면 안 된다
+    this.world.updateSurfaces(this.ball.diameter);
     if (opened !== undefined && opened.length > 0) {
       this.sfx.thud(0.45);
       this.rig.addTrauma(0.3);
