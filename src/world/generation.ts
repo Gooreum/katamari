@@ -518,6 +518,16 @@ export interface RoomPlacement {
    * 방마다 다른 자를 대게 된다.
    */
   readonly labels?: LabelTable;
+  /**
+   * **가장자리 쏠림 지수.** 없으면 1 = 균등(예전과 동일), 작을수록 벽 쪽으로 몰린다.
+   *
+   * 방 배치는 사각형 안 균등 난수였다. 실제 방은 그 반대다 — 가운데가 비고
+   * 벽·가구를 따라 물건이 쌓인다. 균등 난수는 한가운데까지 골고루 뿌려서
+   * 「놓여 있다」가 아니라 **「버려져 있다」**로 읽힌다.
+   *
+   * 두 축에 함께 걸리므로 **모서리가 가장 두꺼워진다.** 실제 방이 그렇다.
+   */
+  readonly edge?: number;
 }
 
 export const GENERATION = {
@@ -618,6 +628,37 @@ const RETRY_MAX = 48;
  * 벽 두께 절반 + 벽에 딱 붙어 박히지 않을 만큼.
  */
 const ROOM_MARGIN = 0.06;
+
+/**
+ * 균등 난수 `u`(0~1)를 **가장자리 쪽으로 다시 매핑한다.**
+ *
+ *   u' = 0.5 + sign(2u−1) · |2u−1|^p / 2        (p < 1 이면 바깥으로, p = 1 이면 항등)
+ *
+ * **난수를 새로 뽑지 않는다.** 이게 이 함수의 존재 이유다 — 스트림에 호출을 하나라도
+ * 더하면 그 뒤 물체의 크기·색·라벨이 통째로 밀려서 `ladder`/`curve` 로 재둔 값과
+ * 비교가 불가능해진다 (이 파일 곳곳의 같은 경고). 뽑은 값을 **어떻게 쓰느냐**만 바꾼다.
+ *
+ * 0·0.5·1 은 안 움직인다. 그래서 방 경계를 넘지 않고 중심도 그대로다.
+ *
+ * ## p 를 얼마로 잡을 것인가
+ *
+ * 한 축이 가운데 40%(0.3~0.7)에 들어갈 확률이 `0.4^(1/p)` 다. 두 축이 함께 걸리므로
+ * 중앙 40%×40% 에 남는 비율은 그 제곱이다:
+ *
+ *   p=1.00 → 16.0%  (균등. 넓이 비율 그대로)
+ *   p=0.80 → 10.1%
+ *   p=0.70 →  7.3%
+ *   p=0.55 →  3.6%
+ *
+ * **너무 세게 밀면 안 된다.** 0.55 대에서는 방 한가운데가 통째로 비어서
+ * 그것대로 인공적이다 — 실제 방에도 가운데에 물건은 있다. 0.66~0.85 사이가
+ * 「벽 쪽에 쌓였지만 가운데도 비지는 않은」 그림이다.
+ */
+export function edgeBias(u: number, p: number): number {
+  if (p === 1) return u;
+  const t = 2 * u - 1;
+  return 0.5 + (Math.sign(t) * Math.abs(t) ** p) / 2;
+}
 
 export function generateWorld(
   seed = 1337,
@@ -774,6 +815,7 @@ export function generateWorld(
       // **방이 자기 표를 가지면 그걸 쓴다.** 경계가 같으므로 크기 축은 안 움직인다 —
       // 바뀌는 건 그 크기에 붙는 이름뿐이다.
       const tbl = room.labels ?? table;
+      const edge = room.edge ?? 1;
       for (let n = 0; n < room.count; n++) {
         const base = room.sizeMin * Math.exp(logR * rand());
         // 라벨 버킷은 **라벨 축**에서 고른다. 방 안의 상대 위치로 고르면
@@ -788,7 +830,11 @@ export function generateWorld(
         const bx = Math.max(rx1 - m, (rx0 + rx1) / 2);
         const az = Math.min(rz0 + m, (rz0 + rz1) / 2);
         const bz = Math.max(rz1 - m, (rz0 + rz1) / 2);
-        const pick = (r: () => number) => [ax + r() * (bx - ax), az + r() * (bz - az)] as const;
+        // 뽑은 0~1 을 가장자리 쪽으로 다시 매핑한다. **난수 호출은 그대로 두 번**이다
+        const pick = (r: () => number) => [
+          ax + edgeBias(r(), edge) * (bx - ax),
+          az + edgeBias(r(), edge) * (bz - az),
+        ] as const;
         emit(u, base, () => pick(rand), () => pick(retry), true, tbl);
         owner.push([ax, az, bx, bz]);
       }

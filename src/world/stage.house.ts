@@ -139,6 +139,18 @@ type Rect = readonly [number, number, number, number];
  *
  * 표는 `generation.ts`가 갖는다(`ROOM_TABLES`) — 도구가 게임과 **같은 이름 목록**을
  * 읽어야 하고, 그 파일이 THREE를 모르는 쪽이기 때문이다. 여기서는 골라 물기만 한다.
+ *
+ * ## `edge` — 벽 쪽으로 민다
+ *
+ * 배치가 사각형 안 균등 난수라 **방 한가운데까지 골고루** 뿌려졌다. 실제 방은 반대다 —
+ * 가운데가 비고 벽·가구를 따라 쌓인다. 그래서 물건이 놓인 게 아니라 버려진 것으로 보였다.
+ *
+ * 값은 `edgeBias` 의 지수다. 중앙 40%×40% 에 남는 비율이 `0.4^(2/p)` 라
+ * 1.00 → 16% · 0.80 → 10% · 0.70 → 7% · 0.55 → 3.6% 이다.
+ * **0.66~0.82 를 쓴다** — 더 세게 밀면 방 한가운데가 통째로 비어서 그것대로 인공적이다.
+ *
+ * 방마다 다른 이유: 복도(1.8m)·툇마루(1.2m)는 폭이 좁아 「가장자리」랄 게 없어서 약하게,
+ * 부엌은 싱크대·찬장이 벽을 두르고 있어 세게. 뒷마당은 실내가 아니라 중간이다.
  */
 /** 바닥색. 벽과 같은 규칙 — 재료색이 아니라 화면색이다. */
 const F_TATAMI = 0xc8d27a;
@@ -149,13 +161,13 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0, labels: ROOM_TABLES['living']! },
-  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
-  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
-  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! },
-  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']! },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68 },
+  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76 },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7 },
+  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66 },
+  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72 },
+  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82 },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
