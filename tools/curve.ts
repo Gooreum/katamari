@@ -108,7 +108,16 @@ interface Sample { t: number; diameter: number; eaten: number }
  *
  * 공은 줄지 않으므로 "한 번이라도 이 크기에 닿았나"는 곧 "지금 이 크기인가"다.
  */
-interface Item { s: ObjectSpec; gate: number }
+/**
+ * `floorY` — 이 물체가 **얹혀 있는 면의 높이**(m). 바닥이면 0.
+ *
+ * **공의 y 는 반지름에 고정돼 있다.** 그래서 높이 `lo` 에 놓인 물체는
+ * 구-AABB 판정상 `lo < 지름` 일 때만 닿는다 (`Game.resolveCollisions`).
+ * 여태 이 도구는 `y` 를 아예 안 봐서 **책장 맨 위 칸(0.878m) 물건을 5cm 공이
+ * 먹는 것으로 세고 있었다** — 거실 271개 중 110개가 표면 위다.
+ * 도구가 게임과 다른 월드를 재면 그 숫자는 거짓말이다.
+ */
+interface Item { s: ObjectSpec; gate: number; floorY: number }
 
 /** 물체가 놓인 구역의 개방 지름. 구역 밖이면 0 — 처음부터 열려 있다. */
 function gateOf(x: number, z: number): number {
@@ -121,7 +130,7 @@ function gateOf(x: number, z: number): number {
 }
 
 const withGates = (specs: ObjectSpec[]): Item[] =>
-  specs.map((s) => ({ s, gate: gateOf(s.x, s.z) }));
+  specs.map((s) => ({ s, gate: gateOf(s.x, s.z), floorY: s.y - s.sy / 2 }));
 
 interface Result {
   samples: Sample[];
@@ -151,7 +160,8 @@ function simulate(items: Item[], startRadius = TUNING.startRadius): Result {
     let best = -1, bestDist = Infinity;
     for (let i = 0; i < alive.length; i++) {
       const a = alive[i]!;
-      if (a.dead || a.gate > radius * 2 || !canAbsorb(radius, a.s.size)) continue;
+      if (a.dead || a.gate > radius * 2 || a.floorY >= radius * 2) continue;
+      if (!canAbsorb(radius, a.s.size)) continue;
       const d = Math.hypot(a.s.x - px, a.s.z - pz);
       if (d < bestDist) { bestDist = d; best = i; }
     }
@@ -169,7 +179,7 @@ function simulate(items: Item[], startRadius = TUNING.startRadius): Result {
     const corridor: Array<{ i: number; along: number }> = [];
     for (let i = 0; i < alive.length; i++) {
       const a = alive[i]!;
-      if (a.dead || a.gate > radius * 2) continue;
+      if (a.dead || a.gate > radius * 2 || a.floorY >= radius * 2) continue;
       const along = (a.s.x - px) * ux + (a.s.z - pz) * uz;
       if (along < 0 || along > len) continue;
       const perp = Math.abs(-(a.s.x - px) * uz + (a.s.z - pz) * ux);
@@ -180,7 +190,8 @@ function simulate(items: Item[], startRadius = TUNING.startRadius): Result {
     for (const { i } of corridor) {
       const a = alive[i]!;
       if (a.dead) continue;
-      if (!canAbsorb(radius, a.s.size)) continue;   // 커지는 중에 조건이 바뀔 수 있다
+      // 커지는 중에 조건이 바뀔 수 있다 — 크기도, 닿는 높이도
+      if (!canAbsorb(radius, a.s.size) || a.floorY >= radius * 2) continue;
       a.dead = true;
       eat(a.s);
       samples.push({ t, diameter: radius * 2, eaten });

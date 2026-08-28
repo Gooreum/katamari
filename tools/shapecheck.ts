@@ -89,14 +89,34 @@ for (const geo of shapes) {
 // **스테이지마다 라벨 표가 다르다.** 집 표만 보면 동네 형태 20종이 전부
 // "죽은 지오메트리"로 잡힌다 — 실제로는 동네 맵이 쓰는 것들이다.
 //
-// **손배치 물건도 세어야 한다.** 가구(`placement.props`)는 난수 표를 안 거치고
-// 이름으로 직접 형상을 고른다 — 「모든 형상은 라벨 표에서 뽑힌다」는 이 검사의
-// 전제가 그때 낡았다. 표에만 없다고 죽은 지오메트리로 잡으면 도구가 거짓말을 한다.
-const propLabels = [buildHouseStage(), buildTownStage(), buildWorldStage()]
-  .flatMap((c) => (c.placement?.props ?? []).map((p) => p.label));
+// **스테이지가 «쓰는» 이름을 전부 모아야 한다.** 「모든 형상은 전역 라벨 표에서
+// 뽑힌다」가 이 검사의 전제였는데 두 번 낡았다:
+//
+//   ① 손배치 가구(`placement.props`)는 난수 표를 안 거치고 이름으로 형상을 고른다
+//   ② 방마다 표가 다르고(`rooms[].labels` = `ROOM_TABLES`),
+//      자리는 `only` 로 이름을 직접 못 박는다
+//
+// 전역 표만 보면 거실 소품 여섯(책·비디오테이프·탁상시계·액자·귤·재떨이)이
+// 「죽은 지오메트리」로 잡힌다 — 실제로는 거실 표와 자리 목록이 쓰고 있다.
+// **도구가 게임과 다른 월드를 재면 그 숫자는 거짓말이다.**
+const stages = [buildHouseStage(), buildTownStage(), buildWorldStage()];
+const placedLabels = stages.flatMap((c) => {
+  const pl = c.placement;
+  if (!pl) return [];
+  const tables = [
+    pl.labels,
+    ...(pl.rooms ?? []).map((r) => r.labels),
+    ...(pl.spots ?? []).map((q) => q.labels),
+  ];
+  return [
+    ...(pl.props ?? []).map((p) => p.label),
+    ...(pl.spots ?? []).flatMap((q) => [...(q.only ?? [])]),
+    ...tables.flatMap((t) => (t ? t.buckets.flat() : [])),
+  ];
+});
 const allLabels = new Set([
   ...LABEL_BUCKETS.flat(), ...TOWN_BUCKETS.flat(), ...WORLD_BUCKETS.flat(),
-  ...propLabels,
+  ...placedLabels,
 ]);
 const missing = SHAPE_IDS.filter((id) => !allLabels.has(id));
 
