@@ -87,9 +87,9 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 나무 판때기가 하나도 없었다. 상판 없는 상은 상이 아니다.
    */
   밥상: () => assemble([
-    part(new CylinderGeometry(0.50, 0.50, 0.05, 16), WHITE, [0, 0.325, 0]),
+    part(new CylinderGeometry(0.50, 0.50, 0.05, 20), WHITE, [0, 0.325, 0]),
     // 테두리 — 상판 옆면에 한 줄을 그어야 판이 두께를 갖는다
-    part(new TorusGeometry(0.49, 0.022, 4, 18), WOOD, [0, 0.325, 0], LIE_Z),
+    part(new TorusGeometry(0.49, 0.022, 4, 20), WOOD, [0, 0.325, 0], LIE_Z),
     // 다리 넷. 상판 지름(1.0)보다 안쪽에 모아야 상다리로 보인다
     ...([[0.30, 0.30], [-0.30, 0.30], [0.30, -0.30], [-0.30, -0.30]] as const).map(
       ([x, z]) => part(new CylinderGeometry(0.030, 0.024, 0.30, 6), WOOD, [x, 0.15, z])),
@@ -119,15 +119,15 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 아래 선반이 있어야 「대」로 읽힌다.
    */
   화분대: () => assemble([
-    part(new CylinderGeometry(0.34, 0.34, 0.045, 12), WHITE, [0, 0.98, 0]),  // 상판
-    part(new TorusGeometry(0.33, 0.018, 4, 14), WOOD, [0, 0.98, 0], LIE_Z),
+    part(new CylinderGeometry(0.34, 0.34, 0.045, 20), WHITE, [0, 0.98, 0]),  // 상판
+    part(new TorusGeometry(0.33, 0.018, 4, 20), WOOD, [0, 0.98, 0], LIE_Z),
     // 다리 셋. 120°씩
     ...([0, 2.0944, 4.1888] as const).map((a) =>
       part(new CylinderGeometry(0.028, 0.022, 0.96, 6), WOOD,
         [Math.cos(a) * 0.26, 0.48, Math.sin(a) * 0.26])),
-    part(new CylinderGeometry(0.20, 0.20, 0.03, 12), WOOD, [0, 0.26, 0]),    // 아래 선반
+    part(new CylinderGeometry(0.20, 0.20, 0.03, 14), WOOD, [0, 0.26, 0]),    // 아래 선반
     // 다리를 묶는 가로대 — 없으면 다리 셋이 따로 논다
-    part(new TorusGeometry(0.255, 0.014, 4, 12), WOOD, [0, 0.62, 0], LIE_Z),
+    part(new TorusGeometry(0.255, 0.014, 4, 20), WOOD, [0, 0.62, 0], LIE_Z),
   ]),
 
   /**
@@ -135,12 +135,12 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 세 장이 **어긋나게** 포개져야 쌓인 것으로 읽힌다.
    */
   방석더미: () => assemble([
-    part(new SphereGeometry(0.5, 10, 5).scale(1, 0.20, 1), WHITE, [0, 0.05, 0]),
-    part(new SphereGeometry(0.48, 10, 5).scale(1, 0.20, 1), PAPER, [0.03, 0.14, 0.02], [0, 0.22, 0]),
-    part(new SphereGeometry(0.46, 10, 5).scale(1, 0.20, 1), WHITE, [-0.02, 0.23, -0.02], [0, -0.16, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.20, 1), WHITE, [0, 0.05, 0]),
+    part(new SphereGeometry(0.48, 16, 10).scale(1, 0.20, 1), PAPER, [0.03, 0.14, 0.02], [0, 0.22, 0]),
+    part(new SphereGeometry(0.46, 16, 10).scale(1, 0.20, 1), WHITE, [-0.02, 0.23, -0.02], [0, -0.16, 0]),
     // 가장자리 시접 — 방석을 방석으로 만드는 테두리
-    part(new TorusGeometry(0.42, 0.024, 4, 12), PAPER, [0, 0.045, 0], LIE_Z),
-    part(new TorusGeometry(0.39, 0.022, 4, 12), PAPER, [-0.02, 0.235, -0.02], LIE_Z),
+    part(new TorusGeometry(0.42, 0.024, 4, 20), PAPER, [0, 0.045, 0], LIE_Z),
+    part(new TorusGeometry(0.39, 0.022, 4, 20), PAPER, [-0.02, 0.235, -0.02], LIE_Z),
     part(new CylinderGeometry(0.04, 0.04, 0.02, 8), PAPER, [-0.02, 0.29, -0.02]),   // 단추
     part(new CylinderGeometry(0.012, 0.012, 0.10, 5), PAPER, [0.30, 0.05, 0.30], LIE_X),  // 술
   ]),

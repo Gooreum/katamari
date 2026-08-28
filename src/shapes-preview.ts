@@ -121,7 +121,7 @@ rows.forEach((bucket, rowIndex) => {
       // 민짜로 보여서 「게임과 같은 구성」이라는 위 주석이 거짓말이 된다.
       new MeshLambertMaterial({
         color: PALETTE[SHAPE_COLOR[names[col]!]?.[0] ?? 0]!,
-        flatShading: true,
+        // 게임과 같은 음영이어야 한다 — 여기만 평면 음영이면 검수가 거짓말이 된다
         vertexColors: true,
         map: atlas,
       }),

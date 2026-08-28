@@ -73,8 +73,8 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
     // 위 라벨면. 손글씨가 찍힌다
     part(new BoxGeometry(0.92, 0.02, 0.50), WHITE, [0, 0.163, 0], undefined, TILE.VIDEO),
     // 릴 창 둘 — 안이 비쳐야 테이프다
-    part(new CylinderGeometry(0.13, 0.13, 0.03, 12), GLASS, [-0.19, 0.168, 0.06]),
-    part(new CylinderGeometry(0.13, 0.13, 0.03, 12), GLASS, [0.19, 0.168, 0.06]),
+    part(new CylinderGeometry(0.13, 0.13, 0.03, 14), GLASS, [-0.19, 0.168, 0.06]),
+    part(new CylinderGeometry(0.13, 0.13, 0.03, 14), GLASS, [0.19, 0.168, 0.06]),
     // 릴 허브
     part(new CylinderGeometry(0.045, 0.045, 0.04, 8), METAL, [-0.19, 0.175, 0.06]),
     part(new CylinderGeometry(0.045, 0.045, 0.04, 8), METAL, [0.19, 0.175, 0.06]),
@@ -93,14 +93,14 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
    */
   탁상시계: () => assemble([
     // 몸통 — 눕힌 원통. 앞면이 문자판이다
-    part(new CylinderGeometry(0.40, 0.40, 0.24, 14), WHITE, [0, 0.42, 0], LIE_Z),
+    part(new CylinderGeometry(0.40, 0.40, 0.24, 20), WHITE, [0, 0.42, 0], LIE_Z),
     // 문자판. 몸통보다 살짝 앞으로 나와야 테두리가 생긴다
-    part(new CylinderGeometry(0.345, 0.345, 0.03, 14), WHITE, [0, 0.42, 0.13], LIE_Z, TILE.CLOCK),
+    part(new CylinderGeometry(0.345, 0.345, 0.03, 20), WHITE, [0, 0.42, 0.13], LIE_Z, TILE.CLOCK),
     // 베젤 — 문자판을 두르는 테. 없으면 그림이 몸통에 스티커처럼 붙어 보인다
-    part(new TorusGeometry(0.375, 0.035, 4, 14), METAL, [0, 0.42, 0.115], LIE_Z),
+    part(new TorusGeometry(0.375, 0.035, 4, 20), METAL, [0, 0.42, 0.115], LIE_Z),
     // 종 둘. 자명종의 정체
-    part(new SphereGeometry(0.155, 8, 5), METAL, [-0.26, 0.80, 0]),
-    part(new SphereGeometry(0.155, 8, 5), METAL, [0.26, 0.80, 0]),
+    part(new SphereGeometry(0.155, 12, 8), METAL, [-0.26, 0.80, 0]),
+    part(new SphereGeometry(0.155, 12, 8), METAL, [0.26, 0.80, 0]),
     // 종 자루
     part(new CylinderGeometry(0.028, 0.028, 0.12, 5), METAL, [-0.26, 0.71, 0]),
     part(new CylinderGeometry(0.028, 0.028, 0.12, 5), METAL, [0.26, 0.71, 0]),
@@ -140,7 +140,7 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
    * 꼭지가 위로 솟는 사과와 달리 귤은 꼭지 자리가 옴폭 들어간다.
    */
   귤: () => assemble([
-    part(new SphereGeometry(0.5, 12, 8).scale(1, 0.76, 1), WHITE, [0, 0.38, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.76, 1), WHITE, [0, 0.38, 0]),
     // 꼭지 자리 — 옴폭한 자국. 귤과 사과를 가르는 한 끗
     part(new CylinderGeometry(0.09, 0.11, 0.05, 8), [0.72, 0.52, 0.22], [0, 0.755, 0]),
     // 배꼽 — 아래쪽 자국
@@ -158,9 +158,9 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
    */
   재떨이: () => assemble([
     // 두꺼운 유리 몸통. 낮고 넓적하다
-    part(new CylinderGeometry(0.50, 0.42, 0.22, 14), GLASS, [0, 0.11, 0]),
+    part(new CylinderGeometry(0.50, 0.42, 0.22, 20), GLASS, [0, 0.11, 0]),
     // 파인 안쪽. 몸통보다 어두워야 깊이가 보인다
-    part(new CylinderGeometry(0.38, 0.30, 0.10, 14), [0.42, 0.50, 0.55], [0, 0.19, 0]),
+    part(new CylinderGeometry(0.38, 0.30, 0.10, 20), [0.42, 0.50, 0.55], [0, 0.19, 0]),
     // 담배 얹는 홈 둘 — 테두리를 가로지르는 막대
     part(new BoxGeometry(0.16, 0.05, 0.26), [0.42, 0.50, 0.55], [0.42, 0.215, 0]),
     part(new BoxGeometry(0.26, 0.05, 0.16), [0.42, 0.50, 0.55], [0, 0.215, -0.42]),

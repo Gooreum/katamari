@@ -47,17 +47,17 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   계란: () => assemble([
     // 눕힌 타원. **완전한 구면이면 골프공과 구별이 안 된다** — 마당 표에 골프공이 있다
-    part(new SphereGeometry(0.5, 11, 8).scale(1, 0.76, 0.76), WHITE, [0, 0.38, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.76, 0.76), WHITE, [0, 0.38, 0]),
     // 한쪽만 좁다. 달걀을 달걀로 만드는 건 이 비대칭이다
-    part(new SphereGeometry(0.5, 9, 7).scale(0.44, 0.60, 0.60), WHITE, [0.32, 0.38, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(0.44, 0.60, 0.60), WHITE, [0.32, 0.38, 0]),
   ]),
 
   밥공기: () => assemble([
     // 위가 넓고 아래가 좁은 사발 + 굽. 굽이 없으면 컵이다
-    part(new CylinderGeometry(0.50, 0.30, 0.42, 14), WHITE, [0, 0.27, 0]),
-    part(new CylinderGeometry(0.30, 0.30, 0.12, 10), WHITE, [0, 0.06, 0]),
+    part(new CylinderGeometry(0.50, 0.30, 0.42, 20), WHITE, [0, 0.27, 0]),
+    part(new CylinderGeometry(0.30, 0.30, 0.12, 20), WHITE, [0, 0.06, 0]),
     // 테두리 링 — 사발의 윤곽은 안쪽이 아니라 이 얇은 띠가 만든다
-    part(new TorusGeometry(0.47, 0.03, 4, 14), [0.62, 0.68, 0.78], [0, 0.47, 0], LIE_Z),
+    part(new TorusGeometry(0.47, 0.03, 4, 20), [0.62, 0.68, 0.78], [0, 0.47, 0], LIE_Z),
   ]),
 
   젓가락: () => assemble([
@@ -72,7 +72,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   숟가락: () => assemble([
     part(new BoxGeometry(0.62, 0.035, 0.09), METAL, [-0.16, 0.05, 0]),
     // 눌린 구 하나가 숟가락 머리를 만든다. 상자로 하면 주걱이 된다
-    part(new SphereGeometry(0.5, 10, 7).scale(0.46, 0.24, 0.36), METAL, [0.30, 0.06, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(0.46, 0.24, 0.36), METAL, [0.30, 0.06, 0]),
     // 자루 끝 — 얇은 판이 허공에서 끊기면 부러진 것으로 보인다
     part(new CylinderGeometry(0.05, 0.05, 0.035, 8), METAL, [-0.46, 0.05, 0]),
   ]),
@@ -87,9 +87,9 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   ]),
 
   냄비: () => assemble([
-    part(new CylinderGeometry(0.42, 0.38, 0.44, 14), WHITE, [0, 0.22, 0]),
+    part(new CylinderGeometry(0.42, 0.38, 0.44, 20), WHITE, [0, 0.22, 0]),
     // 뚜껑 + 꼭지
-    part(new CylinderGeometry(0.44, 0.44, 0.06, 14), METAL, [0, 0.47, 0]),
+    part(new CylinderGeometry(0.44, 0.44, 0.06, 20), METAL, [0, 0.47, 0]),
     part(new SphereGeometry(0.08, 7, 5), DARK, [0, 0.53, 0]),
     // 양쪽 귀. **이게 있어야 컵이 아니라 냄비다**
     part(new BoxGeometry(0.16, 0.05, 0.11), DARK, [0.49, 0.34, 0]),
@@ -113,7 +113,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   비누: () => assemble([
     // 모서리가 닳은 덩어리. 상자로 만들면 지우개와 구별이 안 된다
-    part(new SphereGeometry(0.5, 11, 7).scale(1, 0.42, 0.66), WHITE, [0, 0.21, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.42, 0.66), WHITE, [0, 0.21, 0]),
     // 눌러 찍은 글자 자리 — 비누에는 늘 뭔가 찍혀 있다
     part(new BoxGeometry(0.34, 0.02, 0.15), PAPER, [0, 0.40, 0]),
   ]),
@@ -121,9 +121,9 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   고무오리: () => assemble([
     // **머리를 몸에 붙였더니 노란 덩어리 하나로 보였다.** 오리를 오리로 만드는 건
     // 몸과 머리 사이의 **목선**이다. 머리를 위로 띄우고 목을 가늘게 넣는다.
-    part(new SphereGeometry(0.5, 10, 7).scale(1, 0.70, 0.78), WHITE, [-0.08, 0.32, 0]),
-    part(new CylinderGeometry(0.11, 0.15, 0.16, 8), WHITE, [0.22, 0.56, 0]),
-    part(new SphereGeometry(0.22, 9, 7), WHITE, [0.26, 0.76, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.70, 0.78), WHITE, [-0.08, 0.32, 0]),
+    part(new CylinderGeometry(0.11, 0.15, 0.16, 14), WHITE, [0.22, 0.56, 0]),
+    part(new SphereGeometry(0.22, 12, 8), WHITE, [0.26, 0.76, 0]),
     // 부리 — 몸과 다른 색이어야 오리가 된다
     part(new ConeGeometry(0.09, 0.24, 6), [0.95, 0.58, 0.16], [0.48, 0.72, 0], TIP_X),
     part(new SphereGeometry(0.042, 5, 4), DARK, [0.33, 0.84, 0.12]),
@@ -154,18 +154,18 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   // ─── 아이 방 ─────────────────────────────────────────────────
 
   구슬: () => assemble([
-    part(new SphereGeometry(0.5, 11, 8), GLASS, [0, 0.5, 0]),
+    part(new SphereGeometry(0.5, 16, 10), GLASS, [0, 0.5, 0]),
     // 안에 든 꽈배기 심지. **구슬을 구슬로 만드는 건 이것이다** — 없으면 그냥 공이다
-    part(new SphereGeometry(0.30, 8, 6).scale(1, 0.34, 0.34), WHITE, [0, 0.50, 0], [0, 0, 0.6]),
+    part(new SphereGeometry(0.30, 16, 10).scale(1, 0.34, 0.34), WHITE, [0, 0.50, 0], [0, 0, 0.6]),
   ]),
 
   '장난감 블록': () => assemble([
     part(new BoxGeometry(0.98, 0.60, 0.98), WHITE, [0, 0.30, 0]),
     // 돌기 넷. 이게 없으면 그냥 정육면체다
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 8), WHITE, [0.24, 0.68, 0.24]),
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 8), WHITE, [-0.24, 0.68, 0.24]),
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 8), WHITE, [0.24, 0.68, -0.24]),
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 8), WHITE, [-0.24, 0.68, -0.24]),
+    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [0.24, 0.68, 0.24]),
+    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [-0.24, 0.68, 0.24]),
+    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [0.24, 0.68, -0.24]),
+    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [-0.24, 0.68, -0.24]),
   ]),
 
   딱지: () => assemble([
@@ -187,19 +187,19 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   곰인형: () => assemble([
     // 배가 둥글고 팔다리가 짧다. 곰인형은 곰이 아니라 **인형** 비율이다
-    part(new SphereGeometry(0.5, 8, 6).scale(0.66, 0.86, 0.60), WHITE, [0, 0.40, 0]),
-    part(new SphereGeometry(0.28, 8, 6), WHITE, [0.02, 0.90, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(0.66, 0.86, 0.60), WHITE, [0, 0.40, 0]),
+    part(new SphereGeometry(0.28, 16, 10), WHITE, [0.02, 0.90, 0]),
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, 0.19]),
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, -0.19]),
     // 주둥이 + 코 + 눈. 얼굴이 없으면 눈사람이다
-    part(new SphereGeometry(0.14, 7, 5).scale(1, 0.72, 0.90), PAPER, [0.22, 0.85, 0]),
+    part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), PAPER, [0.22, 0.85, 0]),
     part(new SphereGeometry(0.05, 5, 4), DARK, [0.33, 0.88, 0]),
     part(new SphereGeometry(0.038, 4, 3), DARK, [0.19, 0.99, 0.11]),
     part(new SphereGeometry(0.038, 4, 3), DARK, [0.19, 0.99, -0.11]),
     // 팔 둘 · 다리 둘
-    part(new SphereGeometry(0.13, 6, 4), WHITE, [0.02, 0.52, 0.32]),
-    part(new SphereGeometry(0.13, 6, 4), WHITE, [0.02, 0.52, -0.32]),
-    part(new SphereGeometry(0.15, 6, 4), WHITE, [0.15, 0.14, 0.19]),
-    part(new SphereGeometry(0.15, 6, 4), WHITE, [0.15, 0.14, -0.19]),
+    part(new SphereGeometry(0.13, 12, 8), WHITE, [0.02, 0.52, 0.32]),
+    part(new SphereGeometry(0.13, 12, 8), WHITE, [0.02, 0.52, -0.32]),
+    part(new SphereGeometry(0.15, 12, 8), WHITE, [0.15, 0.14, 0.19]),
+    part(new SphereGeometry(0.15, 12, 8), WHITE, [0.15, 0.14, -0.19]),
   ]),
 };

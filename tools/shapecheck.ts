@@ -26,14 +26,30 @@ import { buildWorldStage } from '../src/world/stage.world';
 const EPS = 0.001;
 
 /**
- * 형태 하나의 삼각형 상한.
+ * 형태 하나의 삼각형 상한 — **참고선이지 예산이 아니다.**
  *
- * 63종을 전부 이 밀도로 채울 걸 전제로 잡은 선이다.
- * 길거리 물체는 잠실 규모에서 4200개가 깔리므로, 형태 평균이 500이면 210만 삼각형이 된다.
- * 한 형태가 예뻐 보이자고 부품을 무한정 붙이면 **나중에 63종을 전부 다시 깎아야 한다.**
+ * 예전 값은 550/800 이었고, 「63종을 전부 이 밀도로 채우면 210만 삼각형」이라는
+ * 계산에서 나왔다. **그 계산은 단위가 틀렸다.**
+ *
+ * 한 종의 삼각형 수만 보면 판단이 안 된다 — 곰인형은 아이 방에 **한 개**뿐이라
+ * 1,550 삼각형이어도 씬에 1,550 을 더할 뿐이고, 300 짜리 형태가 300번 깔리면
+ * 90,000 이다. **비용은 「형태당 삼각형 × 그 형태가 깔리는 개수」**,
+ * 곧 아래 3장의 «전용 형태 적용 후» 값이다. 그게 진짜 예산이고 그걸 막는다.
+ *
+ * 여기 남기는 값은 **폭주 감지선**이다 — 실수로 세그먼트를 200으로 적었을 때
+ * 잡으라고 둔다. 실제 합격/불합격은 `SCENE_TRI_MAX` 가 정한다.
  */
-const TRI_WARN = 550;
-const TRI_FAIL = 800;
+const TRI_WARN = 1200;
+const TRI_FAIL = 2000;
+
+/**
+ * **진짜 예산.** 잠실 규모(길거리 4,200개)에서 씬에 올라가는 삼각형 총합.
+ *
+ * 실측 1,162,880. 상한을 1,600,000 으로 둔다(여유 38%).
+ * 이 숫자가 커도 **드로우콜은 안 는다** — 인스턴싱이 형태 종류 수(118)로 묶는다.
+ * 화면 HUD 실측 42 draws 는 세그먼트를 올려도 그대로다.
+ */
+const SCENE_TRI_MAX = 1_600_000;
 
 let violations = 0;
 
@@ -208,6 +224,15 @@ const shapeAvg = [...shapeTris.values()].reduce((a, b) => a + b, 0) / shapeTris.
 console.log(`\n  형태를 받은 물체 ${shapedCount}개 / ${specs.length}개 ` +
   `(${(shapedCount / specs.length * 100).toFixed(1)}%)`);
 console.log(`  기본 도형 평균 ${primAvg.toFixed(1)} 삼각형 → 형태 평균 ${shapeAvg.toFixed(1)} 삼각형`);
+
+// **이게 합격/불합격을 가르는 자다.** 형태 하나의 삼각형이 아니라 씬 총합이 비용이다
+if (now > SCENE_TRI_MAX) {
+  violations++;
+  console.log(`\n❌ 씬 삼각형 ${now.toLocaleString()} > 상한 ${SCENE_TRI_MAX.toLocaleString()}`);
+} else {
+  console.log(`  씬 총합 ${now.toLocaleString()} / 상한 ${SCENE_TRI_MAX.toLocaleString()} ` +
+    `(여유 ${((1 - now / SCENE_TRI_MAX) * 100).toFixed(0)}%)`);
+}
 
 // ─── 3-b. 크기 구간별 평균 ──────────────────────────────────────
 //

@@ -255,9 +255,11 @@ export class World {
      */
     const printAtlas = getPrintAtlas();
     const printMap = printAtlas ? { map: printAtlas } : {};
+    // **`flatShading` 은 여기서도 껐다.** 공에 붙은 물건과 바닥의 물건이
+    // 다르게 보이면 안 된다 — 삼키는 순간 물건이 각져지면 그게 더 이상하다
     for (const c of PALETTE) {
       this.materials.push(new MeshLambertMaterial({
-        color: c, flatShading: true, vertexColors: true, ...printMap,
+        color: c, vertexColors: true, ...printMap,
       }));
     }
     /**
@@ -267,8 +269,19 @@ export class World {
      * 갈라져서 드로우콜이 물건 종류만큼 는다 — 이 구조의 전제가 무너진다.
      * 타일 0이 순백이라 인쇄를 안 받는 형태는 지금까지와 똑같이 보인다.
      */
+    /**
+     * **`flatShading` 을 껐다.**
+     *
+     * 켜져 있으면 모든 곡면이 면으로 쪼개져 보인다 — 16각 원기둥이 16면으로,
+     * 눌린 구인 방석이 각진 판때기로 보인다. 사용자가 「너무 다 각져서 딱딱해
+     * 보인다」고 한 것의 원인이 형상 118종이 아니라 **이 한 줄**이었다.
+     *
+     * 상자는 그대로 상자로 보인다 — `BoxGeometry` 는 면마다 법선이 이미 갈라져 있다.
+     * `assemble()` 이 부품을 병합만 하고 정점을 용접하지 않으므로 부품 경계에서
+     * 법선이 섞이지도 않는다. **부드러워지는 건 원래 둥근 것뿐이다.**
+     */
     const instanceMaterial = new MeshLambertMaterial({
-      color: 0xffffff, flatShading: true, vertexColors: true,
+      color: 0xffffff, vertexColors: true,
       ...printMap,
     });
 
