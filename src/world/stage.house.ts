@@ -602,7 +602,9 @@ function legs(
  */
 export const LIVING_PROPS: readonly StageProp[] = [
   // ── 방 한가운데 — 스폰(0,0) 정면 ────────────────────────
-  { label: '밥상', x: 0.75, z: 0.45, size: 0.95 },
+  // **밑이 뚫린다.** 상판(y 0.24~0.325)만 충돌을 잡아서 지름 24cm 이하 공이
+  // 다리 사이를 지나간다. 40cm 공은 막힌다 — 32.5cm 상 밑에 안 들어가는 게 맞다
+  { label: '밥상', x: 0.75, z: 0.45, size: 0.95, underPass: 0.24 },
   // 방석 넷. 상 둘레에 둘러앉는 자리다
   { label: '방석', x: 0.75, z: -0.30, size: 0.50 },
   { label: '방석', x: 1.60, z: 0.45, size: 0.50, rotY: Math.PI / 2 },
@@ -623,7 +625,8 @@ export const LIVING_PROPS: readonly StageProp[] = [
 
   // ── 동벽 — 창(z −0.9~0.6)과 창틀 기둥(z −1.05 / 0.75)을 피한다 ──
   { label: '스탠드', x: 2.42, z: -1.50, size: 1.20 },
-  { label: '화분대', x: 2.38, z: 1.10, size: 0.55 },
+  // 다리 셋짜리 스탠드. 아래 선반(y 0.26)까지는 비어 있다
+  { label: '화분대', x: 2.38, z: 1.10, size: 0.55, underPass: 0.44 },
   { label: '방석더미', x: 2.38, z: 1.75, size: 0.50 },
 ];
 

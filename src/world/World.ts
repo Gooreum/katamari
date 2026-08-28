@@ -76,13 +76,18 @@ function pointInPolygon(x: number, z: number, poly: ReadonlyArray<readonly [numb
  * 만든다. 세 축에 같은 배율을 주는 것도 `emit` 과 같은 이유다 — 가로세로 비율은
  * 이미 지오메트리에 굽혀 있다(`assemble()` 의 `normalize`).
  *
- * **AABB 가 정육면체가 되는 건 기존 소품과 같다.** 밥상은 이제 통짜라 공이 밑으로
- * 못 지나간다. 예전에 「다리 넷이라 상 밑을 지나가는 게 원작 감각」이라고 적었는데,
- * 그건 압출 제약을 미덕으로 포장한 것이었다 — 상판 없는 상은 상이 아니다.
+ * **AABB 는 기본이 정육면체다** — 기존 소품 1,170개와 같은 근사다.
+ * 그런데 밥상에 그대로 쓰니 실제 높이 32cm 짜리 상이 95cm 벽이 됐다. 다리 사이가
+ * 통짜로 막혀서 공이 밑으로 못 지나갔다. 그래서 `underPass` 가 있으면 형상 bbox 로
+ * 실제 높이를 재서 **상판만** 충돌 상자로 남긴다(`ObjectSpec.colHalf`).
  *
- * 클래스 밖에 두는 이유는 생성자가 `this` 를 쓰기 전에 부르기 때문이다.
+ * 그러려면 형상이 이미 만들어져 있어야 한다 — 생성자가 지오메트리를 먼저 짓고
+ * 이 함수에 넘긴다. 클래스 밖에 두는 이유는 생성자가 `this` 를 다 채우기 전에 부르기 때문이다.
  */
-function buildProps(props: readonly StageProp[]): ObjectSpec[] {
+function buildProps(
+  props: readonly StageProp[],
+  geometries: readonly BufferGeometry[],
+): ObjectSpec[] {
   return props.map((p) => {
     const geo = geoIndexOf(p.label);
     // **조용히 기본 도형으로 떨어뜨리지 않는다.** 그러면 상자가 놓인 걸 아무도 모른다
@@ -90,10 +95,11 @@ function buildProps(props: readonly StageProp[]): ObjectSpec[] {
       throw new Error(`손배치 물건 '${p.label}' 은 SHAPE_IDS 에 없습니다`);
     }
     const s = p.size;
-    return {
+    const baseY = (p.y ?? 0) + s / 2;
+    const spec: ObjectSpec = {
       x: p.x,
       // `y` 를 주면 그 높이에 얹는다 — TV장 위의 텔레비전
-      y: (p.y ?? 0) + s / 2,
+      y: baseY,
       z: p.z,
       sx: s, sy: s, sz: s,
       rotY: p.rotY ?? 0,
@@ -103,6 +109,40 @@ function buildProps(props: readonly StageProp[]): ObjectSpec[] {
       volume: s ** 3,
       label: p.label,
     };
+
+    // **충돌 상자를 형상 실측에 맞춘다.**
+    //
+    // 여태 `size` 짜리 정육면체를 썼는데, 재보니 거실 가구 열 종이 전부
+    // **2~5배 부풀어 있었다**. TV장은 깊이 46cm 인데 상자가 1m — 방 안쪽으로
+    // 54cm 짜리 투명 벽이 튀어나와 있었다. 방석은 높이 10cm 짜리가 50cm 벽이었다.
+    // 사용자가 말한 「가구 밑에 안 들어간다」의 진짜 범위가 이것이다.
+    const g = geometries[geo];
+    if (!g) {
+      throw new Error(`'${p.label}' 의 지오메트리가 아직 없습니다 — buildProps 는 지오메트리 생성 뒤에 불러야 한다`);
+    }
+    if (!g.boundingBox) g.computeBoundingBox();
+    const bb = g.boundingBox!;
+
+    const floor = p.y ?? 0;                              // 물건이 얹힌 면
+    const top = floor + (bb.max.y - bb.min.y) * s;       // 형상 상단
+    // `underPass` 가 있으면 그 높이부터 잡는다 — 밥상 다리 사이가 비워진다.
+    // **다리에는 충돌이 없다**(형상은 그대로 그려진다). AABB 하나로 다리 넷을
+    // 표현할 수 없고, 「밑으로 지나간다」가 다리에 부딪히는 것보다 중요하다.
+    const lo = floor + (p.underPass ?? 0);
+    if (lo >= top) {
+      throw new Error(`'${p.label}' 의 underPass ${p.underPass} 가 형상 높이 ${(top - floor).toFixed(3)} 이상이다 — 충돌이 통째로 사라진다`);
+    }
+
+    // x·z 는 **회전을 먹여야 한다.** 정육면체일 때는 돌려도 같아서 무시할 수 있었지만
+    // 이제는 아니다 — 90° 돌린 TV장은 폭과 깊이가 바뀐다.
+    const hx = ((bb.max.x - bb.min.x) * s) / 2;
+    const hz = ((bb.max.z - bb.min.z) * s) / 2;
+    const ca = Math.abs(Math.cos(spec.rotY));
+    const sa = Math.abs(Math.sin(spec.rotY));
+
+    spec.colHalf = [ca * hx + sa * hz, (top - lo) / 2, sa * hx + ca * hz];
+    spec.colOffsetY = (lo + top) / 2 - baseY;
+    return spec;
   });
 }
 
@@ -120,6 +160,20 @@ export class World {
 
   constructor(scene: Scene, cityData: CityData | null = null, seed = 1337) {
     this.city = cityData ? new City(cityData) : null;
+
+    // **지오메트리를 먼저 만든다.** 예전에는 스펙을 다 뽑은 뒤에 만들었는데,
+    // `buildProps` 가 「밑이 뚫린 가구」의 충돌 상자를 자르려면 **형상의 실제 높이**를
+    // 알아야 한다 — 그건 지오메트리 bbox 에만 있다. 둘 사이에 의존이 없어서 순서만 뒤집었다.
+    //
+    // 기본 도형 4개는 generation.ts 의 GEOMETRY_COUNT 와 개수·순서가 맞아야 하고,
+    // 전용 형태는 그 뒤에 SHAPE_IDS 순서로 이어붙는다. spec.geo 가 이 배열의 인덱스다.
+    for (const g of [
+      new BoxGeometry(1, 1, 1),
+      new CylinderGeometry(0.5, 0.5, 1, 10),
+      new SphereGeometry(0.5, 10, 8),
+      new ConeGeometry(0.5, 1, 8),
+    ]) this.geometries.push(withWhiteColors(g));
+    this.geometries.push(...buildShapeGeometries());
     // 지형이 있으면 그 반경에 맞추고, 없으면 기존 절차 월드 크기
     const reach = cityData ? cityData.radius : 190;
     this.groundSize = reach * 2.6;
@@ -171,7 +225,7 @@ export class World {
     // **손배치 가구를 같은 배열에 이어 붙인다.**
     // 이 아래는 전부 공통 경로다 — 인스턴스 풀 개수 집계도, 공간 해시도, 충돌도
     // 소품과 가구를 구별하지 않는다. 그래서 새 렌더·충돌 코드가 한 줄도 없다.
-    specs.push(...buildProps(cityData?.placement?.props ?? []));
+    specs.push(...buildProps(cityData?.placement?.props ?? [], this.geometries));
 
     // 도넛 배치는 원점 기준으로 뽑으므로 스폰만큼 옮긴다.
     // **방 배치는 이미 월드 좌표다** — 여기서 또 옮기면 방이 통째로 어긋난다.
@@ -180,15 +234,6 @@ export class World {
       for (const s of specs) { s.x += this.spawn.x; s.z += this.spawn.z; }
     }
 
-    // 기본 도형 4개는 generation.ts 의 GEOMETRY_COUNT 와 개수·순서가 맞아야 하고,
-    // 전용 형태는 그 뒤에 SHAPE_IDS 순서로 이어붙는다. spec.geo 가 이 배열의 인덱스다.
-    for (const g of [
-      new BoxGeometry(1, 1, 1),
-      new CylinderGeometry(0.5, 0.5, 1, 10),
-      new SphereGeometry(0.5, 10, 8),
-      new ConeGeometry(0.5, 1, 8),
-    ]) this.geometries.push(withWhiteColors(g));
-    this.geometries.push(...buildShapeGeometries());
 
     // vertexColors를 켠다. 정점색은 팔레트 색에 **곱해지는 계수**라
     // 흰색(1,1,1)만 들어 있는 기본 도형 4개는 지금까지와 똑같이 보인다.
