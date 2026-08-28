@@ -667,6 +667,23 @@ export interface RoomPlacement {
    * 크기는 그대로 `sizeMin`~`sizeMax` 에서 뽑는다 — 이름만 이 목록에서 고른다.
    */
   readonly only?: readonly string[];
+  /**
+   * **놓는 «꼴».** 없으면 지금까지대로 사각형 안 균등 난수다.
+   *
+   * 자리(`spots`)는 여태 난수였고 `align` 은 각도만 축에 맞췄다. 그래서 책장 한 칸
+   * (68×23cm)에 책 12권을 넣으면 **꽂힌 게 아니라 쏟아진 것**으로 보였다.
+   * 사용자가 「배치를 뭔 기준으로 했는지 모르겠다」고 한 게 이것이다.
+   *
+   *   `'row'`   긴 축을 따라 균등 간격으로 줄 세운다 — 책장에 꽂힌 책
+   *   `'stack'` 한 자리에 포갠다 — 쌓아둔 비디오테이프 (높이는 자리의 `y`)
+   *   `'lean'`  줄 세우되 **기울인다** — 바닥에 누운 동전·화투는 공 눈높이에서
+   *             원리상 «선»이다. 두께가 아니라 각도 문제라 여기서 푼다
+   *
+   * **난수는 그대로 두 번 뽑는다.** 스트림에 손대면 온 세계의 크기·색·라벨이
+   * 밀린다(이 파일 곳곳의 경고). 뽑은 값을 «어떻게 쓰느냐»만 바꾼다 —
+   * `edgeBias` 와 같은 수법이다.
+   */
+  readonly arrange?: 'row' | 'stack' | 'lean';
 }
 
 export const GENERATION = {
@@ -744,6 +761,14 @@ export interface ObjectSpec {
    * 상판만 잡으려면 상자를 위로 올려야 하므로 양수가 된다.
    */
   colOffsetY?: number;
+  /**
+   * 기울기(라디안). `arrange: 'lean'` 이 준다. 없으면 0 — 지금까지와 같다.
+   *
+   * **충돌에는 안 쓴다.** AABB 는 축 정렬이라 기울여도 상자가 그대로다.
+   * 렌더에서 물체를 세워 «면»이 보이게 하는 게 전부다.
+   */
+  tiltX?: number;
+  tiltZ?: number;
 }
 
 /** 재현 가능한 난수. 같은 시드 = 같은 월드 (튜닝의 전제조건). */
@@ -1006,6 +1031,14 @@ export function generateWorld(
   if (rooms !== undefined) {
     /** specs 인덱스 → 그 물체가 사는 방. 완화가 끝난 뒤 되밀어 넣을 때 쓴다 */
     const owner: (readonly [number, number, number, number])[] = [];
+    /**
+     * **줄·더미로 놓은 물체는 완화에서 뺀다.**
+     *
+     * `relaxOverlaps` 는 겹친 쌍을 서로 민다. 그런데 꽂힌 책은 **일부러 붙어 있다** —
+     * 완화에 맡기면 줄이 통째로 흩어져서 `arrange` 가 아무 소용이 없어진다.
+     * 사각형 밖으로 나갈 일도 없다(인덱스로 자리 안에서 계산했다).
+     */
+    const pinned = new Set<number>();
     for (const room of rooms) {
       const logR = Math.log(room.sizeMax / room.sizeMin);
       const [rx0, rz0, rx1, rz1] = room.rect;
@@ -1014,6 +1047,7 @@ export function generateWorld(
       const tbl = room.labels ?? table;
       const edge = room.edge ?? 1;
       const surfaceY = room.y ?? 0;
+      const arrange = room.arrange;
       for (let n = 0; n < room.count; n++) {
         const base = room.sizeMin * Math.exp(logR * rand());
         // 라벨 버킷은 **라벨 축**에서 고른다. 방 안의 상대 위치로 고르면
@@ -1028,11 +1062,32 @@ export function generateWorld(
         const bx = Math.max(rx1 - m, (rx0 + rx1) / 2);
         const az = Math.min(rz0 + m, (rz0 + rz1) / 2);
         const bz = Math.max(rz1 - m, (rz0 + rz1) / 2);
-        // 뽑은 0~1 을 가장자리 쪽으로 다시 매핑한다. **난수 호출은 그대로 두 번**이다
-        const pick = (r: () => number) => [
-          ax + edgeBias(r(), edge) * (bx - ax),
-          az + edgeBias(r(), edge) * (bz - az),
-        ] as const;
+        /**
+         * 뽑은 0~1 을 좌표로 바꾼다. **난수 호출은 어느 경로에서나 정확히 두 번**이다 —
+         * `arrange` 를 줘도 스트림이 안 밀린다.
+         */
+        const pick = (r: () => number) => {
+          const j1 = r(), j2 = r();
+          if (arrange === undefined) {
+            return [ax + edgeBias(j1, edge) * (bx - ax),
+              az + edgeBias(j2, edge) * (bz - az)] as const;
+          }
+          if (arrange === 'stack') {
+            // 한 자리에 포갠다. 살짝 어긋나야 「쌓았다」로 보인다 — 딱 맞으면 한 덩이다
+            return [(ax + bx) / 2 + (j1 - 0.5) * 0.03,
+              (az + bz) / 2 + (j2 - 0.5) * 0.03] as const;
+          }
+          // 'row' · 'lean' — 긴 축으로 줄 세우고 짧은 축은 살짝만 흔든다.
+          // 양 끝을 물체 반쪽만큼 안으로 당겨야 줄이 자리를 넘지 않는다
+          const t = room.count > 1 ? n / (room.count - 1) : 0.5;
+          const wide = bx - ax >= bz - az;
+          const along = (lo: number, hi: number) => lo + t * (hi - lo);
+          const jit = (lo: number, hi: number, j: number) =>
+            (lo + hi) / 2 + (j - 0.5) * (hi - lo) * 0.22;
+          return wide
+            ? [along(ax, bx), jit(az, bz, j2)] as const
+            : [jit(ax, bx, j1), along(az, bz)] as const;
+        };
         // **표면 배치는 `retryPos` 를 안 넘긴다.** `emit` 이
         // `blocked !== undefined && retryPos !== undefined` 일 때만 막힘 검사를 하므로
         // 이 한 가지로 표면이 `blocked` 를 건너뛴다 — 새 분기가 필요 없다.
@@ -1041,6 +1096,16 @@ export function generateWorld(
           surfaceY > 0 ? undefined : () => pick(retry), true, tbl, surfaceY, room.only);
         // 벽 가까이 놓였으면 그 벽과 나란히 돌린다. `rotY` 는 emit 이 이미 뽑아뒀다
         if (room.align === true) alignToWall(specs[specs.length - 1]!, room.rect);
+        const last = specs[specs.length - 1]!;
+        if (arrange === 'lean') {
+          /**
+           * **세운다.** 바닥에 누운 동전·화투는 공 눈높이에서 원리상 선이다.
+           * 줄의 진행 방향과 «직각»으로 기울여야 낱장의 면이 보인다.
+           */
+          const wide = bx - ax >= bz - az;
+          if (wide) last.tiltZ = 1.05; else last.tiltX = 1.05;
+        }
+        if (arrange !== undefined) pinned.add(specs.length - 1);
         owner.push([ax, az, bx, bz]);
       }
     }
@@ -1049,7 +1114,7 @@ export function generateWorld(
       const s = specs[i]!;
       s.x = Math.min(bx, Math.max(ax, s.x));
       s.z = Math.min(bz, Math.max(az, s.z));
-    });
+    }, pinned);
     return specs;
   }
 
@@ -1136,6 +1201,11 @@ function relaxOverlaps(
    * 새 겹침을 만들고 완화할 기회가 없다.
    */
   confine?: (i: number) => void,
+  /**
+   * 밀면 안 되는 물체. `arrange` 로 줄·더미를 만든 것들이다 —
+   * **일부러 붙여놨는데** 완화가 그걸 흩어버리면 `arrange` 가 아무 소용이 없다.
+   */
+  pinned?: ReadonlySet<number>,
 ): number {
   if (iterations <= 0) return 0;
   // 완화 전 위치. 이 좌표들은 이미 blocked 를 통과한 상태다.
@@ -1175,6 +1245,8 @@ function relaxOverlaps(
         for (let b = a + 1; b < cell.length; b++) {
           const i = cell[a]!;
           const j = cell[b]!;
+          // 줄·더미로 놓은 것끼리는 안 민다 — 붙어 있는 게 의도다
+          if (pinned !== undefined && pinned.has(i) && pinned.has(j)) continue;
           // 둘 다 직전에 가만히 있었다면 겹침 상태가 변했을 리 없다
           if (active[i] === 0 && active[j] === 0) continue;
           // 큰 물체는 여러 셀에 걸치므로 같은 쌍이 여러 번 나온다. 한 번만 민다.

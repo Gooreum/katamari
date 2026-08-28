@@ -305,7 +305,9 @@ export class World {
     for (const spec of specs) {
       const slot = this.pool.alloc(spec.geo);
       proxy.position.set(spec.x, spec.y, spec.z);
-      proxy.rotation.set(0, spec.rotY, 0);
+      // **기울기는 렌더에만 준다.** AABB 는 축 정렬이라 충돌 상자는 안 바뀐다 —
+      // `arrange: 'lean'` 이 바닥에 누운 낱장을 세워 «면»이 보이게 하는 용도다
+      proxy.rotation.set(spec.tiltX ?? 0, spec.rotY, spec.tiltZ ?? 0);
       proxy.scale.set(spec.sx, spec.sy, spec.sz);
       this.pool.setTransform(spec.geo, slot, proxy);
       this.pool.setColor(spec.geo, slot, tint.setHex(PALETTE[spec.color]!));
