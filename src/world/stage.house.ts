@@ -162,7 +162,7 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 130, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 30, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
   { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true, ceiling: 2.4 },
   { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true, ceiling: 2.4 },
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
@@ -196,40 +196,41 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
  * 자리 사각형은 방과 같은 축이라 자리 모서리에 맞추면 벽에 맞추는 것과 같은 방향이 나온다.
  */
 export const HOUSE_SPOTS: readonly RoomPlacement[] = [
-  // ── 거실 — 바닥 자리 120 + 표면 30 (방 130 + 150 = 280) ──
+  // ── 거실 — 바닥 자리 60 + 표면 30 (방 30 + 90 = 120) ──────
   //
-  // **개수를 430 → 280 으로 줄였다.** 24.3m² 에 430개면 한 뼘마다 물건이라
-  // 아무리 정돈해도 쓰레기장으로 보인다. `curve` 로 재보면 star1(10cm)은 그중
-  // **21개만 먹으면 끝난다** — 스무 배가 남아돌았다.
+  // **개수를 280 → 120 으로 줄였다.** 24.3m² 에 바닥 소품 250개가 깔려 있으면
+  // 무슨 짓을 해도 쓰레기장이다. `curve` 로 재보면 star1(10cm)은 그중 **25개만
+  // 먹으면 끝난다** — 열 배가 남아돌았다.
+  //
+  // **`only` 로 자리마다 물건을 못 박는다.** 여태 자리마다 방 표 전체(30종)에서
+  // 뽑아서 TV 앞에 사과가 있고 밥상 밑에 압정이 있었다. 실제 방은 같은 것끼리 모인다.
 
-  // 밥상 다리 사이. 원작에서 왕자가 상 밑을 지나가는 그 자리다
-  { id: 'spot-under-table', rect: [0.46, 0.16, 1.04, 0.74], sizeMin: 0.010, sizeMax: 0.10, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
-  // TV 앞 — 리모컨·건전지가 굴러다니는 자리
-  { id: 'spot-tv-front', rect: [-2.05, -1.30, -1.55, -0.40], sizeMin: 0.010, sizeMax: 0.16, count: 20, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
-  { id: 'spot-chest-front', rect: [-2.10, 0.90, -1.60, 1.80], sizeMin: 0.010, sizeMax: 0.18, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
-  { id: 'spot-shelf-front', rect: [1.95, -1.70, 2.60, -1.20], sizeMin: 0.010, sizeMax: 0.16, count: 16, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
-  // 방 모서리. 쓸어 모아둔 것처럼 보이는 자리
-  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.020, sizeMax: 0.22, count: 24, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
-  // 툇마루 문 앞 — 드나드는 자리
-  { id: 'spot-door-south', rect: [-0.60, 1.70, 0.60, 2.10], sizeMin: 0.020, sizeMax: 0.20, count: 24, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
+  // 밥상 밑 — 상에서 떨어진 것
+  { id: 'spot-under-table', rect: [0.46, 0.16, 1.04, 0.74], sizeMin: 0.010, sizeMax: 0.08, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['동전', '각설탕', '캐러멜'] },
+  // TV 앞 — 리모컨과 건전지가 굴러다니는 자리
+  { id: 'spot-tv-front', rect: [-2.00, -1.30, -1.55, -0.40], sizeMin: 0.010, sizeMax: 0.16, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['RC 컨트롤러', '건전지'] },
+  // 서랍장 앞 — 읽고 던져둔 신문
+  { id: 'spot-chest-front', rect: [-2.10, 0.95, -1.65, 1.75], sizeMin: 0.010, sizeMax: 0.18, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
+  // 책장 앞
+  { id: 'spot-shelf-front', rect: [1.95, -1.60, 2.60, -1.20], sizeMin: 0.010, sizeMax: 0.16, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '화투'] },
+  // 남서 구석 — 쓸어 모아둔 자리. 작은 것만 모인다
+  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.04, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정', '개미'] },
+  // 툇마루 문 앞 — 드나들며 놓고 가는 자리
+  { id: 'spot-door-south', rect: [-0.60, 1.75, 0.60, 2.10], sizeMin: 0.020, sizeMax: 0.20, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '접시'] },
 
   // ── 거실 표면 30 — `y` 가 있으면 그 높이에 얹힌다 ────────
   //
-  // **이게 이 작업의 핵심이다.** 물건이 전부 바닥에 있던 게 「나뒹군다」의 정체였다.
-  // 여기 30개는 star1(10cm)에서 **하나도 안 먹힌다** — 올려다보기만 하는 물건이고
-  // 그게 「저건 나중에」라는 원작의 감각이다. star4(1m)에서 비로소 상 위를 쓸어간다.
-  //
-  // **`align` 을 준다.** 안 줬더니 벽에 붙은 표면(서랍장 위·책장 칸·신문더미)의
-  // 물건만 각도가 제멋대로여서 방 전체 벽 근처 정렬률이 100% → 97.9%로 떨어졌다.
-  // 선반 위 물건이 비스듬히 놓여 있으면 「얹었다」가 아니라 「던져놨다」로 보인다.
-  { id: 'surf-table', rect: [0.40, 0.10, 1.10, 0.80], sizeMin: 0.020, sizeMax: 0.14, count: 9, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.32 },
-  { id: 'surf-tv', rect: [-2.28, -1.30, -2.07, -0.40], sizeMin: 0.020, sizeMax: 0.16, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.42 },
-  { id: 'surf-chest', rect: [-2.55, 0.95, -2.20, 1.75], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.62 },
-  { id: 'surf-shelf-low', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.32 },
-  { id: 'surf-shelf-high', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.66 },
-  { id: 'surf-papers', rect: [-2.55, -2.10, -2.25, -1.80], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.22 },
-  { id: 'surf-plant', rect: [2.30, 1.00, 2.53, 1.25], sizeMin: 0.020, sizeMax: 0.16, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55 },
-  { id: 'surf-cushions', rect: [2.25, 1.50, 2.55, 1.90], sizeMin: 0.020, sizeMax: 0.18, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.28 },
+  // **star1(10cm)에서 하나도 안 먹힌다** — 올려다보기만 하는 물건이고
+  // 그게 「저건 나중에」라는 원작의 감각이다. star4(1m)에서 상 위를 쓸어간다.
+  // 높이는 `LIVING_PROPS` 의 형상 실제 상판 높이에 맞춘다.
+  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.020, sizeMax: 0.14, count: 9, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.33, only: ['찻잔', '사과', '캐러멜'] },
+  { id: 'surf-tv-stand', rect: [-2.50, -1.20, -2.20, -0.50], sizeMin: 0.020, sizeMax: 0.12, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.42, only: ['건전지', '성냥갑'] },
+  { id: 'surf-chest', rect: [-2.55, 1.00, -2.22, 1.70], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.62, only: ['전화기', '도장'] },
+  { id: 'surf-shelf-low', rect: [2.08, -2.14, 2.48, -1.86], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.32, only: ['신문', '화투'] },
+  { id: 'surf-shelf-high', rect: [2.08, -2.14, 2.48, -1.86], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.59, only: ['찌라시', '화투'] },
+  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.020, sizeMax: 0.18, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.15, only: ['신문', '찌라시'] },
+  { id: 'surf-plant', rect: [2.30, 1.02, 2.46, 1.18], sizeMin: 0.020, sizeMax: 0.14, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.54, only: ['찻잔', '사과'] },
+  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.020, sizeMax: 0.12, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.15, only: ['껌', '사탕'] },
 
   // ── 복도 40 ─────────────────────────────────────────────
   { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
