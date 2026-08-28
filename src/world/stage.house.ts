@@ -162,7 +162,7 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 30, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.022, sizeMax: 0.28, count: 40, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
   { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true, ceiling: 2.4 },
   { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true, ceiling: 2.4 },
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
@@ -196,29 +196,44 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
  * 자리 사각형은 방과 같은 축이라 자리 모서리에 맞추면 벽에 맞추는 것과 같은 방향이 나온다.
  */
 export const HOUSE_SPOTS: readonly RoomPlacement[] = [
-  // ── 거실 — 바닥 자리 60 + 표면 110 (방 30 + 170 = 200) ────
+  // ── 거실 — 바닥 자리 108 + 표면 110 (방 40 + 218 = 258) ───
   //
-  // **개수를 280 → 120 으로 줄였다.** 24.3m² 에 바닥 소품 250개가 깔려 있으면
-  // 무슨 짓을 해도 쓰레기장이다. `curve` 로 재보면 star1(10cm)은 그중 **25개만
-  // 먹으면 끝난다** — 열 배가 남아돌았다.
+  // **개수를 280 → 120 으로 줄였다가 258 로 올렸다.** 줄인 건 옳았다 —
+  // 24.3m² 에 바닥 소품 250개면 무슨 짓을 해도 쓰레기장이고, `curve` 로 재면
+  // star1(10cm)은 그중 25개만 먹으면 끝난다. 그런데 120은 이번엔 휑했다.
+  // **늘어난 138개는 전부 «자리» 안에 들어간다** — 흩뿌림은 30 → 40 뿐이다.
   //
   // **`only` 로 자리마다 물건을 못 박는다.** 여태 자리마다 방 표 전체(30종)에서
   // 뽑아서 TV 앞에 사과가 있고 밥상 밑에 압정이 있었다. 실제 방은 같은 것끼리 모인다.
+  //
+  // **크기 범위는 `only` 에 맞춰야 한다.** 크기와 이름을 «따로» 뽑기 때문에
+  // `sizeMin: 0.010` 인 자리에 `only: ['신문']` 을 주면 **1.6cm 신문**이 나온다.
+  // 실측하니 신문 1.6cm · 찌라시 1.0cm · 건전지 0.8cm 가 굴러다니고 있었다 —
+  // 사용자가 「뭔지 잘 모르겠다」고 한 것의 절반이 이거다. 티끌이라 안 읽히는 게 아니라
+  // **그 물건이 그 크기일 리가 없어서** 안 읽힌다.
 
-  // 밥상 밑 — 상에서 떨어진 것
-  { id: 'spot-under-table', rect: [0.46, 0.16, 1.04, 0.74], sizeMin: 0.010, sizeMax: 0.08, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['동전', '각설탕', '캐러멜'] },
+  // 밥상 밑 — 상에서 떨어진 것. **이제 공이 밑으로 들어간다**(`underPass`)
+  { id: 'spot-under-table', rect: [0.46, 0.16, 1.04, 0.74], sizeMin: 0.015, sizeMax: 0.045, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['동전', '각설탕', '캐러멜'] },
+  // 상 옆 — 방석 사이에 놓고 굴리는 것
+  { id: 'spot-table-side', rect: [1.20, -0.45, 1.75, 0.05], sizeMin: 0.025, sizeMax: 0.090, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['껌', '사탕', '주사위'] },
   // TV 앞 — 리모컨과 건전지가 굴러다니는 자리
-  { id: 'spot-tv-front', rect: [-2.00, -1.30, -1.55, -0.40], sizeMin: 0.010, sizeMax: 0.16, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['RC 컨트롤러', '건전지'] },
+  { id: 'spot-tv-front', rect: [-2.00, -1.30, -1.55, -0.40], sizeMin: 0.045, sizeMax: 0.140, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['RC 컨트롤러', '건전지'] },
+  // TV장 옆 — 다 본 테이프를 쌓아두는 자리
+  { id: 'spot-tv-side', rect: [-2.55, -1.75, -2.15, -1.42], sizeMin: 0.170, sizeMax: 0.230, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['비디오테이프', '책'] },
   // 서랍장 앞 — 읽고 던져둔 신문
-  { id: 'spot-chest-front', rect: [-2.10, 0.95, -1.65, 1.75], sizeMin: 0.010, sizeMax: 0.18, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
-  // 책장 앞
-  { id: 'spot-shelf-front', rect: [1.95, -1.60, 2.60, -1.20], sizeMin: 0.010, sizeMax: 0.16, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '화투'] },
+  { id: 'spot-chest-front', rect: [-2.10, 0.95, -1.65, 1.75], sizeMin: 0.170, sizeMax: 0.260, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
+  // 책장 앞 — 꺼내놓고 안 꽂은 책
+  { id: 'spot-shelf-front', rect: [1.95, -1.60, 2.60, -1.20], sizeMin: 0.170, sizeMax: 0.240, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['책'] },
+  // 책장 옆 — 바닥에 쌓아둔 인쇄물
+  { id: 'spot-shelf-side', rect: [1.50, -2.14, 1.84, -1.80], sizeMin: 0.170, sizeMax: 0.260, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
+  // 창가 — 볕 드는 자리. 차 마시고 둔 것들
+  { id: 'spot-window', rect: [2.20, -0.80, 2.55, 0.50], sizeMin: 0.070, sizeMax: 0.130, count: 16, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '귤', '재떨이'] },
   // 남서 구석 — 쓸어 모아둔 자리. 작은 것만 모인다.
   // **개미를 뺐다.** 쓸려 나온 물건 셋(클립·단추·압정)과 달리 개미는 «쓸어 모은» 것이
   // 아니다. 방 흩뿌림으로는 여전히 나온다 — 표에서 뺀 게 아니라 이 자리에서만 뺐다
-  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.04, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정'] },
+  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.030, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정'] },
   // 툇마루 문 앞 — 드나들며 놓고 가는 자리
-  { id: 'spot-door-south', rect: [-0.60, 1.75, 0.60, 2.10], sizeMin: 0.020, sizeMax: 0.20, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '접시'] },
+  { id: 'spot-door-south', rect: [-0.60, 1.75, 0.60, 2.10], sizeMin: 0.070, sizeMax: 0.150, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '접시'] },
 
   // ── 거실 표면 110 — `y` 가 있으면 그 높이에 얹힌다 ───────
   //
