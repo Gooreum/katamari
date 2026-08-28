@@ -219,19 +219,21 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   // TV 앞 — 리모컨과 건전지가 굴러다니는 자리
   { id: 'spot-tv-front', rect: [-2.00, -1.30, -1.55, -0.40], sizeMin: 0.045, sizeMax: 0.140, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['RC 컨트롤러', '건전지'] },
   // TV장 옆 — 다 본 테이프를 쌓아두는 자리
-  { id: 'spot-tv-side', rect: [-2.55, -1.75, -2.15, -1.42], sizeMin: 0.170, sizeMax: 0.230, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['비디오테이프', '책'] },
+  { id: 'spot-tv-side', rect: [-2.55, -1.75, -2.15, -1.42], sizeMin: 0.170, sizeMax: 0.230, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['비디오테이프', '책'] , arrange: 'stack' },
   // 서랍장 앞 — 읽고 던져둔 신문
   { id: 'spot-chest-front', rect: [-2.10, 0.95, -1.65, 1.75], sizeMin: 0.170, sizeMax: 0.260, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
   // 책장 앞 — 꺼내놓고 안 꽂은 책
   { id: 'spot-shelf-front', rect: [1.95, -1.60, 2.60, -1.20], sizeMin: 0.170, sizeMax: 0.240, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['책'] },
   // 책장 옆 — 바닥에 쌓아둔 인쇄물
-  { id: 'spot-shelf-side', rect: [1.50, -2.14, 1.84, -1.80], sizeMin: 0.170, sizeMax: 0.260, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] },
+  { id: 'spot-shelf-side', rect: [1.50, -2.14, 1.84, -1.80], sizeMin: 0.170, sizeMax: 0.260, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['신문', '찌라시'] , arrange: 'stack' },
   // 창가 — 볕 드는 자리. 차 마시고 둔 것들
   { id: 'spot-window', rect: [2.20, -0.80, 2.55, 0.50], sizeMin: 0.070, sizeMax: 0.130, count: 16, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '귤', '재떨이'] },
   // 남서 구석 — 쓸어 모아둔 자리. 작은 것만 모인다.
+  // **`'lean'`** — 클립·단추·압정은 1~3cm 라 바닥에 누우면 아예 안 보인다.
+  // 두께를 키우는 건 틀린 답이다(원래 얇은 물건이다) — 각도로 푼다.
   // **개미를 뺐다.** 쓸려 나온 물건 셋(클립·단추·압정)과 달리 개미는 «쓸어 모은» 것이
   // 아니다. 방 흩뿌림으로는 여전히 나온다 — 표에서 뺀 게 아니라 이 자리에서만 뺐다
-  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.030, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정'] },
+  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.010, sizeMax: 0.030, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['클립', '단추', '압정'] , arrange: 'lean' },
   // 툇마루 문 앞 — 드나들며 놓고 가는 자리
   { id: 'spot-door-south', rect: [-0.60, 1.75, 0.60, 2.10], sizeMin: 0.070, sizeMax: 0.150, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, only: ['찻잔', '접시'] },
 
@@ -252,22 +254,26 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   // 맨 위 칸은 천장까지 0.172m 뿐이라 더 낮게 잡았다.
 
   // 밥상 위 — 차 마시는 자리. 이 방에서 제일 눈에 띄는 면이다
-  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.070, sizeMax: 0.130, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.325, only: ['찻잔', '귤', '재떨이'] },
+  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.070, sizeMax: 0.130, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.325, only: ['찻잔', '귤', '재떨이'] , arrange: 'row' },
   // TV장 위
   { id: 'surf-tv-stand', rect: [-2.50, -1.20, -2.20, -0.50], sizeMin: 0.120, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.445, only: ['비디오테이프', '탁상시계'] },
-  // TV장 «가운데 칸» — 앞이 뚫린 수납칸이다. 형상에는 있는데 여태 비어 있었다
-  { id: 'surf-tv-shelf', rect: [-2.52, -1.25, -2.18, -0.45], sizeMin: 0.170, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.218, only: ['비디오테이프'] },
+  // TV장 «가운데 칸» — 앞이 뚫린 수납칸이다. 형상에는 있는데 여태 비어 있었다.
+  // **`'stack'`** — 다 본 테이프는 쌓아두지 흩어놓지 않는다
+  { id: 'surf-tv-shelf', rect: [-2.52, -1.25, -2.18, -0.45], sizeMin: 0.170, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.218, only: ['비디오테이프'] , arrange: 'stack' },
   // 텔레비전 «위» — 브라운관 위에 액자와 시계를 올려두는 그 자리
   { id: 'surf-tv-top', rect: [-2.45, -1.00, -2.21, -0.70], sizeMin: 0.120, sizeMax: 0.200, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.760, only: ['액자', '탁상시계'] },
   // 서랍장 위 — 전화기 자리
-  { id: 'surf-chest', rect: [-2.55, 1.00, -2.22, 1.70], sizeMin: 0.220, sizeMax: 0.300, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 1.00, only: ['전화기', '액자'] },
-  // 책장 아래 칸 — 책이 꽂혀 있어야 책장이다. 여태 세 권이었다
-  { id: 'surf-shelf-low', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.332, only: ['책', '신문'] },
-  { id: 'surf-shelf-mid', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.605, only: ['책'] },
-  // 맨 위 칸 — 천장까지 0.172m 라 낮은 것만
-  { id: 'surf-shelf-high', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.100, sizeMax: 0.160, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.878, only: ['책', '화투'] },
+  { id: 'surf-chest', rect: [-2.55, 1.00, -2.22, 1.70], sizeMin: 0.220, sizeMax: 0.300, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 1.00, only: ['전화기', '액자'] , arrange: 'row' },
+  // 책장 아래 칸 — 책이 꽂혀 있어야 책장이다. 여태 세 권이었다.
+  // **`'row'` 로 줄 세운다.** 68×23cm 칸에 12권을 난수로 뿌리면
+  // 꽂힌 게 아니라 «쏟아진» 것으로 보인다 — 그게 「배치 기준을 모르겠다」의 정체다
+  { id: 'surf-shelf-low', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.332, only: ['책', '신문'] , arrange: 'row' },
+  { id: 'surf-shelf-mid', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.605, only: ['책'] , arrange: 'row' },
+  // 맨 위 칸 — 천장까지 0.172m 라 낮은 것만.
+  // **`'lean'`** — 화투는 두께 7.6%라 눕히면 공 눈높이에서 «선»이다. 세워서 면을 보인다
+  { id: 'surf-shelf-high', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.100, sizeMax: 0.160, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.878, only: ['책', '화투'] , arrange: 'lean' },
   // 신문더미 위
-  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.180, sizeMax: 0.260, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.145, only: ['신문', '찌라시'] },
+  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.180, sizeMax: 0.260, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.145, only: ['신문', '찌라시'] , arrange: 'row' },
   // 화분대 위
   { id: 'surf-plant', rect: [2.30, 1.02, 2.46, 1.18], sizeMin: 0.070, sizeMax: 0.120, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55, only: ['찻잔', '귤'] },
   // 방석더미 위

@@ -47,6 +47,15 @@ export interface WorldObject {
   readonly colY: number;
   readonly scale: Vector3;
   readonly rotY: number;
+  /**
+   * 기울기(라디안). `arrange: 'lean'` 으로 세운 물건만 0이 아니다.
+   *
+   * **충돌에는 안 쓴다** — AABB 는 축 정렬이라 기울여도 상자가 그대로다.
+   * 여기 들고 있는 이유는 `promote()` 때문이다: 흡수될 때 Mesh 를 다시 만드는데
+   * 기울기를 안 들고 있으면 **물건이 삼켜지는 순간 벌떡 선다.**
+   */
+  readonly rotX: number;
+  readonly rotZ: number;
   /** InstancePool 인덱스 = geometry 인덱스 */
   readonly combo: number;
   readonly slot: number;
@@ -324,6 +333,8 @@ export class World {
         colY,
         scale: new Vector3(spec.sx, spec.sy, spec.sz),
         rotY: spec.rotY,
+        rotX: spec.tiltX ?? 0,
+        rotZ: spec.tiltZ ?? 0,
         combo: spec.geo,
         slot,
         color: spec.color,
@@ -379,7 +390,8 @@ export class World {
     this.pool.hide(obj.combo, obj.slot);
     const mesh = new Mesh(this.geometries[obj.combo]!, this.materials[obj.color]!);
     mesh.position.copy(obj.pos);
-    mesh.rotation.set(0, obj.rotY, 0);
+    // 기울기까지 옮긴다 — 안 그러면 삼켜지는 순간 물건이 벌떡 선다
+    mesh.rotation.set(obj.rotX, obj.rotY, obj.rotZ);
     mesh.scale.copy(obj.scale);
     mesh.updateMatrixWorld(true);
     return mesh;
