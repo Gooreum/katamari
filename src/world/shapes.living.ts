@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLiving } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
@@ -113,4 +113,61 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
     part(new CylinderGeometry(0.06, 0.06, 0.05, 6), METAL, [0, 0.42, -0.16], LIE_Z),
   ]),
 
+  /**
+   * 액자 (20cm) — 세워둔 사진틀.
+   *
+   * **테 넷이 안쪽을 감싸야 액자다.** 판때기에 그림만 찍으면 사진이지 액자가 아니다.
+   * 뒤 받침대가 「세워져 있다」를 만든다.
+   */
+  액자: () => assemble([
+    // 그림면. 안쪽으로 들어가 있어야 테가 튀어나온 게 보인다
+    part(new BoxGeometry(0.72, 0.86, 0.03), WHITE, [0, 0.52, 0], undefined, TILE.PICTURE),
+    // 테 넷
+    part(new BoxGeometry(0.86, 0.09, 0.07), WOOD, [0, 0.955, 0.015]),
+    part(new BoxGeometry(0.86, 0.09, 0.07), WOOD, [0, 0.085, 0.015]),
+    part(new BoxGeometry(0.09, 1.00, 0.07), WOOD, [-0.385, 0.52, 0.015]),
+    part(new BoxGeometry(0.09, 1.00, 0.07), WOOD, [0.385, 0.52, 0.015]),
+    // 뒤판
+    part(new BoxGeometry(0.80, 0.92, 0.02), PAPER, [0, 0.52, -0.025]),
+    // 받침대. 뒤로 비스듬히 뻗는다
+    part(new BoxGeometry(0.16, 0.62, 0.02), PAPER, [0, 0.34, -0.14], [0.42, 0, 0]),
+  ]),
+
+  /**
+   * 귤 (7cm) — 눌린 구.
+   *
+   * 사과와 헷갈리면 안 된다. **사과는 세로로 길고 귤은 납작하다.**
+   * 꼭지가 위로 솟는 사과와 달리 귤은 꼭지 자리가 옴폭 들어간다.
+   */
+  귤: () => assemble([
+    part(new SphereGeometry(0.5, 12, 8).scale(1, 0.76, 1), WHITE, [0, 0.38, 0]),
+    // 꼭지 자리 — 옴폭한 자국. 귤과 사과를 가르는 한 끗
+    part(new CylinderGeometry(0.09, 0.11, 0.05, 8), [0.72, 0.52, 0.22], [0, 0.755, 0]),
+    // 배꼽 — 아래쪽 자국
+    part(new CylinderGeometry(0.06, 0.045, 0.04, 6), [0.78, 0.56, 0.26], [0, 0.015, 0]),
+    // 잎 둘
+    part(new BoxGeometry(0.20, 0.02, 0.10), [0.34, 0.52, 0.24], [0.10, 0.78, 0.02], [0, 0.5, 0.22]),
+    part(new BoxGeometry(0.16, 0.02, 0.08), [0.30, 0.46, 0.22], [-0.07, 0.77, -0.06], [0, -0.8, -0.18]),
+  ]),
+
+  /**
+   * 재떨이 (12cm) — 유리 재떨이.
+   *
+   * **가장자리 홈이 재떨이의 정체다.** 홈 없는 오목한 접시는 그릇이다.
+   * 담배꽁초 둘이 마지막을 맡는다.
+   */
+  재떨이: () => assemble([
+    // 두꺼운 유리 몸통. 낮고 넓적하다
+    part(new CylinderGeometry(0.50, 0.42, 0.22, 14), GLASS, [0, 0.11, 0]),
+    // 파인 안쪽. 몸통보다 어두워야 깊이가 보인다
+    part(new CylinderGeometry(0.38, 0.30, 0.10, 14), [0.42, 0.50, 0.55], [0, 0.19, 0]),
+    // 담배 얹는 홈 둘 — 테두리를 가로지르는 막대
+    part(new BoxGeometry(0.16, 0.05, 0.26), [0.42, 0.50, 0.55], [0.42, 0.215, 0]),
+    part(new BoxGeometry(0.26, 0.05, 0.16), [0.42, 0.50, 0.55], [0, 0.215, -0.42]),
+    // 꽁초 둘. 필터가 보여야 꽁초다
+    part(new CylinderGeometry(0.038, 0.038, 0.26, 6), PAPER, [0.10, 0.235, 0.14], [0, 0.6, 1.5708]),
+    part(new CylinderGeometry(0.040, 0.040, 0.09, 6), [0.78, 0.60, 0.30], [0.26, 0.235, 0.05], [0, 0.6, 1.5708]),
+    // 재
+    part(new SphereGeometry(0.07, 6, 4).scale(1, 0.4, 1), DARK, [-0.12, 0.16, -0.06]),
+  ]),
 };
