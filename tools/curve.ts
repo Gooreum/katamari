@@ -49,6 +49,24 @@ const ROOMS = PLACE ? [...PLACE.rooms, ...(PLACE.spots ?? [])] : undefined;
  *
  * 벽·문은 뺀다. 먹으라고 있는 게 아니다 (`ladder`도 같은 규칙).
  */
+/**
+ * **손배치 가구도 먹을 수 있는 물체다.**
+ *
+ * 가구가 `CityBuilding`(압출)에서 `placement.props`(형상)로 옮겨가면서 이 도구가
+ * 통째로 놓치기 시작했다 — 거실 가구 13개가 곡선에서 사라졌다.
+ * `buildingSpecs` 가 `buildings` 만 보기 때문이다. 도구가 게임과 다른 월드를 재면
+ * 그 숫자는 거짓말이다.
+ */
+function propSpecs(): ObjectSpec[] {
+  if (process.argv.includes('--donut')) return [];
+  return (STAGE.placement?.props ?? []).map((p) => ({
+    x: p.x, z: p.z, size: p.size, volume: p.size ** 3,
+    // 아래는 시뮬이 안 쓰는 값이다. 스키마를 맞추려고 채운다
+    sx: p.size, sy: p.size, sz: p.size,
+    y: (p.y ?? 0) + p.size / 2, rotY: p.rotY ?? 0, geo: 0, color: 0, label: p.label,
+  } as ObjectSpec));
+}
+
 function buildingSpecs(): ObjectSpec[] {
   if (process.argv.includes('--donut')) return [];
   return STAGE.buildings
@@ -217,7 +235,7 @@ function bar(value: number, max: number, width = 26): string {
 }
 
 function report(label: string, overrides: Partial<GenerationParams> = {}): Result {
-  const specs = withGates([...generateWorld(1337, overrides, undefined, ROOMS, LABELS), ...buildingSpecs()]);
+  const specs = withGates([...generateWorld(1337, overrides, undefined, ROOMS, LABELS), ...buildingSpecs(), ...propSpecs()]);
   /**
    * **이 구역을 쓰는 판만 본다.**
    * 거실 전용 월드(최대 28cm)에서 별 4(1m)를 재면 당연히 "도달 실패"가 나온다 —
@@ -299,7 +317,7 @@ if (process.argv.includes('--sweep')) {
 }
 
 if (process.argv.includes('--csv')) {
-  const specs = withGates([...generateWorld(1337, {}, undefined, ROOMS, LABELS), ...buildingSpecs()]);
+  const specs = withGates([...generateWorld(1337, {}, undefined, ROOMS, LABELS), ...buildingSpecs(), ...propSpecs()]);
   const r = simulate(specs);
   console.log('\nt,diameter,eaten');
   for (const s of r.samples) {

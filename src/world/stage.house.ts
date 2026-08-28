@@ -1,7 +1,6 @@
-import type { CityBuilding, CityData, CityRug, StageRoom } from './cityData';
+import type { CityBuilding, CityData, CityRug, StageProp, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
 import { ROOM_TABLES, type RoomPlacement } from './generation';
-import { TUNING } from '../game/tuning';
 import {
   block, piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
   type PieceOpts, type SlabStyle,
@@ -82,15 +81,12 @@ const C_FENCE = 0xc07d33;  // 판자 담장
 // 0xc8d27a) 위에 얹히므로 **둘 다와 대비가 나야** 덩어리로 읽힌다.
 
 const C_WOOD = 0x9a6b3f;      // 서랍장·책장·상다리
-const C_TV = 0x4a4744;        // 브라운관
-const C_METAL = 0xc9ccd1;     // 스탠드 기둥·빨래 기둥
+const C_METAL = 0xc9ccd1;     // 빨래 기둥·서랍 손잡이
 const C_APPLIANCE = 0xf4f1e8; // 냉장고·변기·세면대
 const C_SINK = 0xd7d2c6;      // 싱크대 상판
 const C_TUB = 0xa8d4e0;       // 욕조 — 화장실 바닥(F_BATH)과 같은 계열이라 명도로 벌린다
 const C_QUILT = 0xe8eef2;     // 깔아둔 이불
 const C_TOY = 0xe0483c;       // 장난감 상자
-const C_CUSHION = 0xd98a96;   // 방석 — 깔개와 같은 계열이라 거실이 한 덩어리로 읽힌다
-const C_PAPER = 0xe8e2d0;     // 쌓아둔 신문
 const C_TREE = 0x6f9c46;      // 마당 나무
 
 // ─── 구역 개방 지름 (m) ──────────────────────────────────────
@@ -585,61 +581,56 @@ function legs(
  * 콘센트(북벽 x=−2.05 · 서벽 z=0.7)와 장지문 폭(x −1.8~1.8)은 피한다 —
  * 앞선 작업이 「화면에 안 보이던 결함」을 고쳐가며 세운 것들이라 가구로 덮으면 안 된다.
  */
+/**
+ * 거실 가구 — **손배치 물건**이다. `buildFurniture` 가 아니라 여기 있다.
+ *
+ * 예전에는 `block()` 21조각이었다. 압출이라 텔레비전이 상자 둘, 서랍장이 상자 셋,
+ * 밥상은 각기둥 넷에 상판이 떠 있는 텍스처였다 — **나무 판때기가 하나도 없었다.**
+ * 이제 소품과 같은 형상 경로를 탄다(`StageProp`).
+ *
+ * **`size` 만 적는다.** 가로세로 비율은 형상이 갖고 있다 — `assemble()` 의
+ * `normalize()` 가 최장축을 1.0으로 맞추면서 비율을 지오메트리에 굽는다.
+ *
+ * 좌표는 벽 **안쪽 면** 기준이다: x ±2.63 · z ±2.18 (벽 0.10 + 걸레받이 0.04).
+ * 형상은 자기 중심에 놓이므로 벽에 붙일 때 `size`의 절반을 물려야 한다.
+ */
+export const LIVING_PROPS: readonly StageProp[] = [
+  // ── 방 한가운데 — 스폰(0,0) 정면 ────────────────────────
+  { label: '밥상', x: 0.75, z: 0.45, size: 0.95 },
+  // 방석 넷. 상 둘레에 둘러앉는 자리다
+  { label: '방석', x: 0.75, z: -0.30, size: 0.50 },
+  { label: '방석', x: 1.60, z: 0.45, size: 0.50, rotY: Math.PI / 2 },
+  { label: '방석', x: 0.75, z: 1.20, size: 0.50 },
+  { label: '방석', x: -0.10, z: 0.45, size: 0.50, rotY: Math.PI / 2 },
+
+  // ── 서벽 ────────────────────────────────────────────────
+  // **TV를 TV장 위에 얹는다**(`y`). 예전엔 상자 둘을 앞뒤로 놓은 계단이었다
+  { label: 'TV장', x: -2.35, z: -0.85, size: 1.00, rotY: Math.PI / 2 },
+  { label: '텔레비전', x: -2.33, z: -0.85, size: 0.55, rotY: Math.PI / 2, y: 0.42 },
+  // 서랍장. 서벽 콘센트(z=0.7)를 안 가리게 z 1.35 에 둔다
+  { label: '서랍장', x: -2.38, z: 1.35, size: 1.00, rotY: Math.PI / 2 },
+
+  // ── 북벽 — 장지문 폭(x −1.8~1.8) 밖의 민벽 ──────────────
+  { label: '책장', x: 2.28, z: -2.00, size: 1.05 },
+  // 북벽 콘센트(x=−2.05)를 안 가리게 x −2.40 에서 끊는다
+  { label: '신문더미', x: -2.40, z: -1.95, size: 0.45 },
+
+  // ── 동벽 — 창(z −0.9~0.6)과 창틀 기둥(z −1.05 / 0.75)을 피한다 ──
+  { label: '스탠드', x: 2.42, z: -1.50, size: 1.20 },
+  { label: '화분대', x: 2.38, z: 1.10, size: 0.55 },
+  { label: '방석더미', x: 2.38, z: 1.75, size: 0.50 },
+];
+
+/**
+ * 나머지 방의 가구. **아직 압출 프리즘이다.**
+ *
+ * 거실만 형상으로 옮겼다 — 거실이 봐줄 만한지 확인한 뒤에 같은 방식을 나머지
+ * 여섯 방으로 옮긴다. 부엌 싱크대·냉장고, 화장실 욕조·변기가 그다음이다.
+ */
 function buildFurniture(area: StageArea): CityBuilding[] {
-  const b: CityBuilding[] = [
-    /**
-     * ── 거실 ──────────────────────────────────────────────
-     *
-     * **가구를 벽에서 방 안으로 끌어냈다.** 예전에는 여섯 점이 전부 벽에 붙어 있어서
-     * 스폰에서 시야를 막는 첫 물체까지 2.4m였다 — 5cm 공에겐 방을 절반 가로지르는
-     * 거리라 방이 아니라 운동장으로 보였다. 밥상을 한가운데로 옮기고 방석을 둘렀다.
-     *
-     * 좌표는 벽 **안쪽 면** 기준이다: x ±2.63 · z ±2.18 (벽 0.10 + 걸레받이 0.04).
-     */
-    // 밥상 — 스폰(0,0)에서 0.39m. 시작하자마자 자기 키 6배짜리 다리 넷이 눈앞에 선다.
-    // 다리 사이로 지나갈 수 있고, 상판(`buildRugs`)은 그 위에 뜬다
-    ...legs(0.42, 0.12, 1.08, 0.78, 0.32, 0.08),
-
-    // 방석 넷 — 상 둘레. 원작 차노마는 상에 둘러앉는 방이라 넷이 맞다.
-    // 높이 0.06 은 5cm 공에게 **넘을 수 없는 턱**이라 방 한가운데가 미로가 된다.
-    // 서쪽 것이 스폰(0,0)에서 **0.30m** 다. 처음엔 서쪽을 비웠더니 스폰에서
-    // 서·북쪽이 2.7m 뚫려 있었고, 0.20m 로 붙였더니 이번엔 시작하자마자 턱에 낀다.
-    // 0.30m — 눈앞에 있되 끼이지는 않는 거리다
-    block([0.50, -0.60, 1.00, -0.10], 0.06, 'retail', C_CUSHION, '방석'),
-    block([1.40, 0.20, 1.90, 0.70], 0.06, 'retail', C_CUSHION, '방석'),
-    block([0.50, 1.00, 1.00, 1.50], 0.06, 'retail', C_CUSHION, '방석'),
-    block([-0.45, 0.30, 0.05, 0.80], 0.06, 'retail', C_CUSHION, '방석'),
-
-    // 서벽 — 텔레비전. **두 조각으로 계단 실루엣을 만든다.** 조각 하나짜리 상자면
-    // 그냥 벽이고, 뒤가 높고 앞이 낮으면 「받침 위에 TV」로 읽힌다.
-    // 경계를 x=−2.30 에서 맞대 겹치지 않게 한다
-    block([-2.60, -1.20, -2.30, -0.55], 0.86, 'retail', C_TV, '텔레비전'),
-    block([-2.30, -1.35, -2.05, -0.35], 0.42, 'retail', C_WOOD, 'TV장'),
-
-    // 서벽 — 서랍장. **손잡이 둘의 높이를 달리해서** 서랍 두 칸으로 읽히게 한다.
-    // 몸통 앞면(x=−2.15)에서 4cm 튀어나오되 경계를 맞대 겹치지 않는다.
-    // 서벽 콘센트(z=0.7)를 안 가리려고 z 0.90 부터 시작한다
-    block([-2.60, 0.90, -2.15, 1.80], 0.62, 'retail', C_WOOD, '서랍장'),
-    block([-2.15, 1.05, -2.11, 1.25], 0.30, 'retail', C_METAL, '서랍 손잡이'),
-    block([-2.15, 1.45, -2.11, 1.65], 0.46, 'retail', C_METAL, '서랍 손잡이'),
-
-    // 북동 — 책장. **측판 둘 + 뒤판 + 세로 칸막이.** 통짜 상자면 그냥 벽이고,
-    // 칸막이가 있어야 「칸」이 보인다. 장지문 폭(x −1.8~1.8) 밖의 민벽이다
-    block([1.95, -2.15, 2.02, -1.75], 1.05, 'civic', C_WOOD, '책장 측판'),
-    block([2.53, -2.15, 2.60, -1.75], 1.05, 'civic', C_WOOD, '책장 측판'),
-    block([2.02, -2.15, 2.53, -2.08], 1.05, 'civic', C_WOOD, '책장 뒤판'),
-    block([2.26, -2.08, 2.30, -1.75], 1.05, 'civic', C_WOOD, '책장 칸막이'),
-
-    // 북서 — 신문더미. 쌓인 게 하나쯤 있어야 사람 사는 집이다.
-    // 북벽 콘센트(x=−2.05)를 안 가리게 −2.20 에서 끊는다
-    block([-2.60, -2.15, -2.20, -1.75], 0.22, 'retail', C_PAPER, '신문더미'),
-
-    // 동벽 — 창(z −0.9~0.6)과 창틀 기둥(z −1.05 / 0.75)을 피해 배치한다
-    block([2.38, -1.60, 2.56, -1.42], 1.20, 'retail', C_METAL, '스탠드'),
-    block([2.25, 0.95, 2.58, 1.30], 0.55, 'retail', C_WOOD, '화분대'),
-    block([2.20, 1.45, 2.60, 1.95], 0.28, 'retail', C_CUSHION, '방석더미'),
-  ];
-  if (area === 'living') return b;   // star1은 거실 한 칸뿐이다
+  const b: CityBuilding[] = [];
+  // 거실 가구는 `LIVING_PROPS`(손배치 형상)로 옮겼다 — 여기엔 없다
+  if (area === 'living') return b;
 
   b.push(
     // ── 복도 ────────────────────────────────────────────────
@@ -737,7 +728,7 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
     buildings: [...buildWalls(area), ...buildFurniture(area)],
     water: [],
     landmarks: [],
-    placement: { rooms, spots },
+    placement: { rooms, spots, props: LIVING_PROPS },
     rugs: buildRugs(area),
   };
 }
@@ -754,29 +745,17 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
  */
 function buildRugs(area: StageArea): CityRug[] {
   if (area !== 'living' && area !== 'house') return [];
-  /** 표면이 사라지는 지름 = 그 가구가 먹히는 지름. 다리를 먹었는데 상판이 남으면 안 된다 */
-  const eatenAt = (size: number): number => size / TUNING.pickRatio;
-  return [
-    // 깔개 — **밥상 아래로 옮겼다.** 다다미를 대각선으로 가르는 각도는 유지한다
-    { cx: 0.75, cz: 0.45, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' },
-
-    // ── 표면 여덟 ───────────────────────────────────────────
-    // `HOUSE_SPOTS` 의 `surf-*` 여덟 곳과 **같은 자리·같은 높이**여야 한다.
-    // 여기는 눈에 보이는 판이고 저기는 그 위에 놓이는 물건이다 — 어긋나면 물건이 허공에 뜬다.
-    // 밥상 상판. 다리(0.32)가 먹히는 지름에 같이 사라진다
-    { cx: 0.75, cz: 0.45, w: 0.95, d: 0.95, rotY: 0, tex: 'wood', y: 0.32, hideAt: eatenAt(0.32) },
-    // TV장 상판
-    { cx: -2.175, cz: -0.85, w: 0.25, d: 1.00, rotY: 0, tex: 'wood', y: 0.42, hideAt: eatenAt(1.00) },
-    // 서랍장 위
-    { cx: -2.375, cz: 1.35, w: 0.45, d: 0.90, rotY: 0, tex: 'wood', y: 0.62, hideAt: eatenAt(0.90) },
-    // 책장 두 칸. 측판(1.05)이 먹혀야 칸이 사라진다
-    { cx: 2.275, cz: -1.925, w: 0.45, d: 0.25, rotY: 0, tex: 'wood', y: 0.32, hideAt: eatenAt(1.05) },
-    { cx: 2.275, cz: -1.925, w: 0.45, d: 0.25, rotY: 0, tex: 'wood', y: 0.66, hideAt: eatenAt(1.05) },
-    // 신문더미 위
-    { cx: -2.40, cz: -1.95, w: 0.30, d: 0.30, rotY: 0, tex: 'wood', y: 0.22, hideAt: eatenAt(0.45) },
-    // 화분대 위
-    { cx: 2.415, cz: 1.125, w: 0.23, d: 0.25, rotY: 0, tex: 'wood', y: 0.55, hideAt: eatenAt(0.55) },
-    // 방석더미 위 — 여기만 깔개 무늬다. 천이니까
-    { cx: 2.40, cz: 1.70, w: 0.30, d: 0.40, rotY: 0, tex: 'rug', y: 0.28, hideAt: eatenAt(0.50) },
-  ];
+  /**
+   * **가짜 상판 평면을 전부 지웠다.**
+   *
+   * 앞선 작업에서 밥상·TV장·서랍장·책장 위에 「높이만 있는 텍스처 평면」을 깔았다.
+   * 물건을 얹을 자리는 됐지만 **판 자체가 두께 없는 데칼**이라, 공 눈높이에서는
+   * 막대 넷 위에 원반이 떠 있는 그림이었다.
+   *
+   * 이제 그 자리에 **진짜 상판이 있는 형상**이 선다(`LIVING_PROPS`).
+   * 물건을 얹는 높이 정보는 `HOUSE_SPOTS` 의 `y` 가 이미 갖고 있으므로
+   * 여기 남는 건 바닥 깔개 한 장뿐이다.
+   */
+  return [{ cx: 0.75, cz: 0.45, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' }];
 }
+

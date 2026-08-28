@@ -64,6 +64,11 @@ for (const b of city.buildings) {
   if (coveredByLandmark(e.cx, e.cz, e.size, city.landmarks)) continue;
   items.push({ size: e.size, source: 'building', label: b.name ?? b.kind });
 }
+// **손배치 가구도 센다.** 가구가 `CityBuilding` 에서 `placement.props` 로 옮겨가면서
+// 이 도구가 통째로 놓치기 시작했다 — 사다리에서 거실 가구 13개가 사라졌다.
+for (const pr of city.placement?.props ?? []) {
+  items.push({ size: pr.size, source: 'building', label: pr.label });
+}
 for (const l of city.landmarks) {
   if (!l.edible) continue;
   items.push({
