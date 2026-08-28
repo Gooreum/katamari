@@ -126,6 +126,8 @@ type Rect = readonly [number, number, number, number];
  * 크기 범위는 원작 아이템 실측에 맞췄다. 거실이 28cm까지인 건
  * RC 컨트롤러(30.1cm)가 거실 물건이라 그 바로 아래에서 끊은 것이고,
  * 뒷마당이 1.2m까지인 건 화분·물뿌리개가 거기 있기 때문이다.
+ * **아이 방이 40cm까지인 건 곰인형(35cm) 때문이다** — 34cm로 끊었더니
+ * 30~60cm 칸이 좁은 슬라이스뿐이라 곰인형이 한 판에 0개로 나왔다.
  *
  * 개수는 방 넓이에 대충 비례하되 **거실을 두껍게** 준다. 원작 1스테이지가
  * 거실에서만 5cm → 10cm를 만들어야 해서, 여기 밀도가 곧 초반 재미다.
@@ -163,7 +165,7 @@ const F_DIRT = 0x9c7b48;
 export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 300, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true },
   { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true },
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true },
   { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 50, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true },
   { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 52, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true },
@@ -189,43 +191,50 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
  * 이 작업이 배치를 고친 건지 물량을 늘린 건지 구별할 수 없게 된다.
  *
  * `edge` 는 안 준다(기본 1 = 균등). 자리는 이미 작은 사각형이라 그 안에서 또 밀 이유가 없다.
+ *
+ * **`align` 은 준다.** 안 줬더니 벽에 붙은 자리(TV 앞·신발장 앞·욕조 옆)의 물건만
+ * 각도가 제멋대로여서, 방 전체의 벽 근처 정렬률이 100% → 82%로 떨어졌다.
+ * 자리 사각형은 방과 같은 축이라 자리 모서리에 맞추면 벽에 맞추는 것과 같은 방향이 나온다.
  */
 export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   // ── 거실 130 (방 300 + 자리 130 = 430) ──────────────────
   // 밥상 다리 사이. 원작에서 왕자가 상 밑을 지나가는 그 자리다
-  { id: 'spot-table', rect: [0.40, -0.90, 1.50, 0.10], sizeMin: 0.02, sizeMax: 0.16, count: 44, openAt: 0, labels: ROOM_TABLES['living']! },
+  { id: 'spot-table', rect: [0.40, -0.90, 1.50, 0.10], sizeMin: 0.02, sizeMax: 0.16, count: 44, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
   // TV 앞 — 리모컨·건전지·과자가 굴러다니는 자리
-  { id: 'spot-tv', rect: [-2.60, -1.95, -2.00, -0.30], sizeMin: 0.01, sizeMax: 0.12, count: 34, openAt: 0, labels: ROOM_TABLES['living']! },
-  { id: 'spot-shelf', rect: [1.85, -2.15, 2.60, -1.20], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: 0, labels: ROOM_TABLES['living']! },
+  { id: 'spot-tv', rect: [-2.60, -1.95, -2.00, -0.30], sizeMin: 0.01, sizeMax: 0.12, count: 34, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
+  { id: 'spot-shelf', rect: [1.85, -2.15, 2.60, -1.20], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
   // 방 모서리. 쓸어 모아둔 것처럼 보이는 자리
-  { id: 'spot-corner', rect: [-2.60, 1.30, -1.70, 2.10], sizeMin: 0.01, sizeMax: 0.18, count: 24, openAt: 0, labels: ROOM_TABLES['living']! },
+  { id: 'spot-corner', rect: [-2.60, 1.30, -1.70, 2.10], sizeMin: 0.01, sizeMax: 0.18, count: 24, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
 
   // ── 복도 40 ─────────────────────────────────────────────
-  { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! },
-  { id: 'spot-hallend', rect: [-0.85, -8.40, 0.85, -7.80], sizeMin: 0.01, sizeMax: 0.16, count: 18, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! },
+  { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
+  { id: 'spot-hallend', rect: [-0.85, -8.40, 0.85, -7.80], sizeMin: 0.01, sizeMax: 0.16, count: 18, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
 
   // ── 아이 방 90 ──────────────────────────────────────────
   // 책상 밑 — 크레용이 쏟아진 자리
-  { id: 'spot-desk', rect: [-4.30, -5.70, -3.10, -4.90], sizeMin: 0.01, sizeMax: 0.10, count: 38, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
-  { id: 'spot-quilt', rect: [-3.10, -5.60, -2.65, -3.70], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
-  { id: 'spot-toybox', rect: [-4.35, -3.40, -3.40, -2.45], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
+  { id: 'spot-desk', rect: [-4.30, -5.70, -3.10, -4.90], sizeMin: 0.01, sizeMax: 0.10, count: 38, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! , align: true },
+  { id: 'spot-quilt', rect: [-3.10, -5.60, -2.65, -3.70], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! , align: true },
+  // **`sizeMax` 를 0.22 → 0.38 로 올렸다.** 곰인형(35cm)이 한 판에 0개로 나왔다 —
+  // 아이 방 상한이 34cm 라 30~60cm 칸이 좁은 슬라이스뿐이었고, 자리 셋의 상한도
+  // 0.10~0.22 라 큰 장난감이 나올 자리가 아예 없었다. 장난감 상자 옆이 그 자리다
+  { id: 'spot-toybox', rect: [-4.35, -3.40, -3.40, -2.45], sizeMin: 0.03, sizeMax: 0.38, count: 24, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! , align: true },
 
   // ── 부엌 70 ─────────────────────────────────────────────
-  { id: 'spot-sink', rect: [-4.35, -7.75, -2.55, -7.20], sizeMin: 0.02, sizeMax: 0.20, count: 30, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
-  { id: 'spot-dining', rect: [-4.05, -7.00, -2.65, -6.10], sizeMin: 0.02, sizeMax: 0.26, count: 26, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
-  { id: 'spot-fridge', rect: [-2.30, -7.75, -1.60, -7.10], sizeMin: 0.02, sizeMax: 0.18, count: 14, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
+  { id: 'spot-sink', rect: [-4.35, -7.75, -2.55, -7.20], sizeMin: 0.02, sizeMax: 0.20, count: 30, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! , align: true },
+  { id: 'spot-dining', rect: [-4.05, -7.00, -2.65, -6.10], sizeMin: 0.02, sizeMax: 0.26, count: 26, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! , align: true },
+  { id: 'spot-fridge', rect: [-2.30, -7.75, -1.60, -7.10], sizeMin: 0.02, sizeMax: 0.18, count: 14, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! , align: true },
 
   // ── 화장실 30 ───────────────────────────────────────────
-  { id: 'spot-tub', rect: [1.10, -8.45, 2.60, -7.70], sizeMin: 0.01, sizeMax: 0.14, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! },
-  { id: 'spot-basin', rect: [1.00, -7.35, 1.60, -6.85], sizeMin: 0.01, sizeMax: 0.12, count: 12, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! },
+  { id: 'spot-tub', rect: [1.10, -8.45, 2.60, -7.70], sizeMin: 0.01, sizeMax: 0.14, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! , align: true },
+  { id: 'spot-basin', rect: [1.00, -7.35, 1.60, -6.85], sizeMin: 0.01, sizeMax: 0.12, count: 12, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! , align: true },
 
   // ── 툇마루 18 ───────────────────────────────────────────
-  { id: 'spot-porch', rect: [-2.60, 2.35, -1.60, 3.35], sizeMin: 0.02, sizeMax: 0.24, count: 18, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']! },
+  { id: 'spot-porch', rect: [-2.60, 2.35, -1.60, 3.35], sizeMin: 0.02, sizeMax: 0.24, count: 18, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']! , align: true },
 
   // ── 뒷마당 72 ───────────────────────────────────────────
-  { id: 'spot-dog', rect: [1.30, 3.90, 2.80, 5.40], sizeMin: 0.03, sizeMax: 0.30, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
-  { id: 'spot-deck', rect: [2.30, 7.20, 3.60, 8.50], sizeMin: 0.03, sizeMax: 0.34, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
-  { id: 'spot-shed', rect: [-3.90, 7.30, -2.10, 7.90], sizeMin: 0.03, sizeMax: 0.40, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
+  { id: 'spot-dog', rect: [1.30, 3.90, 2.80, 5.40], sizeMin: 0.03, sizeMax: 0.30, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! , align: true },
+  { id: 'spot-deck', rect: [2.30, 7.20, 3.60, 8.50], sizeMin: 0.03, sizeMax: 0.34, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! , align: true },
+  { id: 'spot-shed', rect: [-3.90, 7.30, -2.10, 7.90], sizeMin: 0.03, sizeMax: 0.40, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! , align: true },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
