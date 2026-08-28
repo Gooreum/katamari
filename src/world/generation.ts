@@ -623,6 +623,16 @@ export interface RoomPlacement {
    * 물건이 전부 상 밖으로 밀려난다. 아래 방 루프가 `retryPos` 를 안 넘겨 건너뛴다.
    */
   readonly y?: number;
+  /**
+   * **이 자리는 이 이름들만.** 없으면 크기 버킷에서 뽑는다(지금까지).
+   *
+   * 자리를 만들어놓고도 여전히 무질서해 보이던 이유가 이거다 — 자리마다 방 표
+   * 전체(30종)에서 뽑으니 싱크대 앞에 화투가 있고 TV 앞에 사과가 있었다.
+   * **실제 방은 같은 것끼리 모여 있다.** 리모컨은 TV 앞에, 그릇은 싱크대 앞에.
+   *
+   * 크기는 그대로 `sizeMin`~`sizeMax` 에서 뽑는다 — 이름만 이 목록에서 고른다.
+   */
+  readonly only?: readonly string[];
 }
 
 export const GENERATION = {
@@ -850,6 +860,8 @@ export function generateWorld(
     tbl: LabelTable = table,
     /** 표면 높이(m). 0이면 바닥 — 지금까지와 같다 */
     surfaceY = 0,
+    /** 이 자리 전용 이름 목록. 없으면 크기 버킷에서 뽑는다 */
+    only?: readonly string[],
   ): void => {
     /**
      * **세 축에 같은 배율을 준다.** 예전엔 축마다 다른 난수를 곱했다 —
@@ -892,7 +904,9 @@ export function generateWorld(
       tbl.buckets.length - 1,
       Math.floor((u * tbl.buckets.length)),
     );
-    const labels = tbl.buckets[bucket]!;
+    // **자리 전용 목록이 있으면 그걸 쓴다.** 난수 호출 횟수·순서는 그대로고
+    // (아래 `labels[(rand() * labels.length) | 0]`) 고르는 배열만 바뀐다
+    const labels = only ?? tbl.buckets[bucket]!;
 
     // 난수를 뽑는 **순서**를 바꾸지 않는다 (위 주석 참고).
     // 라벨이 geo를 결정하니 조립만 뒤로 미룬다.
@@ -971,7 +985,7 @@ export function generateWorld(
         // 이 한 가지로 표면이 `blocked` 를 건너뛴다 — 새 분기가 필요 없다.
         // 표면은 가구 바닥면 **위**라, 안 건너뛰면 상판 위 물건이 전부 상 밖으로 밀려난다
         emit(u, base, () => pick(rand),
-          surfaceY > 0 ? undefined : () => pick(retry), true, tbl, surfaceY);
+          surfaceY > 0 ? undefined : () => pick(retry), true, tbl, surfaceY, room.only);
         // 벽 가까이 놓였으면 그 벽과 나란히 돌린다. `rotY` 는 emit 이 이미 뽑아뒀다
         if (room.align === true) alignToWall(specs[specs.length - 1]!, room.rect);
         owner.push([ax, az, bx, bz]);
