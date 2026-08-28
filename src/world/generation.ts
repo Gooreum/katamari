@@ -408,6 +408,18 @@ export interface RoomPlacement {
   readonly count: number;
   /** 이 지름(m)에 도달해야 들어올 수 있는 방. 사다리 검사가 구간을 나눌 때 쓴다 */
   readonly openAt: number;
+  /**
+   * **이 방만의 라벨 표.** 없으면 스테이지 표를 쓴다.
+   *
+   * 이게 없던 시절에는 표가 스테이지당 하나뿐이라 크기만 보고 이름을 뽑았다.
+   * 그래서 **부엌에 크레용·주사위가, 화장실에 밥솥·전화기가** 깔렸다 —
+   * 방 이름은 '부엌'인데 내용물은 거실과 똑같았다.
+   *
+   * **버킷 개수와 크기 경계는 스테이지 표와 같아야 한다** — 이름만 다르다.
+   * 라벨은 물건의 정체고 경계는 사다리라, 방마다 경계를 바꾸면 `ladder`가
+   * 방마다 다른 자를 대게 된다.
+   */
+  readonly labels?: LabelTable;
 }
 
 export const GENERATION = {
@@ -529,10 +541,16 @@ export function generateWorld(
   const retry = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   const specs: ObjectSpec[] = [];
   const logRatio = Math.log(g.sizeMax / g.sizeMin);
-  const labelRatio = Math.log(table.max / table.min);
-  /** 크기(m) → 라벨 축 위치 0~1. 범위를 벗어나면 양끝으로 접는다 */
-  const labelU = (m: number): number =>
-    Math.min(1, Math.max(0, Math.log(m / table.min) / labelRatio));
+  /**
+   * 크기(m) → 그 표의 라벨 축 위치 0~1. 범위를 벗어나면 양끝으로 접는다.
+   *
+   * **표를 인자로 받는다** — 방마다 표가 다를 수 있기 때문이다(`RoomPlacement.labels`).
+   * 경계는 표끼리 같은 게 규약이라 실제로는 같은 값이 나오지만, 표를 받아두면
+   * 경계가 다른 표(World 5cm~4m)를 방에 물려도 축이 어긋나지 않는다.
+   */
+  const labelUOf = (t: LabelTable, m: number): number =>
+    Math.min(1, Math.max(0, Math.log(m / t.min) / Math.log(t.max / t.min)));
+  const labelU = (m: number): number => labelUOf(table, m);
 
   /**
    * 물체 하나를 만든다. **위치를 정하는 방법만** 호출자가 넘긴다.
@@ -557,6 +575,13 @@ export function generateWorld(
      * 1.8m 복도에 안 들어간다. 방에서는 sizeMax 가 **실제 최대 변**을 뜻한다.
      */
     normalizeAspect = false,
+    /**
+     * 이 물체가 **이름을 받을 표.** 방 배치는 방 표를, 도넛 배치는 스테이지 표를 넘긴다.
+     *
+     * 기본값이 스테이지 표라 표를 안 넘기는 호출부(도넛 배치)는 예전과 한 글자도
+     * 안 달라진다 — 라벨을 고르는 난수도 같은 자리에서 같은 횟수만큼 뽑힌다.
+     */
+    tbl: LabelTable = table,
   ): void => {
     /**
      * **세 축에 같은 배율을 준다.** 예전엔 축마다 다른 난수를 곱했다 —
@@ -596,10 +621,10 @@ export function generateWorld(
     let [x, z] = drawPos();
 
     const bucket = Math.min(
-      table.buckets.length - 1,
-      Math.floor((u * table.buckets.length)),
+      tbl.buckets.length - 1,
+      Math.floor((u * tbl.buckets.length)),
     );
-    const labels = table.buckets[bucket]!;
+    const labels = tbl.buckets[bucket]!;
 
     // 난수를 뽑는 **순서**를 바꾸지 않는다 (위 주석 참고).
     // 라벨이 geo를 결정하니 조립만 뒤로 미룬다.
@@ -648,11 +673,14 @@ export function generateWorld(
     for (const room of rooms) {
       const logR = Math.log(room.sizeMax / room.sizeMin);
       const [rx0, rz0, rx1, rz1] = room.rect;
+      // **방이 자기 표를 가지면 그걸 쓴다.** 경계가 같으므로 크기 축은 안 움직인다 —
+      // 바뀌는 건 그 크기에 붙는 이름뿐이다.
+      const tbl = room.labels ?? table;
       for (let n = 0; n < room.count; n++) {
         const base = room.sizeMin * Math.exp(logR * rand());
         // 라벨 버킷은 **라벨 축**에서 고른다. 방 안의 상대 위치로 고르면
         // 화장실의 제일 큰 물건과 뒷마당의 제일 큰 물건이 같은 라벨을 받는다.
-        const u = labelU(base);
+        const u = labelUOf(tbl, base);
         // 물체 반쪽만큼 벽에서 물러난다. 방 배치에서는 base 가 곧 **최대 변**이다
         // (아래 emit 이 종횡비를 정규화한다).
         const m = base / 2 + ROOM_MARGIN;
@@ -663,7 +691,7 @@ export function generateWorld(
         const az = Math.min(rz0 + m, (rz0 + rz1) / 2);
         const bz = Math.max(rz1 - m, (rz0 + rz1) / 2);
         const pick = (r: () => number) => [ax + r() * (bx - ax), az + r() * (bz - az)] as const;
-        emit(u, base, () => pick(rand), () => pick(retry), true);
+        emit(u, base, () => pick(rand), () => pick(retry), true, tbl);
         owner.push([ax, az, bx, bz]);
       }
     }
