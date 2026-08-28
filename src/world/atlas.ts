@@ -29,9 +29,16 @@ import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three';
  * **지금까지와 픽셀 하나 안 달라진다.** 88종 중 8종만 실제 인쇄를 받는다.
  */
 
-const GRID = 4;                          // 4 × 4 = 16칸
+/**
+ * 5 × 5 = 25칸. 4×4(16칸)로 시작했는데 인쇄가 15종이 되면서 꽉 찼다 —
+ * 다음에 한 종만 더 늘려도 못 넣는다.
+ *
+ * 640px 은 2의 거듭제곱이 아니지만 **밉맵도 반복도 안 쓴다**(아래 `generateMipmaps`,
+ * `wrapS` 미설정 참고). 그 둘이 NPOT 제약의 전부라 WebGL2 에서 문제가 없다.
+ */
+const GRID = 5;
 const CELL = 128;                        // 한 칸 128px
-const SIZE = GRID * CELL;                // 512px
+const SIZE = GRID * CELL;                // 640px
 
 export const TILE = {
   /** 순백. 기본값 — 이걸 쓰면 텍스처가 없는 것과 같다 */
@@ -44,6 +51,23 @@ export const TILE = {
   GUM: 6,
   BATTERY: 7,
   ERASER: 8,
+  /**
+   * 우유팩. 소 얼룩 + 색 띠.
+   *
+   * 이 파일 첫 문단에 「원작 우유팩은 소 그림이 인쇄돼 있어서 우유팩이다」라고
+   * 적어놓고 정작 안 만들었었다. 레퍼런스 한 프레임에 넷이 나오는 물건이다.
+   */
+  MILK: 9,
+  /** 화투. 붉은 띠 + 검은 문양 */
+  CARD: 10,
+  /** 접시. 청색 테두리 — 흰 원반을 접시로 만드는 것 */
+  PLATE: 11,
+  /** 찻잔. 청색 띠 */
+  TEACUP: 12,
+  /** 연필깎이. 라벨 띠 + 눈금 */
+  SHARPENER: 13,
+  /** RC 컨트롤러. 버튼판 */
+  RC: 14,
 } as const;
 
 /**
@@ -199,6 +223,99 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillRect(0, 78, CELL, 6);
     cx.fillStyle = '#e58aa8';
     cx.fillRect(20, 56, 88, 16);
+  });
+
+  // ── 우유팩 ── 흰 바탕 + 위아래 색 띠 + 소 얼룩. 이 셋이면 우유팩으로 읽힌다.
+  // 「牛乳」 글자는 128px 에서 뭉개져서 얼룩으로 대신한다 (성냥갑 상표와 같은 판단).
+  at(TILE.MILK, () => {
+    cx.fillStyle = '#fbf7ee';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#d94b3a';
+    cx.fillRect(0, 10, CELL, 16);
+    cx.fillStyle = '#2f6fb5';
+    cx.fillRect(0, 102, CELL, 14);
+    cx.fillStyle = '#2a2724';
+    cx.beginPath(); cx.arc(46, 62, 21, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(84, 47, 12, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(88, 82, 15, 0, Math.PI * 2); cx.fill();
+    // 소 얼룩만 있으면 젖소 무늬 상자다. 붉은 점 하나가 상표 자리를 만든다
+    cx.fillStyle = '#d94b3a';
+    cx.beginPath(); cx.arc(64, 62, 7, 0, Math.PI * 2); cx.fill();
+  });
+
+  // ── 화투 ── 붉은 띠 + 검은 문양. 원작 거실 바닥에 흩어져 있는 그것.
+  at(TILE.CARD, () => {
+    cx.fillStyle = '#f7f2e6';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#2a2724';
+    cx.fillRect(6, 6, CELL - 12, CELL - 12);
+    cx.fillStyle = '#f7f2e6';
+    cx.fillRect(10, 10, CELL - 20, CELL - 20);
+    cx.fillStyle = '#c0392b';
+    cx.fillRect(10, 10, CELL - 20, 30);          // 윗단 붉은 띠
+    cx.fillStyle = '#2a2724';                     // 솔가지 느낌의 검은 덩이
+    cx.beginPath(); cx.arc(48, 78, 16, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(80, 92, 11, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#f2b21e';
+    cx.beginPath(); cx.arc(84, 62, 9, 0, Math.PI * 2); cx.fill();
+  });
+
+  // ── 접시 ── 청색 테두리. 흰 원반을 접시로 만드는 건 이 띠 하나다.
+  at(TILE.PLATE, () => {
+    cx.fillStyle = '#fbfaf6';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#2f6fb5';
+    cx.fillRect(0, 14, CELL, 7);
+    cx.fillRect(0, 106, CELL, 7);
+    // 테두리 문양 — 점선이라야 손그림 도자기로 읽힌다
+    cx.fillStyle = '#4f8fd0';
+    for (let k = 4; k < CELL; k += 16) cx.fillRect(k, 28, 8, 5);
+    cx.fillStyle = '#3fbfc4';
+    cx.beginPath(); cx.arc(64, 68, 13, 0, Math.PI * 2); cx.fill();
+  });
+
+  // ── 찻잔 ── 몸통을 두르는 청색 띠.
+  at(TILE.TEACUP, () => {
+    cx.fillStyle = '#fbfaf6';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#2f6fb5';
+    cx.fillRect(0, 40, CELL, 18);
+    cx.fillStyle = '#fbfaf6';
+    for (let k = 0; k < CELL; k += 20) cx.fillRect(k, 40, 8, 18);
+    cx.fillStyle = '#3fbfc4';
+    cx.fillRect(0, 74, CELL, 6);
+  });
+
+  // ── 연필깎이 ── 라벨 띠 + 눈금. 회색 상자를 기계로 만든다.
+  at(TILE.SHARPENER, () => {
+    cx.fillStyle = '#e8e4da';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#2f6fb5';
+    cx.fillRect(0, 30, CELL, 34);
+    cx.fillStyle = '#f4f1e8';
+    cx.fillRect(12, 40, 60, 14);                 // 상표 자리
+    cx.fillStyle = '#2a2724';
+    for (let k = 12; k < CELL - 12; k += 10) cx.fillRect(k, 84, 3, 12);   // 눈금
+    cx.fillStyle = '#e0483c';
+    cx.beginPath(); cx.arc(100, 47, 8, 0, Math.PI * 2); cx.fill();
+  });
+
+  // ── RC 컨트롤러 ── 버튼판. 검은 판 위의 표시가 조종기를 조종기로 만든다.
+  at(TILE.RC, () => {
+    cx.fillStyle = '#3a3936';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#f5c22b';
+    cx.fillRect(10, 12, CELL - 20, 10);
+    cx.fillStyle = '#c9ccd1';
+    cx.fillRect(16, 40, 40, 40);
+    cx.fillRect(72, 40, 40, 40);
+    cx.fillStyle = '#3a3936';
+    cx.fillRect(32, 46, 8, 28);                  // 십자 표시
+    cx.fillRect(22, 56, 28, 8);
+    cx.fillStyle = '#e0483c';
+    cx.beginPath(); cx.arc(92, 60, 11, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#8fcf3a';
+    cx.fillRect(16, 96, 96, 8);
   });
 
   const tex = new CanvasTexture(cv);

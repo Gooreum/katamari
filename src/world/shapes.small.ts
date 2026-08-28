@@ -190,4 +190,12 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     part(new CylinderGeometry(0.10, 0.10, 0.08, 7), METAL, [0, 0.89, 0]),
     part(new CylinderGeometry(0.285, 0.285, 0.10, 10), METAL, [0, 0.06, 0]),
   ]),
+
+  화투: () => assemble([
+    // 흩어진 낱장 석 장 (5.5cm). **겹쳐야 카드로 읽힌다** — 한 장이면 그냥 얇은 판이다.
+    // 원작 거실 바닥에 이렇게 흩어져 있고, 공에 붙으면 납작한 면이 밖으로 선다.
+    part(new BoxGeometry(0.62, 0.03, 0.96), WHITE, [0, 0.015, 0], undefined, TILE.CARD),
+    part(new BoxGeometry(0.62, 0.03, 0.96), WHITE, [0.10, 0.045, 0.06], [0, 0.32, 0], TILE.CARD),
+    part(new BoxGeometry(0.62, 0.03, 0.96), WHITE, [-0.08, 0.075, -0.05], [0, -0.18, 0], TILE.CARD),
+  ]),
 };

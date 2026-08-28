@@ -60,7 +60,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   찻잔: () => assemble([
     // 몸통 + 손잡이 + 받침. 일본 찻잔이라 손잡이는 작게
-    part(new CylinderGeometry(0.32, 0.24, 0.44, 12), WHITE, [0, 0.28, 0]),
+    part(new CylinderGeometry(0.32, 0.24, 0.44, 12), WHITE, [0, 0.28, 0], undefined, TILE.TEACUP),
     part(new CylinderGeometry(0.27, 0.27, 0.06, 12), [0.55, 0.45, 0.35], [0, 0.47, 0]),
     part(new CylinderGeometry(0.40, 0.40, 0.05, 12), WHITE, [0, 0.03, 0]),
     part(new TorusGeometry(0.13, 0.035, 4, 9), WHITE, [0.36, 0.30, 0], LIE_Z),
@@ -95,7 +95,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   연필깎이: () => assemble([
     // 손잡이 달린 탁상형 (26.2cm). 원작 아이 방에 있다
-    part(new BoxGeometry(0.60, 0.46, 0.44), WHITE, [0, 0.23, 0]),
+    part(new BoxGeometry(0.60, 0.46, 0.44), WHITE, [0, 0.23, 0], undefined, TILE.SHARPENER),
     part(new BoxGeometry(0.66, 0.12, 0.50), DARK, [0, 0.06, 0]),
     // 연필 꽂는 구멍
     part(new CylinderGeometry(0.09, 0.09, 0.10, 8), DARK, [-0.32, 0.30, 0], LIE_X),
@@ -108,7 +108,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   'RC 컨트롤러': () => assemble([
     // 안테나 세운 조종기 (30.1cm). 안테나가 실루엣의 전부다
     part(new BoxGeometry(0.56, 0.30, 0.40), WHITE, [0, 0.15, 0]),
-    part(new BoxGeometry(0.60, 0.08, 0.44), DARK, [0, 0.29, 0]),
+    part(new BoxGeometry(0.60, 0.08, 0.44), WHITE, [0, 0.29, 0], undefined, TILE.RC),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [-0.16, 0.35, 0]),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [0.16, 0.35, 0]),
     part(new CylinderGeometry(0.03, 0.02, 0.58, 5), METAL, [0.24, 0.62, -0.12]),
@@ -117,7 +117,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   접시: () => assemble([
     // 얕은 원반 + 굽. 원작 부엌의 그것
-    part(new CylinderGeometry(0.50, 0.36, 0.14, 14), WHITE, [0, 0.09, 0]),
+    part(new CylinderGeometry(0.50, 0.36, 0.14, 14), WHITE, [0, 0.09, 0], undefined, TILE.PLATE),
     part(new CylinderGeometry(0.22, 0.22, 0.05, 12), WHITE, [0, 0.025, 0]),
     part(new TorusGeometry(0.44, 0.03, 4, 14), [0.55, 0.62, 0.75], [0, 0.15, 0], LIE_Z),
   ]),
@@ -132,6 +132,18 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 발등 띠 — 폭 방향으로 걸친 아치. 축이 X여야 발등을 덮는다
     part(new TorusGeometry(0.17, 0.045, 4, 10, Math.PI), WHITE, [0.16, 0.08, 0], [0, 0, 0]),
     part(new BoxGeometry(0.20, 0.04, 0.34), WHITE, [0.16, 0.24, 0]),
+  ]),
+
+  우유팩: () => assemble([
+    // 1L 게이블탑 (19.5cm). **지붕 경사가 없으면 그냥 상자다** — 원작 거실에서
+    // 이 실루엣과 소 그림 인쇄가 우유팩을 우유팩으로 만든다.
+    part(new BoxGeometry(0.46, 0.66, 0.46), WHITE, [0, 0.33, 0], undefined, TILE.MILK),
+    // **지붕에는 인쇄를 안 넣는다.** 넣었더니 색 띠가 몸통 위에 한 번 더 나와서
+    // 팩이 두 칸으로 잘려 보였다. 인쇄는 몸통 한 벌이면 충분하다.
+    part(new BoxGeometry(0.46, 0.26, 0.24), WHITE, [0, 0.76, 0.11], [0.7, 0, 0]),
+    part(new BoxGeometry(0.46, 0.26, 0.24), WHITE, [0, 0.76, -0.11], [-0.7, 0, 0]),
+    // 접힌 마루. 지붕 둘이 만나는 자리를 덮어야 틈이 안 보인다
+    part(new BoxGeometry(0.46, 0.10, 0.04), PAPER, [0, 0.91, 0]),
   ]),
 
   '두루마리 휴지': () => assemble([
