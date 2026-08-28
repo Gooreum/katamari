@@ -30,6 +30,11 @@ const CELL = 4;
  */
 const BLOCK_CELL = 64;
 
+/** 흔들림이 잦아드는 데 걸리는 시간(초). 길면 물건이 흐느적거린다 */
+const NUDGE_TIME = 0.45;
+/** 잦아드는 동안 몇 번 흔들리는가(라디안). 2π 면 한 바퀴 */
+const NUDGE_WOBBLE = Math.PI * 3;
+
 /**
  * 오브젝트는 Mesh가 아니라 순수 데이터로 산다.
  * 렌더는 InstancePool이, 충돌은 이 배열이 담당 — 완전히 분리되어 있다.
@@ -165,6 +170,13 @@ export class World {
 
   readonly city: City | null;
   readonly groundSize: number;
+  /**
+   * 지금 흔들리고 있는 물체. **비어 있는 게 보통**이라 `stepNudges` 가 즉시 빠진다.
+   * 인덱스 → 남은 시간(1→0)과 축별 진폭.
+   */
+  private readonly nudged = new Map<number, { t: number; ax: number; az: number }>();
+  /** 트랜스폼을 다시 쓸 때 재사용하는 그릇. 프레임마다 new 하지 않는다 */
+  private readonly proxy = new Object3D();
   readonly spawn = new Vector3();
 
   constructor(scene: Scene, cityData: CityData | null = null, seed = 1337) {
@@ -386,6 +398,70 @@ export class World {
   }
 
   /** 흡수된 오브젝트를 개별 Mesh로 승격. 인스턴스에서는 지운다. */
+  /**
+   * **부딪힌 물건을 흔든다.**
+   *
+   * 여태 못 먹는 물건을 들이받으면 **공만 튕기고 화면만 흔들렸다** — 물건은
+   * 미동도 없었다. 사용자가 「물건이 반응을 안 한다」고 한 게 이것이다.
+   *
+   * ## 렌더만 건드린다
+   *
+   * `pos`·`half`·`colY` 는 **한 톨도 안 바꾼다.** 물리가 바뀌면 `curve`/`ladder` 로
+   * 실측해둔 성장 곡선과 사다리가 통째로 무너진다. 흔들리는 건 «그림»뿐이고,
+   * 충돌은 원래 자리에서 그대로 일어난다.
+   *
+   * ## 큰 물건은 안 흔들린다
+   *
+   * 흔들림은 물건 크기가 아니라 **공과 물건의 크기 비**에 달렸다 —
+   * `give = min(공 지름 / 물건 최대변, 1)`. 처음에 `min(0.25/size, 1)` 로 잡았다가
+   * **5cm 공이 95cm 밥상을 1.5° 흔들어서** 검사에 걸렸다. 상을 흔드는 건
+   * 상의 크기가 아니라 **때린 쪽이 얼마나 큰가**의 문제다.
+   * 공이 커지면 같은 상이 흔들리기 시작한다 — 그게 맞는 동작이다.
+   */
+  nudge(index: number, dirX: number, dirZ: number, strength: number, ballDiameter: number): void {
+    const o = this.objects[index];
+    if (o === undefined || o.picked) return;
+    const give = Math.min(ballDiameter / Math.max(o.size, 0.02), 1);
+    const amp = Math.min(strength, 1) * give * 0.45;
+    if (amp < 0.004) return;                       // 눈에 안 보이는 흔들림은 안 건다
+    let n = this.nudged.get(index);
+    if (n === undefined) this.nudged.set(index, (n = { t: 0, ax: 0, az: 0 }));
+    // 들이받힌 방향으로 «넘어가는» 축을 고른다. 밀린 방향과 직각으로 기운다
+    n.ax = dirZ * amp;
+    n.az = -dirX * amp;
+    n.t = 1;
+  }
+
+  /**
+   * 흔들림을 감쇠 진동으로 되돌린다. 매 프레임.
+   *
+   * **흔드는 게 없으면 즉시 빠진다** — 물체 4,200개를 매 프레임 훑으면 안 된다.
+   */
+  stepNudges(dt: number): void {
+    if (this.nudged.size === 0) return;
+    for (const [index, n] of this.nudged) {
+      n.t -= dt / NUDGE_TIME;
+      const o = this.objects[index]!;
+      if (n.t <= 0 || o.picked) {
+        this.nudged.delete(index);
+        // 원래 각도로 되돌려 놓는다 — 안 하면 마지막 프레임 각도로 굳는다
+        if (!o.picked) this.applyTransform(o, 0, 0);
+        continue;
+      }
+      // 감쇠 진동. 몇 번 흔들리고 잦아든다
+      const k = n.t * Math.cos((1 - n.t) * NUDGE_WOBBLE);
+      this.applyTransform(o, n.ax * k, n.az * k);
+    }
+  }
+
+  /** 인스턴스 트랜스폼을 다시 쓴다. 흔들림 각도만 더한다 */
+  private applyTransform(o: WorldObject, dx: number, dz: number): void {
+    this.proxy.position.copy(o.pos);
+    this.proxy.rotation.set(o.rotX + dx, o.rotY, o.rotZ + dz);
+    this.proxy.scale.copy(o.scale);
+    this.pool.setTransform(o.combo, o.slot, this.proxy);
+  }
+
   promote(obj: WorldObject): Mesh {
     this.pool.hide(obj.combo, obj.slot);
     const mesh = new Mesh(this.geometries[obj.combo]!, this.materials[obj.color]!);

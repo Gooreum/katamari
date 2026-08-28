@@ -253,6 +253,8 @@ export class Game {
     }
 
     this.debris.step(dt);
+    // 부딪혀서 흔들리는 물건을 제자리로 되돌린다. 흔드는 게 없으면 즉시 빠진다
+    this.world.stepNudges(dt);
     this.scene.updateMatrixWorld(true);
     this.resolveCollisions();
     this.resolveCity();
@@ -354,7 +356,7 @@ export class Game {
         this.scene.add(mesh);
         this.absorb(mesh, o.volume, o.size, o.label);
       } else if (d > 1e-6) {
-        this.blockedBy(o.size, d, R, p);
+        this.blockedBy(o.size, d, R, p, index);
       }
     }
   }
@@ -382,7 +384,8 @@ export class Game {
    * 살짝 스치면 그냥 밀어내고, 세게 박으면 튕겨나가며 붙은 걸 떨어뜨린다.
    * 이 구분이 없으면 벽이 그냥 미끄러운 유리처럼 느껴진다.
    */
-  private blockedBy(size: number, d: number, R: number, p: Vector3): void {
+  /** `index` 는 부딪힌 물체 — 흔들어주려고 받는다. 건물(`resolveCity`)은 안 넘긴다 */
+  private blockedBy(size: number, d: number, R: number, p: Vector3, index?: number): void {
     this.normal.copy(this.push).divideScalar(d);
     this.push.multiplyScalar((R - d) / d);
     p.add(this.push);
@@ -400,6 +403,16 @@ export class Game {
     this.ball.impact(this.normal, strength);
     this.rig.addTrauma(0.35 + strength * 0.5);
     this.sfx.thud(strength);
+    /**
+     * **부딪힌 물건도 흔들린다.**
+     *
+     * 여태 이 함수는 공만 튕기고(`ball.impact`) 화면만 흔들었다(`addTrauma`).
+     * 못 먹는 컵을 들이받아도 컵은 미동도 없었다 — 그게 「물건이 반응을 안 한다」의
+     * 정체다. 렌더만 흔들므로 충돌·성장 곡선은 그대로다.
+     */
+    if (index !== undefined) {
+      this.world.nudge(index, -this.normal.x, -this.normal.z, strength, this.ball.diameter);
+    }
     this.narrator.fire('impact', this.ball.diameter);
 
     // 큰 걸 들이받을수록 많이 떨어진다
