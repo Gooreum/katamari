@@ -276,8 +276,10 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.180, sizeMax: 0.260, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.145, only: ['신문', '찌라시'] , arrange: 'row' },
   // 화분대 위
   { id: 'surf-plant', rect: [2.30, 1.02, 2.46, 1.18], sizeMin: 0.070, sizeMax: 0.120, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55, only: ['찻잔', '귤'] },
-  // 방석더미 위
-  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.030, sizeMax: 0.100, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.196, only: ['껌', '사탕'] },
+  // 방석더미 위.
+  // **0.196 → 0.185.** 곡면 세그먼트를 올리면서(구 10×5 → 16×10) 눌린 구의
+  // 상단이 내려갔다 — 물건이 1.1cm 떠 있었다. 검사가 잡았다
+  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.030, sizeMax: 0.100, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.185, only: ['껌', '사탕'] },
 
   // ── 복도 40 ─────────────────────────────────────────────
   // 신발장 «앞». 신발장 발자국은 x −0.82~−0.52 라 자리가 그걸 통째로 덮고 있었다 —
