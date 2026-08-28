@@ -528,6 +528,15 @@ export interface RoomPlacement {
    * 두 축에 함께 걸리므로 **모서리가 가장 두꺼워진다.** 실제 방이 그렇다.
    */
   readonly edge?: number;
+  /**
+   * true면 **벽 가까이 놓인 물체를 그 벽과 나란히** 돌린다.
+   *
+   * `rotY` 가 완전 무작위라 젓가락도 신문도 슬리퍼도 45°로 누워 있었다.
+   * 벽과 나란하면 「놓여 있다」로, 비스듬하면 「흩어져 있다」로 읽힌다.
+   *
+   * 실내에만 준다. 마당 물건은 나란할 이유가 없다.
+   */
+  readonly align?: boolean;
 }
 
 export const GENERATION = {
@@ -658,6 +667,38 @@ export function edgeBias(u: number, p: number): number {
   if (p === 1) return u;
   const t = 2 * u - 1;
   return 0.5 + (Math.sign(t) * Math.abs(t) ** p) / 2;
+}
+
+/** 벽에서 이 거리 안이면 「벽에 붙어 있다」로 본다(m) */
+const ALIGN_BAND = 0.35;
+/** 정렬해도 남기는 흔들림(rad). ±12°. 완전히 맞추면 죽은 격자가 된다 */
+const ALIGN_JITTER = 0.21;
+
+/**
+ * 벽 가까이 놓인 물체를 **그 벽과 나란히** 돌린다.
+ *
+ * 젓가락·신문·슬리퍼가 45°로 누워 있으면 어질러 보이고, 벽과 나란하면 놓여 보인다.
+ * 네 벽 중 가장 가까운 쪽을 골라 그 방향(세로벽이면 z축 = π/2, 가로벽이면 x축 = 0)으로
+ * 스냅한다.
+ *
+ * **새 난수를 안 쓴다.** `edgeBias` 와 같은 이유다 — 이미 뽑힌 `rotY` 를 흔들림의
+ * 재료로 재사용한다. 전부 정확히 맞추면 죽은 격자가 되므로 ±12° 를 남긴다.
+ *
+ * 회전 대칭인 물체(사과·구슬)에는 아무 효과가 없지만 해도 없다. 효과가 나는 건
+ * 긴 물체 — 젓가락·신문·슬리퍼·수건처럼 방향이 있는 것들이고, 그게 정확히
+ * 「어질러 보인다」를 만들던 것들이다.
+ */
+function alignToWall(s: ObjectSpec, rect: readonly [number, number, number, number]): void {
+  const [x0, z0, x1, z1] = rect;
+  const d = [s.x - x0, x1 - s.x, s.z - z0, z1 - s.z];
+  let near = 0;
+  for (let i = 1; i < 4; i++) if (d[i]! < d[near]!) near = i;
+  if (d[near]! > ALIGN_BAND) return;
+  // 0·1 이 세로벽(x 경계) → 물체는 z축과 나란히 눕는다
+  const base = near < 2 ? Math.PI / 2 : 0;
+  // 원래 각도를 −1~1 로 접어 흔들림으로 쓴다. 각도가 고르면 흔들림도 고르다
+  const frac = (s.rotY / (Math.PI * 2)) % 1;
+  s.rotY = base + (frac * 2 - 1) * ALIGN_JITTER;
 }
 
 export function generateWorld(
@@ -836,6 +877,8 @@ export function generateWorld(
           az + edgeBias(r(), edge) * (bz - az),
         ] as const;
         emit(u, base, () => pick(rand), () => pick(retry), true, tbl);
+        // 벽 가까이 놓였으면 그 벽과 나란히 돌린다. `rotY` 는 emit 이 이미 뽑아뒀다
+        if (room.align === true) alignToWall(specs[specs.length - 1]!, room.rect);
         owner.push([ax, az, bx, bz]);
       }
     }
