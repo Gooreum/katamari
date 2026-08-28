@@ -274,7 +274,9 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.030, sizeMax: 0.100, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.196, only: ['껌', '사탕'] },
 
   // ── 복도 40 ─────────────────────────────────────────────
-  { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
+  // 신발장 «앞». 신발장 발자국은 x −0.82~−0.52 라 자리가 그걸 통째로 덮고 있었다 —
+  // 슬리퍼가 신발장 «안»에 박혀 있었다는 뜻이다. 앞쪽(x −0.48~−0.05)으로 옮긴다
+  { id: 'spot-shoe', rect: [-0.48, -3.30, -0.05, -2.45], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
   { id: 'spot-hallend', rect: [-0.85, -8.40, 0.85, -7.80], sizeMin: 0.01, sizeMax: 0.16, count: 18, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
 
   // ── 아이 방 90 ──────────────────────────────────────────
