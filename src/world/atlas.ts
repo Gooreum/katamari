@@ -68,6 +68,20 @@ export const TILE = {
   SHARPENER: 13,
   /** RC 컨트롤러. 버튼판 */
   RC: 14,
+  /**
+   * 책 표지. 제목 띠 + 글줄.
+   *
+   * 여기부터 넷은 **거실을 알아보게 하려고** 생긴 칸이다. 사용자가
+   * 「오브젝트들이 정확히 뭔지 잘 모르겠다」고 했을 때, 부품을 늘리는 것보다
+   * 인쇄를 주는 게 훨씬 세다 — 시계는 문자판이 있어야 시계고 책은 표지가 있어야 책이다.
+   */
+  BOOK: 15,
+  /** 비디오테이프 라벨. 손글씨 줄 + 릴 구멍 두 개 */
+  VIDEO: 16,
+  /** 탁상시계 문자판. 눈금 12개 + 바늘 둘 */
+  CLOCK: 17,
+  /** 액자 속 사진. 산·해 — 뭐가 됐든 «그림이 들어 있다»가 읽히면 된다 */
+  PICTURE: 18,
 } as const;
 
 /**
@@ -316,6 +330,75 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.beginPath(); cx.arc(92, 60, 11, 0, Math.PI * 2); cx.fill();
     cx.fillStyle = '#8fcf3a';
     cx.fillRect(16, 96, 96, 8);
+  });
+
+  // ── 책 표지 ── 제목 띠와 글줄. 민짜 판때기와 책을 가르는 건 이것뿐이다.
+  at(TILE.BOOK, () => {
+    cx.fillStyle = '#a8442e';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#f0e3c8';                     // 위아래 가름끈
+    cx.fillRect(0, 16, CELL, 5);
+    cx.fillRect(0, CELL - 21, CELL, 5);
+    cx.fillStyle = '#f7efdc';                     // 제목 띠
+    cx.fillRect(18, 36, CELL - 36, 34);
+    cx.fillStyle = '#2a2724';                     // 제목 글줄 둘
+    cx.fillRect(26, 44, 76, 8);
+    cx.fillRect(26, 57, 48, 6);
+    cx.fillStyle = '#e8d9b4';                     // 지은이
+    cx.fillRect(26, 88, 54, 6);
+    cx.fillRect(26, 100, 34, 5);
+  });
+
+  // ── 비디오테이프 라벨 ── 손글씨 줄과 릴 구멍. 90년대 거실의 물건이다.
+  at(TILE.VIDEO, () => {
+    cx.fillStyle = '#2e2c2a';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#e9e4d6';                     // 라벨 종이
+    cx.fillRect(12, 10, CELL - 24, 46);
+    cx.fillStyle = '#3a5f8a';                     // 손글씨 세 줄
+    cx.fillRect(20, 20, 70, 6);
+    cx.fillRect(20, 32, 88, 5);
+    cx.fillRect(20, 42, 44, 5);
+    cx.fillStyle = '#1a1918';                     // 릴 창
+    cx.fillRect(20, 72, 88, 34);
+    cx.fillStyle = '#5c5854';
+    cx.beginPath(); cx.arc(42, 89, 13, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(86, 89, 13, 0, Math.PI * 2); cx.fill();
+  });
+
+  // ── 시계 문자판 ── 눈금 열둘과 바늘 둘. **이게 없으면 그냥 원통이다.**
+  at(TILE.CLOCK, () => {
+    cx.fillStyle = '#f6efdd';
+    cx.fillRect(0, 0, CELL, CELL);
+    const cxp = 64, cyp = 64;
+    cx.fillStyle = '#2a2724';
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const long = i % 3 === 0;
+      const r0 = long ? 40 : 45, r1 = 52;
+      cx.save();
+      cx.translate(cxp + Math.sin(a) * (r0 + r1) / 2, cyp - Math.cos(a) * (r0 + r1) / 2);
+      cx.fillRect(-(long ? 5 : 3), -(r1 - r0) / 2, long ? 10 : 6, r1 - r0);
+      cx.restore();
+    }
+    cx.fillRect(cxp - 4, cyp - 34, 8, 36);        // 긴바늘 — 12시
+    cx.fillRect(cxp - 2, cyp - 3, 28, 7);         // 짧은바늘 — 3시
+    cx.fillStyle = '#c0392b';
+    cx.beginPath(); cx.arc(cxp, cyp, 6, 0, Math.PI * 2); cx.fill();
+  });
+
+  // ── 액자 속 사진 ── 산과 해. 「그림이 들어 있다」만 읽히면 된다.
+  at(TILE.PICTURE, () => {
+    cx.fillStyle = '#bcd4e0';                     // 하늘
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#f2c14e';                     // 해
+    cx.beginPath(); cx.arc(96, 34, 15, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#6f8f6a';                     // 뒷산
+    cx.beginPath(); cx.arc(40, 118, 56, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#4f6b4c';                     // 앞산
+    cx.beginPath(); cx.arc(96, 126, 46, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#8a9a72';                     // 들
+    cx.fillRect(0, 112, CELL, CELL - 112);
   });
 
   const tex = new CanvasTexture(cv);

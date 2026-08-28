@@ -96,6 +96,10 @@ export const SHAPE_COLOR: Record<string, readonly number[]> = {
   // ── 가구 (손배치 전용 — 난수로는 안 뽑힌다) ────────────────
   // 나무 계열은 7(나무), 종이 더미는 0(종이 흰색). 손배치는 첫 색만 쓴다
   TV장: [7], 책장: [7], 밥상: [7], 신문더미: [0], 화분대: [7], 방석더미: [19],
+  // ── 거실 소품 ────────────────────────────────────────────────
+  // 책은 표지 색이 여럿이라야 책장 한 칸이 책 «더미»로 보인다 — 한 색이면 벽돌담이다.
+  // 인쇄(TILE.BOOK 등)가 팔레트 색에 곱해지므로 어두운 색은 인쇄를 먹는다. 밝은 쪽만 준다
+  책: [8, 11, 14, 16, 2], 비디오테이프: [5], 탁상시계: [6, 0],
   // ── 동네 맵 전용 ────────────────────────────────────────────
   꽃잎: [8, 10, 13], 자갈: [3, 4], 병뚜껑: [8, 11], 도토리: [7], 솔방울: [7],
   동전: [6], 꽃: [8, 10, 13, 16], '연어 캔': [6, 11], 쥐: [5], 골프공: [0],
@@ -229,9 +233,24 @@ export const SHAPE_IDS_FURNITURE = [
   'TV장', '책장', '밥상', '신문더미', '화분대', '방석더미',
 ] as const;
 
+/**
+ * **거실 소품 형상.** `shapes.living.ts` 가 전부 구현해야 한다.
+ *
+ * 거실에 나오는 스무 종 중 절반이 1~3cm 였다 — 개미·클립·압정·단추·동전.
+ * 5cm 공에게 1cm 물체는 점이라 형상을 깎아도 안 읽힌다. 그리고 정작
+ * **거실 물건이랄 게 없었다** — 책도 잡지도 시계도 액자도.
+ * 여기 있는 건 전부 10~25cm, 거실에서 바로 알아보는 것들이다.
+ *
+ * 이름 옆 숫자가 실물 최대 변(cm).
+ */
+export const SHAPE_IDS_LIVING = [
+  // 책 22 · 비디오테이프 19 · 탁상시계 12
+  '책', '비디오테이프', '탁상시계',
+] as const;
+
 export const SHAPE_IDS = [
   ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_HOUSE,
-  ...SHAPE_IDS_FURNITURE,
+  ...SHAPE_IDS_FURNITURE, ...SHAPE_IDS_LIVING,
   ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
 ];
 
@@ -240,11 +259,12 @@ export type ShapeIdMid = (typeof SHAPE_IDS_MID)[number];
 export type ShapeIdLarge = (typeof SHAPE_IDS_LARGE)[number];
 export type ShapeIdHouse = (typeof SHAPE_IDS_HOUSE)[number];
 export type ShapeIdFurniture = (typeof SHAPE_IDS_FURNITURE)[number];
+export type ShapeIdLiving = (typeof SHAPE_IDS_LIVING)[number];
 export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
 export type ShapeIdWorld = (typeof SHAPE_IDS_WORLD)[number];
 export type ShapeId =
   | ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdHouse | ShapeIdFurniture
-  | ShapeIdTown | ShapeIdWorld;
+  | ShapeIdLiving | ShapeIdTown | ShapeIdWorld;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;
