@@ -37,6 +37,14 @@ const BLOCK_CELL = 64;
 export interface WorldObject {
   readonly pos: Vector3;
   readonly half: Vector3;
+  /**
+   * **충돌 상자 중심의 y.** 보통은 `pos.y` 와 같다.
+   *
+   * 밥상처럼 밑이 뚫린 가구만 달라진다 — 형상은 다리까지 전부 그리지만
+   * 충돌은 상판만 잡아야 공이 밑으로 지나간다. 그래서 렌더 중심(`pos`)과
+   * 충돌 중심(`colY`)이 갈라진다. x·z 는 갈라질 일이 없어서 y 만 둔다.
+   */
+  readonly colY: number;
   readonly scale: Vector3;
   readonly rotY: number;
   /** InstancePool 인덱스 = geometry 인덱스 */
@@ -244,9 +252,16 @@ export class World {
       this.pool.setTransform(spec.geo, slot, proxy);
       this.pool.setColor(spec.geo, slot, tint.setHex(PALETTE[spec.color]!));
 
+      // 충돌 상자. **렌더 배율과 분리돼 있다** — 안 주면 지금까지와 같은 정육면체 근사
+      const half = spec.colHalf
+        ? new Vector3(spec.colHalf[0], spec.colHalf[1], spec.colHalf[2])
+        : new Vector3(spec.sx / 2, spec.sy / 2, spec.sz / 2);
+      const colY = spec.y + (spec.colOffsetY ?? 0);
+
       const obj: WorldObject = {
         pos: new Vector3(spec.x, spec.y, spec.z),
-        half: new Vector3(spec.sx / 2, spec.sy / 2, spec.sz / 2),
+        half,
+        colY,
         scale: new Vector3(spec.sx, spec.sy, spec.sz),
         rotY: spec.rotY,
         combo: spec.geo,

@@ -296,11 +296,14 @@ export class Game {
       const o = objects[index]!;
       if (o.picked) continue;
 
-      // 구 vs AABB
+      // 구 vs AABB.
+      // **y 만 `colY` 를 쓴다.** 밥상처럼 밑이 뚫린 가구는 형상 전체를 그리면서
+      // 충돌은 상판만 잡는다 — 렌더 중심(`pos.y`)과 충돌 중심(`colY`)이 갈라진다.
+      // 나머지 물체는 `colY === pos.y` 라 지금까지와 똑같다.
       const c = o.pos, h = o.half;
       this.closest.set(
         Math.max(c.x - h.x, Math.min(p.x, c.x + h.x)),
-        Math.max(c.y - h.y, Math.min(p.y, c.y + h.y)),
+        Math.max(o.colY - h.y, Math.min(p.y, o.colY + h.y)),
         Math.max(c.z - h.z, Math.min(p.z, c.z + h.z)),
       );
       this.push.subVectors(p, this.closest);
