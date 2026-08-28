@@ -543,6 +543,19 @@ export interface RoomPlacement {
    * 실내에만 준다. 마당 물건은 나란할 이유가 없다.
    */
   readonly align?: boolean;
+  /**
+   * 이 구역이 바닥이 아니라 **높이 y의 표면**이면 그 높이(m).
+   *
+   * 물건 1,480개가 전부 바닥에 있던 게 「나뒹군다」의 정체였다. 실제 집에서 물건은
+   * 층을 이룬다 — 찻잔은 상 위에, 리모컨은 TV장 위에. 그 층을 이 값이 만든다.
+   * 흡수 판정이 3D 구 vs AABB 라(`Game.resolveCollisions`) 작은 공은 못 닿고
+   * 커지면 닿는다 — 새 물리 코드가 필요 없다.
+   *
+   * **표면 배치는 `blocked` 를 안 탄다.** 표면은 가구 바닥면 **위**에 있는데
+   * `blocked` 는 그 바닥면을 막힌 자리로 보기 때문이다 — 그대로 두면 상판 위
+   * 물건이 전부 상 밖으로 밀려난다. 아래 방 루프가 `retryPos` 를 안 넘겨 건너뛴다.
+   */
+  readonly y?: number;
 }
 
 export const GENERATION = {
@@ -768,6 +781,8 @@ export function generateWorld(
      * 안 달라진다 — 라벨을 고르는 난수도 같은 자리에서 같은 횟수만큼 뽑힌다.
      */
     tbl: LabelTable = table,
+    /** 표면 높이(m). 0이면 바닥 — 지금까지와 같다 */
+    surfaceY = 0,
   ): void => {
     /**
      * **세 축에 같은 배율을 준다.** 예전엔 축마다 다른 난수를 곱했다 —
@@ -837,7 +852,8 @@ export function generateWorld(
 
     specs.push({
       x,
-      y: sy / 2,
+      // 표면 위면 그 높이에 얹는다. 바닥이면 지금까지처럼 물체 반쪽만 띄운다
+      y: surfaceY + sy / 2,
       z,
       sx, sy, sz,
       rotY,
@@ -863,6 +879,7 @@ export function generateWorld(
       // 바뀌는 건 그 크기에 붙는 이름뿐이다.
       const tbl = room.labels ?? table;
       const edge = room.edge ?? 1;
+      const surfaceY = room.y ?? 0;
       for (let n = 0; n < room.count; n++) {
         const base = room.sizeMin * Math.exp(logR * rand());
         // 라벨 버킷은 **라벨 축**에서 고른다. 방 안의 상대 위치로 고르면
@@ -882,7 +899,12 @@ export function generateWorld(
           ax + edgeBias(r(), edge) * (bx - ax),
           az + edgeBias(r(), edge) * (bz - az),
         ] as const;
-        emit(u, base, () => pick(rand), () => pick(retry), true, tbl);
+        // **표면 배치는 `retryPos` 를 안 넘긴다.** `emit` 이
+        // `blocked !== undefined && retryPos !== undefined` 일 때만 막힘 검사를 하므로
+        // 이 한 가지로 표면이 `blocked` 를 건너뛴다 — 새 분기가 필요 없다.
+        // 표면은 가구 바닥면 **위**라, 안 건너뛰면 상판 위 물건이 전부 상 밖으로 밀려난다
+        emit(u, base, () => pick(rand),
+          surfaceY > 0 ? undefined : () => pick(retry), true, tbl, surfaceY);
         // 벽 가까이 놓였으면 그 벽과 나란히 돌린다. `rotY` 는 emit 이 이미 뽑아뒀다
         if (room.align === true) alignToWall(specs[specs.length - 1]!, room.rect);
         owner.push([ax, az, bx, bz]);
