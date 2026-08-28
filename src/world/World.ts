@@ -5,12 +5,15 @@ import {
 } from 'three';
 import { InstancePool } from './InstancePool';
 import { SpatialHash } from './SpatialHash';
-import { generateWorld, GENERATION, PALETTE, type BlockedFn, type ObjectSpec } from './generation';
+import {
+  colorOf, generateWorld, geoIndexOf, GENERATION, PALETTE,
+  type BlockedFn, type ObjectSpec,
+} from './generation';
 import { buildShapeGeometries, withWhiteColors } from './shapes';
 import { City } from './City';
 import { FLOOR_TEX, TILE_M } from './floors';
 import { getPrintAtlas } from './atlas';
-import type { CityData, CityRug, StageRoom } from './cityData';
+import type { CityData, CityRug, StageProp, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
 
@@ -56,6 +59,43 @@ function pointInPolygon(x: number, z: number, poly: ReadonlyArray<readonly [numb
     if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
+}
+
+/**
+ * 손배치 물건 → `ObjectSpec`.
+ *
+ * `generateWorld` 가 난수로 만드는 것과 **같은 모양의 데이터**를 이름·좌표에서 직접
+ * 만든다. 세 축에 같은 배율을 주는 것도 `emit` 과 같은 이유다 — 가로세로 비율은
+ * 이미 지오메트리에 굽혀 있다(`assemble()` 의 `normalize`).
+ *
+ * **AABB 가 정육면체가 되는 건 기존 소품과 같다.** 밥상은 이제 통짜라 공이 밑으로
+ * 못 지나간다. 예전에 「다리 넷이라 상 밑을 지나가는 게 원작 감각」이라고 적었는데,
+ * 그건 압출 제약을 미덕으로 포장한 것이었다 — 상판 없는 상은 상이 아니다.
+ *
+ * 클래스 밖에 두는 이유는 생성자가 `this` 를 쓰기 전에 부르기 때문이다.
+ */
+function buildProps(props: readonly StageProp[]): ObjectSpec[] {
+  return props.map((p) => {
+    const geo = geoIndexOf(p.label);
+    // **조용히 기본 도형으로 떨어뜨리지 않는다.** 그러면 상자가 놓인 걸 아무도 모른다
+    if (geo === null) {
+      throw new Error(`손배치 물건 '${p.label}' 은 SHAPE_IDS 에 없습니다`);
+    }
+    const s = p.size;
+    return {
+      x: p.x,
+      // `y` 를 주면 그 높이에 얹는다 — TV장 위의 텔레비전
+      y: (p.y ?? 0) + s / 2,
+      z: p.z,
+      sx: s, sy: s, sz: s,
+      rotY: p.rotY ?? 0,
+      geo,
+      color: colorOf(p.label),
+      size: s,
+      volume: s ** 3,
+      label: p.label,
+    };
+  });
 }
 
 export class World {
@@ -120,6 +160,11 @@ export class World {
       // 라벨 표도 스테이지가 갖는다 — 동네에 밥솥이 굴러다니면 안 된다
       cityData?.placement?.labels,
     );
+    // **손배치 가구를 같은 배열에 이어 붙인다.**
+    // 이 아래는 전부 공통 경로다 — 인스턴스 풀 개수 집계도, 공간 해시도, 충돌도
+    // 소품과 가구를 구별하지 않는다. 그래서 새 렌더·충돌 코드가 한 줄도 없다.
+    specs.push(...buildProps(cityData?.placement?.props ?? []));
+
     // 도넛 배치는 원점 기준으로 뽑으므로 스폰만큼 옮긴다.
     // **방 배치는 이미 월드 좌표다** — 여기서 또 옮기면 방이 통째로 어긋난다.
     // (지금 집 맵은 스폰이 (0,0)이라 티가 안 나지만, 스폰을 옮기는 순간 문다.)
