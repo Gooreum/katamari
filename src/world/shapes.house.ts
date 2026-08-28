@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdHouse } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** 눕힌 원기둥. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다 */
@@ -52,12 +52,19 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new SphereGeometry(0.5, 16, 10).scale(0.44, 0.60, 0.60), WHITE, [0.32, 0.38, 0]),
   ]),
 
+  /**
+   * 밥공기 (12cm).
+   *
+   * **예전 주석이 문제를 자백하고 있었다** — 「사발의 윤곽은 안쪽이 아니라 이 얇은
+   * 띠가 만든다」. 속을 파는 대신 테두리 링으로 흉내 냈다는 뜻이고, 그래서 화면에서
+   * **통짜 원뿔이라 갓등처럼 보였다.** 사발의 정체는 파인 것이다.
+   */
   밥공기: () => assemble([
-    // 위가 넓고 아래가 좁은 사발 + 굽. 굽이 없으면 컵이다
-    part(new CylinderGeometry(0.50, 0.30, 0.42, 20), WHITE, [0, 0.27, 0]),
-    part(new CylinderGeometry(0.30, 0.30, 0.12, 20), WHITE, [0, 0.06, 0]),
-    // 테두리 링 — 사발의 윤곽은 안쪽이 아니라 이 얇은 띠가 만든다
-    part(new TorusGeometry(0.47, 0.03, 4, 20), [0.62, 0.68, 0.78], [0, 0.47, 0], LIE_Z),
+    ...hollow(0.50, 0.32, 0.44, 0.035, 0.06, 20, WHITE, [0.80, 0.82, 0.86]),
+    // 굽 — 사발을 살짝 띄운다. 없으면 컵이다
+    part(new CylinderGeometry(0.28, 0.30, 0.10, 20), WHITE, [0, 0.05, 0]),
+    // 테두리 청색 띠 — 밥공기다운 마감
+    part(new TorusGeometry(0.475, 0.022, 5, 20), [0.55, 0.64, 0.80], [0, 0.42, 0], LIE_Z),
   ]),
 
   젓가락: () => assemble([
@@ -87,10 +94,11 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   ]),
 
   냄비: () => assemble([
-    part(new CylinderGeometry(0.42, 0.38, 0.44, 20), WHITE, [0, 0.22, 0]),
-    // 뚜껑 + 꼭지
-    part(new CylinderGeometry(0.44, 0.44, 0.06, 20), METAL, [0, 0.47, 0]),
-    part(new SphereGeometry(0.08, 7, 5), DARK, [0, 0.53, 0]),
+    // **속을 판다.** 뚜껑을 비껴 얹어서 안이 보이게 한다 — 통짜 원기둥은 컵이다
+    ...hollow(0.42, 0.38, 0.44, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.38]),
+    // 뚜껑 — 한쪽으로 밀어 얹는다. 이게 「끓이는 중」의 정체다
+    part(new CylinderGeometry(0.44, 0.44, 0.05, 20), METAL, [0.14, 0.47, 0], [0, 0, 0.16]),
+    part(new SphereGeometry(0.08, 8, 6), DARK, [0.16, 0.53, 0]),
     // 양쪽 귀. **이게 있어야 컵이 아니라 냄비다**
     part(new BoxGeometry(0.16, 0.05, 0.11), DARK, [0.49, 0.34, 0]),
     part(new BoxGeometry(0.16, 0.05, 0.11), DARK, [-0.49, 0.34, 0]),

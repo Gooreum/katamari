@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLiving } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
@@ -157,10 +157,8 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
    * 담배꽁초 둘이 마지막을 맡는다.
    */
   재떨이: () => assemble([
-    // 두꺼운 유리 몸통. 낮고 넓적하다
-    part(new CylinderGeometry(0.50, 0.42, 0.22, 20), GLASS, [0, 0.11, 0]),
-    // 파인 안쪽. 몸통보다 어두워야 깊이가 보인다
-    part(new CylinderGeometry(0.38, 0.30, 0.10, 20), [0.42, 0.50, 0.55], [0, 0.19, 0]),
+    // **진짜로 판다.** 예전엔 어두운 원기둥을 위에 얹어 파인 «척»만 했다
+    ...hollow(0.50, 0.42, 0.22, 0.06, 0.07, 20, GLASS, [0.32, 0.40, 0.44]),
     // 담배 얹는 홈 둘 — 테두리를 가로지르는 막대
     part(new BoxGeometry(0.16, 0.05, 0.26), [0.42, 0.50, 0.55], [0.42, 0.215, 0]),
     part(new BoxGeometry(0.26, 0.05, 0.16), [0.42, 0.50, 0.55], [0, 0.215, -0.42]),

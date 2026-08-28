@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdMid } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
 import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -58,12 +58,22 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new BoxGeometry(0.22, 0.02, 0.12), [0.35, 0.55, 0.25], [0.14, 0.92, 0], [0, 0.3, 0.2]),
   ]),
 
+  /**
+   * 찻잔 (10cm). **속이 파여 있어야 컵이다** — 통짜 원기둥은 덩어리다.
+   *
+   * 화면으로 두 번 고쳤다. 처음엔 **받침이 컵보다 커서 비행접시로 보였고**
+   * (받침 지름 0.80, 컵 높이 0.44 — `normalize()` 가 받침을 최장축으로 잡아 컵을
+   * 55%로 눌렀다), 받침을 줄였더니 이번엔 폭이 컵과 같아져 **챙 넓은 모자**가 됐다.
+   * 유노미는 원래 **손잡이가 없고 세로로 길다** — 그렇게 세우니 컵으로 읽힌다.
+   */
   찻잔: () => assemble([
-    // 몸통 + 손잡이 + 받침. 일본 찻잔이라 손잡이는 작게
-    part(new CylinderGeometry(0.32, 0.24, 0.44, 20), WHITE, [0, 0.28, 0], undefined, TILE.TEACUP),
-    part(new CylinderGeometry(0.27, 0.27, 0.06, 20), [0.55, 0.45, 0.35], [0, 0.47, 0]),
-    part(new CylinderGeometry(0.40, 0.40, 0.05, 20), WHITE, [0, 0.03, 0]),
-    part(new TorusGeometry(0.13, 0.035, 4, 14), WHITE, [0.36, 0.30, 0], LIE_Z),
+    // 유노미 몸통. **세로가 길어야 컵이다** — 받침과 폭이 같으면 챙 넓은 모자가 된다
+    ...hollow(0.26, 0.19, 0.72, 0.03, 0.055, 20, WHITE, [0.88, 0.86, 0.80], TILE.TEACUP),
+    // 담긴 차. **안이 보여야 판 게 보인다** — 캐비티 바닥보다 위, 테두리보다 아래
+    part(new CylinderGeometry(0.222, 0.222, 0.01, 20), [0.40, 0.30, 0.15], [0, 0.52, 0]),
+    // 받침 — 얕게 파서 접시로 읽히게. 컵보다 넓지만 아주 얇다
+    part(new CylinderGeometry(0.33, 0.31, 0.028, 20), WHITE, [0, 0.014, 0]),
+    part(new TorusGeometry(0.315, 0.016, 5, 20), WHITE, [0, 0.028, 0], LIE_Z),
   ]),
 
   전구: () => assemble([

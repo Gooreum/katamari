@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry } from 'three';
+import { BufferAttribute, BufferGeometry, CylinderGeometry, TorusGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TILE, tileUv } from './atlas';
 
@@ -118,6 +118,56 @@ export function paint(geo: BufferGeometry, rgb: RGB): void {
  * 인쇄 아틀라스를 쓴다. 부품마다 자기 칸으로 접어두면 모든 부품이 uv를 갖게 되어
  * 병합의 속성 구성도 맞는다. 공에 붙는 경로는 `Katamari.bake()`가 여전히 uv를 지운다.
  */
+/**
+ * **속이 파인 그릇.** 바깥벽 · 안쪽벽 · 안쪽 바닥 · 바깥 바닥 · 테두리를 한 번에 만든다.
+ *
+ * ## 왜 생겼나
+ *
+ * 여태 이 게임의 그릇은 **전부 통짜**였다. `밥공기` 주석이 그걸 자백하고 있었다 —
+ * 「사발의 윤곽은 **안쪽이 아니라** 이 얇은 띠가 만든다」. 속을 파는 대신 테두리 링으로
+ * 흉내 냈다는 뜻이다. 그래서 사용자가 이렇게 말했다:
+ *
+ * > 「컵이라 하면 **중간에 움푹 파인게 없으니까 걍 덩어리** 같음」
+ *
+ * 그릇을 그릇으로 만드는 건 **파인 것**이다. 하나씩 손으로 파면 다음 그릇에서 또 틀리니
+ * 여기 둔다.
+ *
+ * ## 안쪽벽을 뒤집는 이유
+ *
+ * 인스턴스 머티리얼이 `FrontSide` 다. 안쪽벽을 그냥 넣으면 «바깥»을 보는 면이라
+ * 통째로 컬링돼서 그릇 안을 들여다보면 **바닥이 뚫려 보인다.**
+ * `scale(-1, 1, 1)` 이 감기 순서를 뒤집어 안을 보게 만든다.
+ * (`DoubleSide` 로 바꾸면 4,200개 전부가 뒷면까지 그려진다 — 그 값을 치를 이유가 없다.)
+ *
+ * @param rTop  윗지름 반쪽   @param rBot 아랫지름 반쪽   @param h 전체 높이
+ * @param wall  벽 두께        @param floorT 바닥 두께
+ * @param seg   둘레 분할 — 20 권장. 12는 각져 보인다
+ * @param rgb   바깥 색        @param inner 안쪽 색 (조금 어두우면 깊이가 산다)
+ * @param tile  바깥벽 인쇄 칸
+ */
+export function hollow(
+  rTop: number, rBot: number, h: number, wall: number, floorT: number,
+  seg = 20, rgb: RGB = WHITE, inner: RGB = WHITE, tile: number = TILE.BLANK,
+): Part[] {
+  const iTop = Math.max(rTop - wall, wall);
+  const iBot = Math.max(rBot - wall, wall * 0.6);
+  const cavity = Math.max(h - floorT, wall);
+  return [
+    // 바깥벽 — 위아래가 뚫린 띠. 뚜껑을 안 덮어야 테두리가 두께를 갖는다
+    part(new CylinderGeometry(rTop, rBot, h, seg, 1, true), rgb, [0, h / 2, 0], undefined, tile),
+    // **안쪽벽.** 이게 「움푹하다」의 전부다
+    part(new CylinderGeometry(iTop, iBot, cavity, seg, 1, true).scale(-1, 1, 1),
+      inner, [0, floorT + cavity / 2, 0]),
+    // 안쪽 바닥 — 없으면 그릇을 통해 방바닥이 보인다
+    part(new CylinderGeometry(iBot, iBot, 0.008, seg), inner, [0, floorT, 0]),
+    // 바깥 바닥
+    part(new CylinderGeometry(rBot, rBot, 0.008, seg), rgb, [0, 0.004, 0]),
+    // 테두리 — 바깥벽과 안쪽벽을 잇는 링. 없으면 벽이 종이처럼 얇아 보인다
+    part(new TorusGeometry((rTop + iTop) / 2, wall / 2, 5, seg), rgb, [0, h, 0],
+      [Math.PI / 2, 0, 0]),
+  ];
+}
+
 export function assemble(parts: Part[]): BufferGeometry {
   if (parts.length === 0) throw new Error('형태에 부품이 하나도 없습니다');
 
