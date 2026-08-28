@@ -304,6 +304,47 @@ function shoji(x0: number, x1: number, z: number): CityBuilding[] {
 }
 
 /**
+ * 세로벽용 창. `shoji()` 의 짝이다 — 저쪽은 가로벽(z 고정), 이쪽은 세로벽(x 고정).
+ *
+ * ## 왜 창을 다나
+ *
+ * `shoji()` 주석에 남아 있는 그대로다: 벽 한 면이 통짜로 남으면 화면 상단이
+ * 사실상 한 색이 된다(실측 최빈색 85.6%). 북·남벽은 장지문이 갈라주는데
+ * **동벽은 5.4m 통짜**였다. 거실 가구가 그 벽에 붙지만 가구는 1.2m 아래라
+ * 벽 윗부분은 그대로 남는다.
+ *
+ * ## 가로 살이 없는 이유
+ *
+ * `City.geometryFor()` 의 압출이 바닥(y=0)부터라 공중에 뜬 조각을 못 만든다.
+ * 대신 높이 단차가 가로선을 만든다 — 코시이타 윗선(0.30) · 창호지 윗선(1.75) · 벽 윗선(2.4).
+ */
+function windowZ(z0: number, z1: number, x: number): CityBuilding[] {
+  const H = 1.75;
+  const b: CityBuilding[] = [
+    // 창호지. 돌출량을 걸레받이(WALL_T + 0.04)와 같게 둔다 —
+    // 물체 배치 여유(ROOM_MARGIN 0.06)를 넘기면 벽에 물건이 박힌다
+    kitPiece(x, z0, x, z1, { t: WALL_T + 0.04, h: H, color: C_SHOJI }),
+    // 창틀 아래 나무 판. 종이보다 앞에 둬야 보이고, 걸레받이(0.06)보다 높아야 안 파묻힌다
+    kitPiece(x, z0, x, z1, { t: WALL_T + 0.07, h: 0.30, color: C_SHOJI_RAIL }),
+  ];
+  // 세로 살. **격자의 대비는 종이가 아니라 이 나무가 만든다** —
+  // 종이(0xe8eef2)와 벽(0xfbf0d2)은 둘 다 near-white 라 붙여놔도 경계가 안 보인다
+  const N = 6;
+  for (let i = 0; i <= N; i++) {
+    const z = z0 + ((z1 - z0) * i) / N;
+    b.push(kitPiece(x, z - 0.022, x, z + 0.022,
+      { t: WALL_T + 0.09, h: H, color: C_PILLAR }));
+  }
+  // 창틀 기둥 둘. **창 안이 아니라 양옆에 세운다** — 거실 동벽에는 원래 한가운데
+  // (z=0) 중간 기둥이 있었는데 창을 내니 그 기둥이 창을 뚫고 나왔다.
+  // 기둥을 창 양옆으로 밀면 벽을 끊는 역할은 그대로면서 창틀로도 읽힌다.
+  // **`windowZ` 안에서 세우는 이유**는 창과 기둥이 따로 놀다 어긋나는 걸 막기 위해서다
+  b.push(kitPillar(x, z0 - 0.15, { t: WALL_T, h: WALL_H, color: C_PILLAR }));
+  b.push(kitPillar(x, z1 + 0.15, { t: WALL_T, h: WALL_H, color: C_PILLAR }));
+  return b;
+}
+
+/**
  * 콘센트. 판 + 구멍 둘.
  *
  * ## 예전 것은 두 겹으로 안 보였다
@@ -385,7 +426,8 @@ function buildWalls(area: StageArea): CityBuilding[] {
       // 실제로 화면 상단 15%의 최빈색이 85.6%였다. 남북은 장지문 폭(±1.8) 바깥에,
       // 동서는 한가운데.
       pillar(-2.25, lz0), pillar(2.25, lz0), pillar(-2.25, lz1), pillar(2.25, lz1),
-      pillar(lx0, 0), pillar(lx1, 0),
+      // 동벽 중간 기둥은 `windowZ` 가 창틀 기둥 둘로 대신한다
+      pillar(lx0, 0),
       // 벽 밑 나무 띠 네 면. 벽과 같은 선이라 막는 범위는 안 바뀐다
       baseboard(lx0, lz0, lx0, lz1), baseboard(lx1, lz0, lx1, lz1),
       baseboard(lx0, lz0, lx1, lz0), baseboard(lx0, lz1, lx1, lz1),
@@ -395,6 +437,8 @@ function buildWalls(area: StageArea): CityBuilding[] {
     b.push(...shoji(-1.8, 1.8, lz0), ...shoji(-1.8, 1.8, lz1));
     // 콘센트 둘 — 북벽과 서벽에 하나씩. 북쪽은 **장지문 폭 밖의 민벽**에 붙인다
     b.push(...outlet(-2.05, lz0, true), ...outlet(lx0, 0.7, false));
+    // 동벽 창 — 북·남벽은 장지문이 갈라주는데 동벽만 5.4m 통짜였다
+    b.push(...windowZ(-0.9, 0.6, lx1));
     return b;
   }
 
@@ -412,6 +456,8 @@ function buildWalls(area: StageArea): CityBuilding[] {
   // 남벽 — 툇마루로 나가는 창호문 (x=0, 폭 1.8m). 원작 툇마루는 넓게 열린다
   b.push(...wallWithDoor(lx0, lz1, lx1, lz1, 0, 1.8, OPEN_YARD, '툇마루 창호문'));
   b.push(pillar(lx0, lz0), pillar(lx1, lz0), pillar(lx0, lz1), pillar(lx1, lz1));
+  // 동벽 창 — living 분기와 같은 자리. 거실은 어느 판에서든 같은 방이어야 한다
+  b.push(...windowZ(-0.9, 0.6, lx1));
 
   // ── 복도 서벽 — 두 토막, 각각 문 하나 ───────────────────
   // 아이 방 구간(z −5.85…−2.25)과 부엌 구간(z −8.55…−5.85)을 따로 세운다.
