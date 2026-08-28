@@ -75,14 +75,33 @@ export interface StageRule {
  * 같은 출처가 2번을 "37cm"라고 하는데 2번 목표는 20cm다. 제한시간도 마찬가지로
  * "8분"은 슈팅스타 조건이고 실제 제한은 13:00이다.
  */
+/**
+ * ## 목표와 제한을 실측으로 다시 잡았다
+ *
+ * `npm run curve` 로 8판을 전부 재보니 **어디에도 압박이 없었다** —
+ * 제한이 최적 플레이의 33배(star2) · 15배(star6) · 13.6배(star4)였다.
+ * star1 은 아예 5초면 끝났다. 258개를 채운 거실을 볼 새가 없다는 뜻이다.
+ *
+ * 규칙: **제한 = 최적 × 5 + 60초.** `curve` 는 «가장 가까운 먹을 것»으로만 가는
+ * 최적 경로라 실제 플레이보다 한참 빠르고, 짧은 판일수록 길 헤매는 고정 손해가
+ * 비율로 크게 먹힌다 — 그래서 상수 60초를 얹는다.
+ *
+ * **이미 그보다 빡빡했던 판은 안 건드렸다**(star5 3.5배 · star8 3.1배).
+ * 느슨한 걸 조이는 작업이지 빡빡한 걸 푸는 작업이 아니다.
+ *
+ * star1 은 **제한을 안 붙인다.** 조작을 배우는 판에 시계를 붙이지 않는 건 원작의
+ * 판단이고 `Hud.ts` 주석에 이유가 있다. 대신 **목표를 10cm → 25cm** 로 올려
+ * 방을 한 바퀴 돌게 했다(최적 5초 → 17초).
+ * star2 도 20cm → 40cm 다 — star1 이 25cm 인데 star2 가 20cm 면 **사다리가 거꾸로 선다.**
+ */
 export const STAGES: readonly StageRule[] = [
-  { id: 'star1', name: '별을 만들어라 1', target: 0.10, limit: 0, area: 'living', start: 0.05 },
-  { id: 'star2', name: '별을 만들어라 2', target: 0.20, limit: 360, area: 'house', start: 0.05 },
-  { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 540, area: 'town', start: 0.05 },
-  { id: 'star4', name: '별을 만들어라 4', target: 1.00, limit: 600, area: 'house', start: 0.05 },
+  { id: 'star1', name: '별을 만들어라 1', target: 0.25, limit: 0, area: 'living', start: 0.05 },
+  { id: 'star2', name: '별을 만들어라 2', target: 0.40, limit: 150, area: 'house', start: 0.05 },
+  { id: 'star3', name: '별을 만들어라 3', target: 0.50, limit: 500, area: 'town', start: 0.05 },
+  { id: 'star4', name: '별을 만들어라 4', target: 1.00, limit: 300, area: 'house', start: 0.05 },
   { id: 'star5', name: '별을 만들어라 5', target: 2.70, limit: 780, area: 'town', start: 0.05 },
-  { id: 'star6', name: '별을 만들어라 6', target: 3.00, limit: 660, area: 'world', start: 0.50 },
-  { id: 'star7', name: '별을 만들어라 7', target: 6.00, limit: 600, area: 'world', start: 0.50 },
+  { id: 'star6', name: '별을 만들어라 6', target: 3.00, limit: 300, area: 'world', start: 0.50 },
+  { id: 'star7', name: '별을 만들어라 7', target: 6.00, limit: 400, area: 'world', start: 0.50 },
   { id: 'star8', name: '별을 만들어라 8', target: 12.00, limit: 1080, area: 'town', start: 0.10 },
 ];
 
