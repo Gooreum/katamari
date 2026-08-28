@@ -163,12 +163,12 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 300, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true },
-  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true },
-  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true },
-  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 50, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true },
-  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 52, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 300, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
+  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true, ceiling: 2.4 },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true, ceiling: 2.4 },
+  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
+  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 50, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true, ceiling: 2.4 },
+  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 52, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true, ceiling: 2.2 },
   { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 178, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
 ];
 

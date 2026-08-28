@@ -1,6 +1,6 @@
 import {
   BoxGeometry, BufferGeometry, CanvasTexture, Color, ConeGeometry, CylinderGeometry,
-  Material, Mesh, MeshLambertMaterial, NearestFilter, Object3D, PlaneGeometry,
+  Material, Mesh, MeshBasicMaterial, MeshLambertMaterial, NearestFilter, Object3D, PlaneGeometry,
   RepeatWrapping, Scene, SphereGeometry, SRGBColorSpace, Vector3,
 } from 'three';
 import { InstancePool } from './InstancePool';
@@ -13,6 +13,12 @@ import { getPrintAtlas } from './atlas';
 import type { CityData, CityRug, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
+
+/**
+ * 천장색. 벽(0xfbf0d2 회벽)보다 한 단 어둡게 — 같은 색이면 벽과 천장의 모서리가
+ * 안 보여서 방이 여전히 뚜껑 없는 상자로 읽힌다.
+ */
+const CEILING_COLOR = 0xe0d6b8;
 const CELL = 4;
 
 /**
@@ -216,6 +222,8 @@ export class World {
       // 깔고 그 위에 방 바닥을 얹는다. 방 7개면 드로우콜 +8.
       scene.add(this.buildFlatGround(0x7a6a4e));
       for (const r of rooms) scene.add(this.buildRoomFloor(r));
+      // 천장은 **실내인 방만** 그린다. 뒷마당은 `ceiling` 이 없어서 하늘 그대로다
+      for (const r of rooms) if (r.ceiling !== undefined) scene.add(this.buildCeiling(r));
       // 깔개는 방바닥 **뒤에** 더한다 — 먼저 깔면 방바닥이 덮는다
       for (const g of cityData?.rugs ?? []) scene.add(this.buildRug(g));
     } else {
@@ -368,6 +376,35 @@ export class World {
     mesh.rotation.set(-Math.PI / 2, 0, rug.rotY);
     mesh.position.set(rug.cx, 0.006, rug.cz);
     mesh.name = 'rug';
+    return mesh;
+  }
+
+  /**
+   * 천장 — **아래를 보는 평면 한 장.**
+   *
+   * ## 왜 이걸로 충분한가
+   *
+   * 공이 작을 땐 카메라가 천장 밑이라 천장이 보인다. 공이 커져 카메라가 천장 위로
+   * 올라가면 **뒷면이라 저절로 안 보인다**(`FrontSide` 가 기본값). 숨기고 되살리는
+   * 코드가 한 줄도 필요 없다 — `City` 의 수면이 `DoubleSide` 를 안 쓰는 것과 같은 이유다.
+   *
+   * ## `MeshBasicMaterial` 이어야 한다
+   *
+   * `MeshLambertMaterial` 을 쓰면 **천장이 이끼색이 된다.** 아래를 보는 면의 법선이
+   * −y 라 `HemisphereLight` 의 groundColor(0x4c6b3c 짙은 초록)를 정면으로 받기 때문이다.
+   * 조명을 안 태우는 쪽이 맞기도 하다 — 괴혼 벽은 색면 하나고, 이 리포의 소품·공·벽이
+   * 전부 그 규칙이다.
+   */
+  private buildCeiling(room: StageRoom): Mesh {
+    const [x0, z0, x1, z1] = room.rect;
+    const mesh = new Mesh(
+      new PlaneGeometry(x1 - x0, z1 - z0),
+      new MeshBasicMaterial({ color: CEILING_COLOR }),
+    );
+    // +PI/2 라야 앞면이 아래를 본다. 바닥(-PI/2)의 반대다
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set((x0 + x1) / 2, room.ceiling!, (z0 + z1) / 2);
+    mesh.name = `ceiling_${room.id}`;
     return mesh;
   }
 

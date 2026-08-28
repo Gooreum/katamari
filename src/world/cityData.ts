@@ -36,6 +36,13 @@ export interface StageRoom extends RoomPlacement {
    * (`roads` 를 선택으로 둔 것과 같은 이유).
    */
   readonly floorTex?: FloorTex;
+  /**
+   * 천장 높이(m). 없으면 천장을 **안 그린다** — 뒷마당처럼 바깥인 방이다.
+   *
+   * 지금까지 실내에도 천장이 없어서 위를 보면 `scene.background`(하늘색)였다.
+   * 벽으로 둘러싼 마당이지 방이 아니다. 평면 한 장이면 되는데 그게 없었다.
+   */
+  readonly ceiling?: number;
 }
 
 export type BuildingKind =
