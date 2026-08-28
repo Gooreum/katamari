@@ -177,6 +177,18 @@ export interface CityData {
      * 이게 없던 시절엔 동네에도 밥솥·서랍장이 굴러다녔다.
      */
     readonly labels?: LabelTable;
+    /**
+     * **바닥을 안 그리는 배치 전용 구역.** 방 위에 겹쳐서 물건을 모은다.
+     *
+     * 방(`StageRoom`)으로 만들면 같은 높이에 바닥이 두 장 깔려 z-fighting 이 난다.
+     * 그래서 `rooms` 와 나눠 든다 — `World` 는 배치에 `[...rooms, ...spots]` 를 넘기고
+     * 바닥은 `rooms` 만 그린다.
+     *
+     * 균등 난수가 「버려져 있다」로 읽히는 걸 여기가 고친다. 실제 집에서는
+     * 그릇이 싱크대 앞에 쌓이고 크레용이 책상 밑에 쏟아진다.
+     * **개수는 방에서 뺀 만큼**이라 밀도가 안 는다.
+     */
+    readonly spots?: readonly RoomPlacement[];
   };
 }
 

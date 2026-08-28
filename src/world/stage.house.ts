@@ -1,6 +1,6 @@
 import type { CityBuilding, CityData, CityRug, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
-import { ROOM_TABLES } from './generation';
+import { ROOM_TABLES, type RoomPlacement } from './generation';
 import {
   block, piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
   type PieceOpts, type SlabStyle,
@@ -161,13 +161,71 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 430, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true },
-  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 150, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true },
-  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 290, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true },
-  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 210, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true },
-  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 80, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true },
-  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 70, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 250, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 300, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true },
+  { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true },
+  { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.34, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true },
+  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true },
+  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 50, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true },
+  { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 52, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 178, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
+];
+
+
+/**
+ * 물건이 **모여 있는 자리.** 방 위에 겹치는 배치 전용 구역이다 — 바닥을 안 그린다.
+ *
+ * ## 왜 필요한가
+ *
+ * 방 배치는 사각형 안 난수다. `edge` 로 벽 쪽에 몰아도 그건 여전히 **난수**라,
+ * 「가장자리에 고르게 흩뿌려진」 그림이 된다. 실제 집은 그렇지 않다 —
+ * 그릇은 싱크대 앞에 쌓이고 크레용은 책상 밑에 쏟아져 있고 슬리퍼는 신발장 앞에 있다.
+ * **물건이 모이는 데는 이유가 있고, 그 이유는 대부분 가구다.**
+ *
+ * 그래서 자리는 전부 **가구를 기준으로** 잡는다 (그래서 가구가 먼저였다).
+ *
+ * ## 개수는 방에서 뺀 만큼이다
+ *
+ * 거실 430 → 방 300 + 자리 130 처럼 **총합 1,480을 유지한다.** 밀도를 올리면
+ * 이 작업이 배치를 고친 건지 물량을 늘린 건지 구별할 수 없게 된다.
+ *
+ * `edge` 는 안 준다(기본 1 = 균등). 자리는 이미 작은 사각형이라 그 안에서 또 밀 이유가 없다.
+ */
+export const HOUSE_SPOTS: readonly RoomPlacement[] = [
+  // ── 거실 130 (방 300 + 자리 130 = 430) ──────────────────
+  // 밥상 다리 사이. 원작에서 왕자가 상 밑을 지나가는 그 자리다
+  { id: 'spot-table', rect: [0.40, -0.90, 1.50, 0.10], sizeMin: 0.02, sizeMax: 0.16, count: 44, openAt: 0, labels: ROOM_TABLES['living']! },
+  // TV 앞 — 리모컨·건전지·과자가 굴러다니는 자리
+  { id: 'spot-tv', rect: [-2.60, -1.95, -2.00, -0.30], sizeMin: 0.01, sizeMax: 0.12, count: 34, openAt: 0, labels: ROOM_TABLES['living']! },
+  { id: 'spot-shelf', rect: [1.85, -2.15, 2.60, -1.20], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: 0, labels: ROOM_TABLES['living']! },
+  // 방 모서리. 쓸어 모아둔 것처럼 보이는 자리
+  { id: 'spot-corner', rect: [-2.60, 1.30, -1.70, 2.10], sizeMin: 0.01, sizeMax: 0.18, count: 24, openAt: 0, labels: ROOM_TABLES['living']! },
+
+  // ── 복도 40 ─────────────────────────────────────────────
+  { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! },
+  { id: 'spot-hallend', rect: [-0.85, -8.40, 0.85, -7.80], sizeMin: 0.01, sizeMax: 0.16, count: 18, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! },
+
+  // ── 아이 방 90 ──────────────────────────────────────────
+  // 책상 밑 — 크레용이 쏟아진 자리
+  { id: 'spot-desk', rect: [-4.30, -5.70, -3.10, -4.90], sizeMin: 0.01, sizeMax: 0.10, count: 38, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
+  { id: 'spot-quilt', rect: [-3.10, -5.60, -2.65, -3.70], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
+  { id: 'spot-toybox', rect: [-4.35, -3.40, -3.40, -2.45], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']! },
+
+  // ── 부엌 70 ─────────────────────────────────────────────
+  { id: 'spot-sink', rect: [-4.35, -7.75, -2.55, -7.20], sizeMin: 0.02, sizeMax: 0.20, count: 30, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
+  { id: 'spot-dining', rect: [-4.05, -7.00, -2.65, -6.10], sizeMin: 0.02, sizeMax: 0.26, count: 26, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
+  { id: 'spot-fridge', rect: [-2.30, -7.75, -1.60, -7.10], sizeMin: 0.02, sizeMax: 0.18, count: 14, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']! },
+
+  // ── 화장실 30 ───────────────────────────────────────────
+  { id: 'spot-tub', rect: [1.10, -8.45, 2.60, -7.70], sizeMin: 0.01, sizeMax: 0.14, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! },
+  { id: 'spot-basin', rect: [1.00, -7.35, 1.60, -6.85], sizeMin: 0.01, sizeMax: 0.12, count: 12, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']! },
+
+  // ── 툇마루 18 ───────────────────────────────────────────
+  { id: 'spot-porch', rect: [-2.60, 2.35, -1.60, 3.35], sizeMin: 0.02, sizeMax: 0.24, count: 18, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']! },
+
+  // ── 뒷마당 72 ───────────────────────────────────────────
+  { id: 'spot-dog', rect: [1.30, 3.90, 2.80, 5.40], sizeMin: 0.03, sizeMax: 0.30, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
+  { id: 'spot-deck', rect: [2.30, 7.20, 3.60, 8.50], sizeMin: 0.03, sizeMax: 0.34, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
+  { id: 'spot-shed', rect: [-3.90, 7.30, -2.10, 7.90], sizeMin: 0.03, sizeMax: 0.40, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']! },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
@@ -534,6 +592,12 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
   const rooms = area === 'living'
     ? HOUSE_ROOMS.filter((r) => r.id === 'living')
     : HOUSE_ROOMS;
+  // 자리도 같은 규칙으로 자른다 — 거실만 짓는 판에 부엌 싱크대 앞 물건을 깔면
+  // 벽 없는 자리에 물건이 생긴다
+  const spots = area === 'living'
+    ? HOUSE_SPOTS.filter((s) => s.id.startsWith('spot-table') || s.id.startsWith('spot-tv')
+      || s.id.startsWith('spot-shelf') || s.id.startsWith('spot-corner'))
+    : HOUSE_SPOTS;
   return {
     name: '타케다 저택',
     slug: 'house',
@@ -544,7 +608,7 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
     buildings: [...buildWalls(area), ...buildFurniture(area)],
     water: [],
     landmarks: [],
-    placement: { rooms },
+    placement: { rooms, spots },
     rugs: buildRugs(area),
   };
 }

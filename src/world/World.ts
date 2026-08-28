@@ -97,6 +97,12 @@ export class World {
     // 방마다 개수와 크기 범위를 직접 적어뒀고, 그게 곧 사다리다.
     // 좌표도 이미 월드 기준이라 아래 스폰 오프셋에서 빠진다.
     const rooms = cityData?.placement?.rooms;
+    // **배치에는 자리까지, 바닥에는 방만.** 자리(`spots`)는 방 위에 겹치는 구역이라
+    // 바닥을 그리면 같은 높이에 두 장이 깔려 깜빡인다. 아래 `buildRoomFloor` 루프는
+    // 그대로 `rooms` 만 돈다.
+    const placed = rooms
+      ? [...rooms, ...(cityData?.placement?.spots ?? [])]
+      : undefined;
     const specs: ObjectSpec[] = generateWorld(
       seed,
       rooms ? {} : cityData ? {
@@ -104,7 +110,7 @@ export class World {
         placeMax: reach,
       } : {},
       isBlocked && ((x, z) => isBlocked(x + spawnX, z + spawnZ)),
-      rooms,
+      placed,
       // 라벨 표도 스테이지가 갖는다 — 동네에 밥솥이 굴러다니면 안 된다
       cityData?.placement?.labels,
     );

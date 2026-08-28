@@ -33,7 +33,11 @@ const AREA: StageArea = process.argv.includes('--town') ? 'town'
 const STAGE = AREA === 'town' ? buildTownStage()
   : AREA === 'world' ? buildWorldStage()
   : buildHouseStage(AREA);
-const ROOMS = process.argv.includes('--donut') ? undefined : STAGE.placement?.rooms;
+// **자리(spots)도 배치에 들어간다.** 게임이 `[...rooms, ...spots]` 로 물건을 까므로
+// 도구가 방만 보면 자리에 모인 물건을 통째로 빠뜨린 월드를 재게 된다.
+// `gateOf()` 도 이 배열을 순회하므로 자리의 openAt 이 자동으로 반영된다.
+const PLACE = process.argv.includes('--donut') ? undefined : STAGE.placement;
+const ROOMS = PLACE ? [...PLACE.rooms, ...(PLACE.spots ?? [])] : undefined;
 
 /**
  * **건물도 먹을 수 있는 물체다.**

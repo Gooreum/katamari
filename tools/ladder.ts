@@ -51,7 +51,7 @@ if (slug === 'house') {
 const items: Item[] = [];
 const place = city.placement;
 const specs = place
-  ? generateWorld(1337, {}, undefined, place.rooms, place.labels)
+  ? generateWorld(1337, {}, undefined, [...place.rooms, ...(place.spots ?? [])], place.labels)
   : generateWorld(1337);
 for (const s of specs) items.push({ size: s.size, source: 'street', label: s.label });
 for (const b of city.buildings) {
