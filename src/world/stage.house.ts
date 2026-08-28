@@ -1,6 +1,7 @@
 import type { CityBuilding, CityData, CityRug, StageRoom } from './cityData';
 import type { StageArea } from '../game/Stage';
 import { ROOM_TABLES, type RoomPlacement } from './generation';
+import { TUNING } from '../game/tuning';
 import {
   block, piece as kitPiece, pillar as kitPillar, wallWithDoor as kitWallWithDoor,
   type PieceOpts, type SlabStyle,
@@ -165,7 +166,7 @@ const F_PORCH = 0xbf8038;
 const F_DIRT = 0x9c7b48;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
-  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 300, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
+  { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.28, count: 130, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
   { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 110, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true, ceiling: 2.4 },
   { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 200, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true, ceiling: 2.4 },
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 140, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
@@ -199,14 +200,36 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
  * 자리 사각형은 방과 같은 축이라 자리 모서리에 맞추면 벽에 맞추는 것과 같은 방향이 나온다.
  */
 export const HOUSE_SPOTS: readonly RoomPlacement[] = [
-  // ── 거실 130 (방 300 + 자리 130 = 430) ──────────────────
+  // ── 거실 — 바닥 자리 120 + 표면 30 (방 130 + 150 = 280) ──
+  //
+  // **개수를 430 → 280 으로 줄였다.** 24.3m² 에 430개면 한 뼘마다 물건이라
+  // 아무리 정돈해도 쓰레기장으로 보인다. `curve` 로 재보면 star1(10cm)은 그중
+  // **21개만 먹으면 끝난다** — 스무 배가 남아돌았다.
+
   // 밥상 다리 사이. 원작에서 왕자가 상 밑을 지나가는 그 자리다
-  { id: 'spot-table', rect: [0.40, -0.90, 1.50, 0.10], sizeMin: 0.02, sizeMax: 0.16, count: 44, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
-  // TV 앞 — 리모컨·건전지·과자가 굴러다니는 자리
-  { id: 'spot-tv', rect: [-2.60, -1.95, -2.00, -0.30], sizeMin: 0.01, sizeMax: 0.12, count: 34, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
-  { id: 'spot-shelf', rect: [1.85, -2.15, 2.60, -1.20], sizeMin: 0.01, sizeMax: 0.14, count: 28, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
+  { id: 'spot-under-table', rect: [0.46, 0.16, 1.04, 0.74], sizeMin: 0.010, sizeMax: 0.10, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
+  // TV 앞 — 리모컨·건전지가 굴러다니는 자리
+  { id: 'spot-tv-front', rect: [-2.05, -1.30, -1.55, -0.40], sizeMin: 0.010, sizeMax: 0.16, count: 20, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
+  { id: 'spot-chest-front', rect: [-2.10, 0.90, -1.60, 1.80], sizeMin: 0.010, sizeMax: 0.18, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
+  { id: 'spot-shelf-front', rect: [1.95, -1.70, 2.60, -1.20], sizeMin: 0.010, sizeMax: 0.16, count: 16, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
   // 방 모서리. 쓸어 모아둔 것처럼 보이는 자리
-  { id: 'spot-corner', rect: [-2.60, 1.30, -1.70, 2.10], sizeMin: 0.01, sizeMax: 0.18, count: 24, openAt: 0, labels: ROOM_TABLES['living']! , align: true },
+  { id: 'spot-corner-sw', rect: [-2.58, 1.60, -1.90, 2.10], sizeMin: 0.020, sizeMax: 0.22, count: 24, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
+  // 툇마루 문 앞 — 드나드는 자리
+  { id: 'spot-door-south', rect: [-0.60, 1.70, 0.60, 2.10], sizeMin: 0.020, sizeMax: 0.20, count: 24, openAt: 0, labels: ROOM_TABLES['living']!, align: true },
+
+  // ── 거실 표면 30 — `y` 가 있으면 그 높이에 얹힌다 ────────
+  //
+  // **이게 이 작업의 핵심이다.** 물건이 전부 바닥에 있던 게 「나뒹군다」의 정체였다.
+  // 여기 30개는 star1(10cm)에서 **하나도 안 먹힌다** — 올려다보기만 하는 물건이고
+  // 그게 「저건 나중에」라는 원작의 감각이다. star4(1m)에서 비로소 상 위를 쓸어간다.
+  { id: 'surf-table', rect: [0.40, 0.10, 1.10, 0.80], sizeMin: 0.020, sizeMax: 0.14, count: 9, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.32 },
+  { id: 'surf-tv', rect: [-2.28, -1.30, -2.07, -0.40], sizeMin: 0.020, sizeMax: 0.16, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.42 },
+  { id: 'surf-chest', rect: [-2.55, 0.95, -2.20, 1.75], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.62 },
+  { id: 'surf-shelf-low', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.32 },
+  { id: 'surf-shelf-high', rect: [2.05, -2.05, 2.50, -1.80], sizeMin: 0.020, sizeMax: 0.22, count: 3, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.66 },
+  { id: 'surf-papers', rect: [-2.55, -2.10, -2.25, -1.80], sizeMin: 0.020, sizeMax: 0.20, count: 4, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.22 },
+  { id: 'surf-plant', rect: [2.30, 1.00, 2.53, 1.25], sizeMin: 0.020, sizeMax: 0.16, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.55 },
+  { id: 'surf-cushions', rect: [2.25, 1.50, 2.55, 1.90], sizeMin: 0.020, sizeMax: 0.18, count: 2, openAt: 0, labels: ROOM_TABLES['living']!, y: 0.28 },
 
   // ── 복도 40 ─────────────────────────────────────────────
   { id: 'spot-shoe', rect: [-0.85, -3.40, -0.35, -2.40], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']! , align: true },
@@ -690,9 +713,11 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
     : HOUSE_ROOMS;
   // 자리도 같은 규칙으로 자른다 — 거실만 짓는 판에 부엌 싱크대 앞 물건을 깔면
   // 벽 없는 자리에 물건이 생긴다
+  // 거실 자리·표면은 **이름이 아니라 사각형으로 고른다** — 새 자리를 더해도 안 어긋난다
   const spots = area === 'living'
-    ? HOUSE_SPOTS.filter((s) => s.id.startsWith('spot-table') || s.id.startsWith('spot-tv')
-      || s.id.startsWith('spot-shelf') || s.id.startsWith('spot-corner'))
+    ? HOUSE_SPOTS.filter((q) =>
+      q.rect[0] >= R_LIVING[0] && q.rect[2] <= R_LIVING[2]
+      && q.rect[1] >= R_LIVING[1] && q.rect[3] <= R_LIVING[3])
     : HOUSE_SPOTS;
   return {
     name: '타케다 저택',
@@ -721,5 +746,29 @@ export function buildHouseStage(area: StageArea = 'house'): CityData {
  */
 function buildRugs(area: StageArea): CityRug[] {
   if (area !== 'living' && area !== 'house') return [];
-  return [{ cx: 0.35, cz: -0.25, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' }];
+  /** 표면이 사라지는 지름 = 그 가구가 먹히는 지름. 다리를 먹었는데 상판이 남으면 안 된다 */
+  const eatenAt = (size: number): number => size / TUNING.pickRatio;
+  return [
+    // 깔개 — **밥상 아래로 옮겼다.** 다다미를 대각선으로 가르는 각도는 유지한다
+    { cx: 0.75, cz: 0.45, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' },
+
+    // ── 표면 여덟 ───────────────────────────────────────────
+    // `HOUSE_SPOTS` 의 `surf-*` 여덟 곳과 **같은 자리·같은 높이**여야 한다.
+    // 여기는 눈에 보이는 판이고 저기는 그 위에 놓이는 물건이다 — 어긋나면 물건이 허공에 뜬다.
+    // 밥상 상판. 다리(0.32)가 먹히는 지름에 같이 사라진다
+    { cx: 0.75, cz: 0.45, w: 0.95, d: 0.95, rotY: 0, tex: 'wood', y: 0.32, hideAt: eatenAt(0.32) },
+    // TV장 상판
+    { cx: -2.175, cz: -0.85, w: 0.25, d: 1.00, rotY: 0, tex: 'wood', y: 0.42, hideAt: eatenAt(1.00) },
+    // 서랍장 위
+    { cx: -2.375, cz: 1.35, w: 0.45, d: 0.90, rotY: 0, tex: 'wood', y: 0.62, hideAt: eatenAt(0.90) },
+    // 책장 두 칸. 측판(1.05)이 먹혀야 칸이 사라진다
+    { cx: 2.275, cz: -1.925, w: 0.45, d: 0.25, rotY: 0, tex: 'wood', y: 0.32, hideAt: eatenAt(1.05) },
+    { cx: 2.275, cz: -1.925, w: 0.45, d: 0.25, rotY: 0, tex: 'wood', y: 0.66, hideAt: eatenAt(1.05) },
+    // 신문더미 위
+    { cx: -2.40, cz: -1.95, w: 0.30, d: 0.30, rotY: 0, tex: 'wood', y: 0.22, hideAt: eatenAt(0.45) },
+    // 화분대 위
+    { cx: 2.415, cz: 1.125, w: 0.23, d: 0.25, rotY: 0, tex: 'wood', y: 0.55, hideAt: eatenAt(0.55) },
+    // 방석더미 위 — 여기만 깔개 무늬다. 천이니까
+    { cx: 2.40, cz: 1.70, w: 0.30, d: 0.40, rotY: 0, tex: 'rug', y: 0.28, hideAt: eatenAt(0.50) },
+  ];
 }
