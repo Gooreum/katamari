@@ -18,6 +18,9 @@ import {
   SHAPE_IDS_SMALL, TOTAL_GEOMETRY_COUNT,
   LABEL_BUCKETS, TOWN_BUCKETS, WORLD_BUCKETS, PALETTE, SHAPE_COLOR,
 } from '../src/world/generation';
+import { buildHouseStage } from '../src/world/stage.house';
+import { buildTownStage } from '../src/world/stage.town';
+import { buildWorldStage } from '../src/world/stage.world';
 
 /** 규약 허용 오차. 부동소수 누적분만 봐주고 그 이상은 버그다. */
 const EPS = 0.001;
@@ -85,8 +88,15 @@ for (const geo of shapes) {
 
 // **스테이지마다 라벨 표가 다르다.** 집 표만 보면 동네 형태 20종이 전부
 // "죽은 지오메트리"로 잡힌다 — 실제로는 동네 맵이 쓰는 것들이다.
+//
+// **손배치 물건도 세어야 한다.** 가구(`placement.props`)는 난수 표를 안 거치고
+// 이름으로 직접 형상을 고른다 — 「모든 형상은 라벨 표에서 뽑힌다」는 이 검사의
+// 전제가 그때 낡았다. 표에만 없다고 죽은 지오메트리로 잡으면 도구가 거짓말을 한다.
+const propLabels = [buildHouseStage(), buildTownStage(), buildWorldStage()]
+  .flatMap((c) => (c.placement?.props ?? []).map((p) => p.label));
 const allLabels = new Set([
   ...LABEL_BUCKETS.flat(), ...TOWN_BUCKETS.flat(), ...WORLD_BUCKETS.flat(),
+  ...propLabels,
 ]);
 const missing = SHAPE_IDS.filter((id) => !allLabels.has(id));
 

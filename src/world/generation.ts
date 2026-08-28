@@ -93,6 +93,9 @@ export const SHAPE_COLOR: Record<string, readonly number[]> = {
   // 그래서 어두운 색을 주면 검은 구슬이 된다 — 밝고 선명한 셋만 준다.
   구슬: [13, 14, 16], '장난감 블록': [8, 10, 11, 14], 딱지: [8, 10, 11],
   공책: [0, 14], 곰인형: [18, 2],
+  // ── 가구 (손배치 전용 — 난수로는 안 뽑힌다) ────────────────
+  // 나무 계열은 7(나무), 종이 더미는 0(종이 흰색). 손배치는 첫 색만 쓴다
+  TV장: [7], 책장: [7], 밥상: [7], 신문더미: [0], 화분대: [7], 방석더미: [19],
   // ── 동네 맵 전용 ────────────────────────────────────────────
   꽃잎: [8, 10, 13], 자갈: [3, 4], 병뚜껑: [8, 11], 도토리: [7], 솔방울: [7],
   동전: [6], 꽃: [8, 10, 13, 16], '연어 캔': [6, 11], 쥐: [5], 골프공: [0],
@@ -212,8 +215,23 @@ export const SHAPE_IDS_HOUSE = [
   '구슬', '장난감 블록', '딱지', '공책', '곰인형',
 ] as const;
 
+/**
+ * **가구 형상.** `shapes.furniture.ts` 가 전부 구현해야 한다.
+ *
+ * 여기 있는 건 기존 목록에 **아예 없던 것들**이다. 텔레비전·서랍장·스탠드·방석은
+ * 이미 `SHAPE_IDS_LARGE`/`MID` 에 제대로 된 형상이 있었다(텔레비전은 다이얼 둘과
+ * 안테나 둘까지 붙은 9부품이다) — **거실이 그걸 안 쓰고 압출 상자를 쓰고 있었을 뿐이다.**
+ * 손배치 경로(`StageProp`)가 생기면서 그 형상들을 그대로 쓸 수 있게 됐다.
+ *
+ * 이름 옆 숫자가 실물 최대 변(cm).
+ */
+export const SHAPE_IDS_FURNITURE = [
+  'TV장', '책장', '밥상', '신문더미', '화분대', '방석더미',
+] as const;
+
 export const SHAPE_IDS = [
   ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_HOUSE,
+  ...SHAPE_IDS_FURNITURE,
   ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
 ];
 
@@ -221,10 +239,12 @@ export type ShapeIdSmall = (typeof SHAPE_IDS_SMALL)[number];
 export type ShapeIdMid = (typeof SHAPE_IDS_MID)[number];
 export type ShapeIdLarge = (typeof SHAPE_IDS_LARGE)[number];
 export type ShapeIdHouse = (typeof SHAPE_IDS_HOUSE)[number];
+export type ShapeIdFurniture = (typeof SHAPE_IDS_FURNITURE)[number];
 export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
 export type ShapeIdWorld = (typeof SHAPE_IDS_WORLD)[number];
 export type ShapeId =
-  | ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdHouse | ShapeIdTown | ShapeIdWorld;
+  | ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdHouse | ShapeIdFurniture
+  | ShapeIdTown | ShapeIdWorld;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;

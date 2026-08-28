@@ -1,5 +1,6 @@
 import type { BufferGeometry } from 'three';
 import { SHAPE_IDS, type ShapeId } from './generation';
+import { FURNITURE_BUILDERS } from './shapes.furniture';
 import { HOUSE_BUILDERS } from './shapes.house';
 import { LARGE_BUILDERS } from './shapes.large';
 import { MID_BUILDERS } from './shapes.mid';
@@ -17,6 +18,7 @@ export { withWhiteColors } from './shapes.kit';
  *   shapes.mid.ts    버킷 3~5 (8cm~63cm)
  *   shapes.large.ts  버킷 6~8 (63cm~5m)
  *   shapes.house.ts  방 정체성 전용 (부엌·화장실·아이 방 — 크기가 아니라 방으로 묶었다)
+ *   shapes.furniture.ts  가구 — 손배치(`StageProp`) 전용. 난수로는 안 뽑힌다
  *   shapes.town.ts   동네 맵 전용 (집에 없는 것들)
  *   shapes.world.ts  World 맵 전용 (1.15~4m — 동네에서는 배경이던 것들)
  * 조립 도구(part/assemble/normalize)와 형태 규약은 shapes.kit.ts 에 있다.
@@ -29,6 +31,7 @@ const BUILDERS: Record<ShapeId, () => BufferGeometry> = {
   ...MID_BUILDERS,
   ...LARGE_BUILDERS,
   ...HOUSE_BUILDERS,
+  ...FURNITURE_BUILDERS,
   ...TOWN_BUILDERS,
   ...WORLD_BUILDERS,
 };
