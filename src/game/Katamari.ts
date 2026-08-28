@@ -5,6 +5,8 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from './tuning';
 import { SurfacePacking, type Bump } from './SurfacePacking';
+import { getPrintAtlas, TILE } from '../world/atlas';
+import { foldUv } from '../world/shapes.kit';
 
 export { TUNING } from './tuning';
 
@@ -369,16 +371,19 @@ export class Katamari {
       const geo = mesh.geometry.clone();
       geo.applyMatrix4(mesh.matrix);
       /**
-       * **uv 는 여기서 지운다 — 인쇄 아틀라스가 생긴 뒤에도 그대로다.**
+       * **속성 구성을 맞춘다 — 지우는 게 아니라 채운다.**
        *
-       * 형태 지오메트리(`shapes.kit.assemble`)는 이제 전부 uv 를 갖지만
-       * **건물(`City.ts`)은 uv 를 지운다.** 둘이 섞이면 `mergeGeometries` 가
-       * 속성 구성 불일치로 null 을 돌려주고, 아래 `if (!merged) return` 이
-       * 조용히 넘어가서 **공에 붙은 물건이 통째로 사라진다.**
-       * 그래서 여기서 한쪽으로 맞춘다. 공에 붙은 뒤 인쇄가 없어지는 건
-       * 그 대가다 — 살리려면 City 도 uv 를 갖게 만드는 게 먼저다.
+       * `mergeGeometries` 는 구성이 다르면 null 을 돌려주고, 아래 `if (!merged) return`
+       * 이 조용히 넘어가서 **공에 붙은 물건이 통째로 사라진다.** 형태
+       * (`shapes.kit.assemble`)는 uv 가 있고 건물(`City.ts:376`)은 없으니
+       * 한쪽으로 맞춰야 하는 건 맞다.
+       *
+       * 예전엔 **있는 쪽을 지웠다.** 그래서 주사위를 붙이는 순간 눈이 사라졌다.
+       * 없는 쪽을 순백 칸으로 접으면(= 흰색을 곱하는 것 = 무변화) 건물은 그대로면서
+       * 인쇄는 살아남는다. `City` 전체의 uv(도시 기준 2.6MB)를 되살릴 필요가 없다 —
+       * 굽는 건 공에 붙은 몇백 개뿐이다.
        */
-      geo.deleteAttribute('uv');
+      if (!geo.getAttribute('uv')) foldUv(geo, TILE.BLANK);
 
       // 정점색은 머티리얼 색에 **곱해지는 계수**다 — 덮어쓰면 안 된다.
       //   · 형태 지오메트리: 바퀴·창문 대비가 구운 순간 사라진다
@@ -404,9 +409,17 @@ export class Katamari {
     for (const g of geometries) g.dispose();
     if (!merged) return;
 
+    /**
+     * 구운 것도 **같은 아틀라스**를 본다. 안 물리면 위에서 uv 를 살려둬도
+     * 인쇄가 안 나온다 — 살릴 uv 와 읽을 텍스처는 별개다.
+     * `getPrintAtlas()` 가 메모이즈라 월드와 한 장을 공유한다(텍스처 증가 0).
+     */
+    const atlas = getPrintAtlas();
     const baked = new Mesh(
       merged,
-      new MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+      new MeshLambertMaterial({
+        vertexColors: true, flatShading: true, ...(atlas ? { map: atlas } : {}),
+      }),
     );
     baked.frustumCulled = false;
     baked.name = `baked_${this.bakedCount++}`;

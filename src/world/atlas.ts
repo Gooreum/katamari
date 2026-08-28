@@ -219,3 +219,25 @@ export function buildPrintAtlas(): CanvasTexture {
   tex.flipY = false;
   return tex;
 }
+
+/** `getPrintAtlas()` 가 들고 있는 한 장. 모듈 수준이라 import 하는 쪽이 같은 걸 본다. */
+let cached: CanvasTexture | null = null;
+
+/**
+ * 아틀라스 **한 장**을 공유한다.
+ *
+ * 월드 인스턴스·팔레트(`World`)와 **구운 공**(`Katamari.bake`)이 같은 장을 봐야
+ * GPU 텍스처가 하나로 유지된다. 각자 `buildPrintAtlas()` 를 부르면 같은 그림을
+ * 두 장 올리게 된다.
+ *
+ * **DOM 이 없으면 null.** `tools/placecheck.ts` 같은 Node 검사는 `World` 를 그대로
+ * 생성하는데, 생성자에서 `document.createElement('canvas')` 를 타면 그 도구들이
+ * 통째로 죽는다 — 실제로 죽였다. 가드를 호출부마다 두는 대신 여기 한 곳에 모은다.
+ *
+ * 스테이지 전환은 페이지 리로드라(`main.ts:52`) 캐시가 낡을 일이 없다.
+ */
+export function getPrintAtlas(): CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!cached) cached = buildPrintAtlas();
+  return cached;
+}

@@ -9,7 +9,7 @@ import { generateWorld, GENERATION, PALETTE, type BlockedFn, type ObjectSpec } f
 import { buildShapeGeometries, withWhiteColors } from './shapes';
 import { City } from './City';
 import { FLOOR_TEX, TILE_M } from './floors';
-import { buildPrintAtlas } from './atlas';
+import { getPrintAtlas } from './atlas';
 import type { CityData, CityRug, StageRoom } from './cityData';
 
 export const GROUND_SIZE = 500;
@@ -136,12 +136,14 @@ export class World {
      * 인쇄를 안 받는 형태는 지금까지와 똑같다.
      */
     /**
-     * **DOM 이 없으면 안 만든다.** 아틀라스는 `document.createElement('canvas')` 를
-     * 쓰는데 `tools/placecheck.ts` 같은 검사는 Node 에서 `World` 를 그대로 생성한다.
-     * 생성자에서 무조건 부르면 그 도구들이 통째로 죽는다 — 실제로 죽였다.
-     * 도구는 배치 숫자만 보므로 텍스처가 없어도 재는 값이 안 달라진다.
+     * **DOM 가드는 `getPrintAtlas()` 안에 있다.** `tools/placecheck.ts` 같은 검사는
+     * Node 에서 `World` 를 그대로 생성하는데, 아틀라스가 `document.createElement` 를
+     * 타면 그 도구들이 통째로 죽는다 — 실제로 죽였다. 도구는 배치 숫자만 보므로
+     * 텍스처가 없어도 재는 값이 안 달라진다.
+     *
+     * 구운 공(`Katamari.bake`)도 같은 함수를 부른다 — **텍스처는 한 장**이다.
      */
-    const printAtlas = typeof document === 'undefined' ? null : buildPrintAtlas();
+    const printAtlas = getPrintAtlas();
     const printMap = printAtlas ? { map: printAtlas } : {};
     for (const c of PALETTE) {
       this.materials.push(new MeshLambertMaterial({
