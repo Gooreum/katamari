@@ -1,4 +1,6 @@
-import { BufferAttribute, BufferGeometry, CylinderGeometry, TorusGeometry } from 'three';
+import {
+  BoxGeometry, BufferAttribute, BufferGeometry, CylinderGeometry, TorusGeometry,
+} from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TILE, tileUv } from './atlas';
 
@@ -110,6 +112,190 @@ export function paint(geo: BufferGeometry, rgb: RGB): void {
     colors[i * 3 + 2] = rgb[2];
   }
   geo.setAttribute('color', new BufferAttribute(colors, 3));
+}
+
+/**
+ * **모서리를 깎은 상자.** `new BoxGeometry(w, h, d)` 자리에 그대로 들어간다.
+ *
+ * ## 왜 생겼나
+ *
+ * 앞선 작업에서 `flatShading: true` 를 껐더니 **곡면은 실제로 부드러워졌다** —
+ * 사과·전구·비누·찻잔을 화면으로 확인했다. 그런데도 사용자가 말했다:
+ *
+ * > 「사물들이 여전히 너무 각져있다」
+ *
+ * 당연하다. **상자의 모서리는 음영이 아니라 «형상»이 만든다.** `BoxGeometry` 의
+ * 모서리는 수학적으로 날카롭고, 음영을 어떻게 하든 거기엔 아무 일도 안 일어난다.
+ * 그리고 실물에는 그런 모서리가 없다 — 종이 상자에도 1mm 라운드가 있고 거기서
+ * 빛이 한 번 꺾인다. 거실 형태 36종 중 **24종이 상자**였다.
+ *
+ * ## 44삼각형 — 면 6 + 모서리 띠 12 + 꼭짓점 8
+ *
+ * three 의 `RoundedBoxGeometry`(examples)는 같은 그림에 **108삼각형**을 쓴다.
+ * `BoxGeometry(1,1,1,3,3,3)` 를 깎는 방식이라 면 한가운데를 3×3 으로 쪼개는데
+ * 그 조각들은 평평해서 그림에 아무 기여도 안 한다. 형태는 판끼리 공유되므로
+ * (텔레비전 하나를 깎으면 그 형태가 나오는 모든 판이 같이 무거워진다)
+ * 같은 그림에 삼각형을 2.5배 쓸 이유가 없다.
+ *
+ * ## 모서리 띠의 법선을 «양쪽 면»으로 나눠 준다
+ *
+ * 띠에 자기 법선 하나(45°)를 주면 밝은 띠가 생겨서 「깎았다」로 보인다.
+ * 대신 띠의 X쪽 정점에 (±1,0,0), Y쪽 정점에 (0,±1,0) 을 주면 그 사이가 보간돼서
+ * **「둥글렸다」로 보인다.** 삼각형을 하나도 더 안 쓰고 그렇게 된다.
+ *
+ * ## 바깥 치수는 «안 변한다»
+ *
+ * 모따기는 **안쪽으로만** 깎는다. bbox 가 그대로라 `normalize()` 결과가 같고,
+ * 그래서 충돌 상자·`spots` 의 상판 높이·`size` 가 전부 그대로다.
+ * (앞선 작업에서 세그먼트를 올렸다가 방석더미 상단이 0.196 → 0.185 로 내려가
+ * 얹힌 물건이 1.1cm 뜬 적이 있다. 그 사고는 여기서는 원리상 안 난다.)
+ *
+ * ## uv 는 `BoxGeometry` 와 «똑같이» 맞춘다
+ *
+ * 성냥갑·지우개·캐러멜 상자·책은 면에 인쇄를 문다. u·v 축이 뒤집히면 글자가
+ * 거울로 나온다. three 의 `buildPlane` 여섯 호출을 그대로 옮겨 적었다.
+ *
+ * ## 색인(indexed) 지오메트리를 낸다
+ *
+ * `mergeGeometries` 는 부품들의 색인 유무가 **전부 같기**를 요구한다. 기본 도형
+ * (Box·Cylinder·Sphere·Torus)이 전부 색인이라 여기도 색인이어야 한다 —
+ * 아니면 이 부품을 쓴 형태만 병합이 통째로 실패한다.
+ *
+ * ## 깎을지 말지는 «부르는 쪽»이 정한다
+ *
+ * 「짧은 변이 얼마 이상이면 깎는다」는 자동 규칙을 넣으려다 **단위가 틀린 걸
+ * 발견해서 버렸다.** 치수는 자기 몸 대비 비율이라, 같은 `0.04` 가 1m 짜리
+ * TV장에서는 4cm 측판(모따기 9mm — 잘 보인다)이고 5.5cm 짜리 화투에서는
+ * 2mm 낱장(모따기 0.1mm — 안 보인다)이다. **문턱값 하나로 둘을 못 가른다.**
+ * 아래 `1e-3` 검사는 설계 기준이 아니라 퇴화 방지용 수치 안전장치다.
+ *
+ * @param w·h·d  바깥 치수. **모따기해도 이 값은 안 변한다**
+ * @param bevel  짧은 변 대비 모따기 비율. 기본 0.22, 0.45 를 넘길 수 없다
+ */
+export function soft(w: number, h: number, d: number, bevel = 0.22): BufferGeometry {
+  const half = [w / 2, h / 2, d / 2] as const;
+  const mn = Math.min(w, h, d);
+  if (mn < 1e-3) return new BoxGeometry(w, h, d);
+  const c = mn * Math.min(bevel, 0.45);
+
+  const pos: number[] = [], nrm: number[] = [], uv: number[] = [], idx: number[] = [];
+
+  /**
+   * 꼭짓점마다 점이 **셋**이다 — X면 쪽 · Y면 쪽 · Z면 쪽.
+   * `face` 축만 끝까지 나가고 나머지 둘은 c 만큼 안으로 들어온다.
+   * 이 셋을 이으면 그게 꼭짓점 삼각형이 된다.
+   */
+  const at = (s: readonly number[], face: number): Vec3 => [
+    s[0]! * (face === 0 ? half[0] : half[0] - c),
+    s[1]! * (face === 1 ? half[1] : half[1] - c),
+    s[2]! * (face === 2 ? half[2] : half[2] - c),
+  ];
+
+  /**
+   * `BoxGeometry` 의 uv 규약. three r169 `BoxGeometry` 의 `buildPlane` 여섯 호출
+   * (px·nx·py·ny·pz·nz)에서 그대로 옮겼다. 이게 틀리면 인쇄가 뒤집힌다.
+   *
+   * **나누는 값이 바깥 치수가 아니라 «깎이고 남은 면»의 치수다.** 처음엔 바깥
+   * 치수로 나눴는데, 그러면 면이 c 만큼 안으로 들어간 만큼 uv 도 안으로 들어가서
+   * (1×1×1 에 c=0.22 면 0.22~0.78) 인쇄의 **바깥 22% 가 잘려 나갔다.**
+   * 성냥갑 라벨이 테두리를 잃는다는 뜻이다. 남은 면을 0~1 로 꽉 채우면 인쇄가
+   * 온전히 들어가고, 모서리 띠는 자기가 붙은 면의 가장자리 색을 이어받는다.
+   * (`bevel` 이 0.45 로 잘려 있어 분모가 0이 될 일은 없다 — 최소 0.1×짧은 변)
+   */
+  const inset = [w - 2 * c, h - 2 * c, d - 2 * c] as const;
+  const uvOf = (p: Vec3, face: number, sign: number): readonly [number, number] => {
+    if (face === 0) return [0.5 - (sign * p[2]) / inset[2], 0.5 + p[1] / inset[1]];
+    if (face === 1) return [0.5 + p[0] / inset[0], 0.5 - (sign * p[2]) / inset[2]];
+    return [0.5 + (sign * p[0]) / inset[0], 0.5 + p[1] / inset[1]];
+  };
+
+  const push = (p: Vec3, n: Vec3, face: number, sign: number): number => {
+    const [u, v] = uvOf(p, face, sign);
+    pos.push(p[0], p[1], p[2]);
+    nrm.push(n[0], n[1], n[2]);
+    uv.push(u, v);
+    return pos.length / 3 - 1;
+  };
+
+  const axis = (a: number, s: number): Vec3 =>
+    (a === 0 ? [s, 0, 0] : a === 1 ? [0, s, 0] : [0, 0, s]) as Vec3;
+
+  /**
+   * 감기 방향을 **계산해서** 맞춘다. 축·부호를 손으로 따지면 24장 중 몇 장이
+   * 반드시 뒤집히고, 그건 화면에서 「구멍」으로 보인다. 첫 삼각형의 기하 법선이
+   * 바깥쪽을 향하는지 보고 아니면 뒤집는다.
+   */
+  const emit = (ids: number[], pts: Vec3[], out: Vec3): void => {
+    const [p0, p1, p2] = pts as [Vec3, Vec3, Vec3];
+    const e1: Vec3 = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+    const e2: Vec3 = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+    const g: Vec3 = [
+      e1[1] * e2[2] - e1[2] * e2[1],
+      e1[2] * e2[0] - e1[0] * e2[2],
+      e1[0] * e2[1] - e1[1] * e2[0],
+    ];
+    const order = g[0] * out[0] + g[1] * out[1] + g[2] * out[2] >= 0
+      ? ids : [...ids].reverse();
+    for (let i = 2; i < order.length; i++) idx.push(order[0]!, order[i - 1]!, order[i]!);
+  };
+
+  const SIGNS = [-1, 1] as const;
+
+  // ── ① 면 6장 — c 만큼 안으로 들어간 사각형. 법선은 축 그대로 ──
+  for (let a = 0; a < 3; a++) {
+    const b = (a + 1) % 3, e = (a + 2) % 3;
+    for (const s of SIGNS) {
+      const n = axis(a, s);
+      const ids: number[] = [], pts: Vec3[] = [];
+      for (const [sb, se] of [[1, -1], [1, 1], [-1, 1], [-1, -1]] as const) {
+        const sg = [0, 0, 0]; sg[a] = s; sg[b] = sb; sg[e] = se;
+        const p = at(sg, a);
+        pts.push(p); ids.push(push(p, n, a, s));
+      }
+      emit(ids, pts, n);
+    }
+  }
+
+  // ── ② 모서리 띠 12장 — 두 면을 잇는다. 법선을 양쪽 면 것으로 나눠 준다 ──
+  //
+  // 축 `e` 를 따라 뻗은 모서리는 나머지 두 축(a, b)의 부호로 정해진다.
+  for (let e = 0; e < 3; e++) {
+    const a = (e + 1) % 3, b = (e + 2) % 3;
+    for (const sa of SIGNS) for (const sb of SIGNS) {
+      const na = axis(a, sa), nb = axis(b, sb);
+      const out: Vec3 = [na[0] + nb[0], na[1] + nb[1], na[2] + nb[2]];
+      const ids: number[] = [], pts: Vec3[] = [];
+      // A쪽 두 점 → B쪽 두 점. 순서는 emit 이 바로잡는다
+      for (const [face, n, se] of [
+        [a, na, -1], [a, na, 1], [b, nb, 1], [b, nb, -1],
+      ] as const) {
+        const sg = [0, 0, 0]; sg[a] = sa; sg[b] = sb; sg[e] = se;
+        const p = at(sg, face);
+        pts.push(p); ids.push(push(p, n, face, face === a ? sa : sb));
+      }
+      emit(ids, pts, out);
+    }
+  }
+
+  // ── ③ 꼭짓점 8개 — 세 면을 잇는 삼각형 ──
+  for (const sx of SIGNS) for (const sy of SIGNS) for (const sz of SIGNS) {
+    const sg = [sx, sy, sz] as const;
+    const ids: number[] = [], pts: Vec3[] = [];
+    for (let f = 0; f < 3; f++) {
+      const p = at(sg, f);
+      pts.push(p); ids.push(push(p, axis(f, sg[f]!), f, sg[f]!));
+    }
+    emit(ids, pts, [sx, sy, sz]);
+  }
+
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
+  geo.setAttribute('normal', new BufferAttribute(new Float32Array(nrm), 3));
+  geo.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2));
+  geo.setIndex(idx);
+  // 바깥 치수를 «잰 값»으로 남긴다 — normalize() 와 검사가 이걸 본다
+  geo.computeBoundingBox();
+  return geo;
 }
 
 /**
