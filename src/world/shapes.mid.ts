@@ -170,14 +170,32 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   // ─── 버킷 5 (30~60cm) ────────────────────────────────────────
 
+  /**
+   * 네모 방석 — 자부톤 (40cm).
+   *
+   * **직육면체 둘을 포갠 웨딩케이크였다.** 스폰 정면에 넷이 상을 둘러싸고 있어서
+   * 「너무 각져 보인다」의 첫 번째 증거물이 이것이다. 화면에서는 모서리가 칼처럼
+   * 선 콘크리트 블록이었다.
+   *
+   * 방석은 속에 솜이 든 물건이라 **모서리가 없고 가운데가 부푼다** — 그 둘이
+   * 방석의 전부다. 위 판을 「더 작은 상자」로 얹던 걸 «눌린 구»로 바꾼 게 부픔이고,
+   * 모따기를 최대(0.45)로 준 게 모서리다. 둘 중 하나만 하면 여전히
+   * 「모서리 둥근 블록」에서 못 벗어난다.
+   */
   방석: () => assemble([
-    // 네모 방석 (자부톤). 모서리에 술이 달려 있다
-    part(new BoxGeometry(0.92, 0.16, 0.92), WHITE, [0, 0.08, 0]),
-    part(new BoxGeometry(0.80, 0.20, 0.80), WHITE, [0, 0.09, 0]),
-    part(new SphereGeometry(0.05, 5, 4), PAPER, [0.44, 0.08, 0.44]),
-    part(new SphereGeometry(0.05, 5, 4), PAPER, [-0.44, 0.08, 0.44]),
-    part(new SphereGeometry(0.05, 5, 4), PAPER, [0.44, 0.08, -0.44]),
-    part(new SphereGeometry(0.05, 5, 4), PAPER, [-0.44, 0.08, -0.44]),
+    part(soft(0.92, 0.19, 0.92, 0.45), WHITE, [0, 0.095, 0]),
+    // 솜의 부픔 — 눌린 구.
+    //
+    // **밑면 밖으로 나가면 안 된다.** 처음엔 0.34 로 눌러서 구의 아래가 몸통 바닥보다
+    // 2cm 내려갔고, 그러면 `normalize()` 가 그 «돔의 밑»을 y=−0.5 로 잡아서
+    // 방석이 바닥에서 2cm 뜬 채로 놓인다. 검사가 두께비 0.320 으로 잡았다.
+    part(new SphereGeometry(0.44, 14, 8).scale(1, 0.22, 1), WHITE, [0, 0.115, 0]),
+    // 시접 — 옆구리를 한 바퀴 도는 띠. 「천을 꿰맸다」가 여기서 나온다
+    part(new TorusGeometry(0.44, 0.022, 5, 18), PAPER, [0, 0.085, 0], LIE_Z),
+    part(new SphereGeometry(0.05, 6, 5), PAPER, [0.42, 0.06, 0.42]),
+    part(new SphereGeometry(0.05, 6, 5), PAPER, [-0.42, 0.06, 0.42]),
+    part(new SphereGeometry(0.05, 6, 5), PAPER, [0.42, 0.06, -0.42]),
+    part(new SphereGeometry(0.05, 6, 5), PAPER, [-0.42, 0.06, -0.42]),
   ]),
 
   백팩: () => assemble([
