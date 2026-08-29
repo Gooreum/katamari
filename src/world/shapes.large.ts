@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -22,7 +22,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
   고양이: () => assemble([
     // 웅크린 자세. 원작 집 고양이는 대부분 앉아 있다
     part(new SphereGeometry(0.30, 16, 10), WHITE, [-0.10, 0.32, 0]),
-    part(new BoxGeometry(0.44, 0.34, 0.34), WHITE, [0.12, 0.30, 0]),
+    part(soft(0.44, 0.34, 0.34, 0.45), WHITE, [0.12, 0.30, 0]),
     // 머리 + 귀 둘 + 코
     part(new SphereGeometry(0.22, 12, 8), WHITE, [0.40, 0.52, 0]),
     part(new ConeGeometry(0.09, 0.16, 4), WHITE, [0.34, 0.72, 0.11]),
@@ -61,7 +61,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   텔레비전: () => assemble([
     // 브라운관 TV. 원작 거실의 그것 — 다리가 짧고 몸통이 두껍다
-    part(new BoxGeometry(0.86, 0.66, 0.62), WHITE, [0, 0.42, 0]),
+    part(soft(0.86, 0.66, 0.62, 0.14), WHITE, [0, 0.42, 0]),
     // 화면 — 살짝 볼록한 유리
     part(new BoxGeometry(0.62, 0.48, 0.04), GLASS, [-0.04, 0.44, 0.32]),
     part(new BoxGeometry(0.54, 0.40, 0.03), [0.35, 0.42, 0.48], [-0.04, 0.44, 0.34]),
@@ -71,18 +71,18 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     // 안테나
     part(new CylinderGeometry(0.02, 0.015, 0.52, 5), METAL, [0.16, 0.98, -0.16], [0.3, 0, 0.3]),
     part(new CylinderGeometry(0.02, 0.015, 0.52, 5), METAL, [-0.16, 0.98, -0.16], [0.3, 0, -0.3]),
-    part(new BoxGeometry(0.10, 0.14, 0.10), WHITE, [0.30, 0.05, 0.20]),
-    part(new BoxGeometry(0.10, 0.14, 0.10), WHITE, [-0.30, 0.05, 0.20]),
+    part(soft(0.10, 0.14, 0.10, 0.3), WHITE, [0.30, 0.05, 0.20]),
+    part(soft(0.10, 0.14, 0.10, 0.3), WHITE, [-0.30, 0.05, 0.20]),
   ]),
 
   서랍장: () => assemble([
     // 3단 나무 서랍장. 손잡이가 서랍을 서랍으로 만든다
-    part(new BoxGeometry(0.82, 0.94, 0.46), WHITE, [0, 0.50, 0]),
-    part(new BoxGeometry(0.86, 0.06, 0.50), WHITE, [0, 1.00, 0]),
+    part(soft(0.82, 0.94, 0.46, 0.1), WHITE, [0, 0.50, 0]),
+    part(soft(0.86, 0.06, 0.50, 0.35), WHITE, [0, 1.00, 0]),
     for3Drawers(0.78),
     for3Drawers(0.50),
     for3Drawers(0.22),
-    part(new BoxGeometry(0.12, 0.10, 0.06), WOOD, [0, 0.06, 0.22]),
+    part(soft(0.12, 0.10, 0.06, 0.3), WOOD, [0, 0.06, 0.22]),
   ].flat()),
 
   스탠드: () => assemble([

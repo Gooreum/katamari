@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdSmall } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, soft } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** 눕힌 원기둥을 만들 때 쓰는 회전. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다. */
@@ -85,7 +85,7 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     // **눈을 인쇄로 새긴다.** 예전엔 원기둥 셋을 박아 윗면 1점·앞면 2점만 냈다 —
     // 나머지 네 면은 민짜였고, 그 셋이 삼각형 예산의 절반을 먹었다.
     // 아틀라스 한 칸이 여섯 면을 다 덮으면서 부품이 하나로 준다.
-    part(new BoxGeometry(0.9, 0.9, 0.9), WHITE, [0, 0.45, 0], undefined, TILE.DICE),
+    part(soft(0.9, 0.9, 0.9, 0.16), WHITE, [0, 0.45, 0], undefined, TILE.DICE),
   ]),
 
   나사: () => assemble([
@@ -116,9 +116,9 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
 
   각설탕: () => assemble([
     // 정육면체 하나. 알갱이 결을 살짝만 낸다
-    part(new BoxGeometry(0.86, 0.80, 0.86), WHITE, [0, 0.40, 0]),
-    part(new BoxGeometry(0.30, 0.10, 0.30), WHITE, [0.18, 0.82, -0.14], [0, 0.4, 0]),
-    part(new BoxGeometry(0.22, 0.10, 0.22), WHITE, [-0.22, 0.80, 0.18], [0, 0.9, 0]),
+    part(soft(0.86, 0.80, 0.86, 0.16), WHITE, [0, 0.40, 0]),
+    part(soft(0.30, 0.10, 0.30, 0.3), WHITE, [0.18, 0.82, -0.14], [0, 0.4, 0]),
+    part(soft(0.22, 0.10, 0.22, 0.3), WHITE, [-0.22, 0.80, 0.18], [0, 0.9, 0]),
   ]),
 
   사탕: () => assemble([
@@ -129,7 +129,7 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
   ]),
 
   성냥: () => assemble([
-    part(new BoxGeometry(0.92, 0.06, 0.06), WHITE, [0, 0.03, 0]),
+    part(soft(0.92, 0.06, 0.06, 0.35), WHITE, [0, 0.03, 0]),
     // 빨간 머리. 성냥과 이쑤시개를 가르는 유일한 부품이다
     part(new SphereGeometry(0.075, 6, 4), [0.86, 0.28, 0.22], [0.47, 0.05, 0]),
   ]),
@@ -146,9 +146,9 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
 
   캐러멜: () => assemble([
     // 포장지에 싸인 직육면체. 양끝을 접어 눌렀다
-    part(new BoxGeometry(0.62, 0.34, 0.40), WHITE, [0, 0.17, 0]),
-    part(new BoxGeometry(0.18, 0.20, 0.40), PAPER, [0.38, 0.11, 0]),
-    part(new BoxGeometry(0.18, 0.20, 0.40), PAPER, [-0.38, 0.11, 0]),
+    part(soft(0.62, 0.34, 0.40, 0.25), WHITE, [0, 0.17, 0]),
+    part(soft(0.18, 0.20, 0.40, 0.25), PAPER, [0.38, 0.11, 0]),
+    part(soft(0.18, 0.20, 0.40, 0.25), PAPER, [-0.38, 0.11, 0]),
   ]),
 
   체온계: () => assemble([
@@ -178,8 +178,8 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
 
   성냥갑: () => assemble([
     // 서랍이 살짝 빠진 갑. 빠진 단이 있어야 상자가 아니라 성냥갑이다
-    part(new BoxGeometry(0.86, 0.24, 0.56), WHITE, [0, 0.12, 0], undefined, TILE.MATCHBOX),
-    part(new BoxGeometry(0.34, 0.20, 0.52), PAPER, [0.52, 0.11, 0]),
+    part(soft(0.86, 0.24, 0.56, 0.16), WHITE, [0, 0.12, 0], undefined, TILE.MATCHBOX),
+    part(soft(0.34, 0.20, 0.52, 0.16), PAPER, [0.52, 0.11, 0]),
     // 옆면 마찰지
     part(new BoxGeometry(0.86, 0.16, 0.02), DARK, [0, 0.12, 0.285]),
   ]),

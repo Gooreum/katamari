@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdFurniture } from './generation';
-import { assemble, DARK, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, DARK, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
@@ -53,14 +53,14 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 거실에 서 있던 것이다. 상판·측판·선반·뒷판을 따로 세워 칸을 만든다.
    */
   TV장: () => assemble([
-    part(new BoxGeometry(1.00, 0.05, 0.46), WHITE, [0, 0.42, 0]),        // 상판
-    part(new BoxGeometry(0.05, 0.40, 0.46), WHITE, [-0.475, 0.20, 0]),   // 측판
-    part(new BoxGeometry(0.05, 0.40, 0.46), WHITE, [0.475, 0.20, 0]),
-    part(new BoxGeometry(0.90, 0.035, 0.44), WOOD, [0, 0.20, 0]),        // 가운데 선반
+    part(soft(1.00, 0.05, 0.46, 0.35), WHITE, [0, 0.42, 0]),        // 상판
+    part(soft(0.05, 0.40, 0.46, 0.3), WHITE, [-0.475, 0.20, 0]),   // 측판
+    part(soft(0.05, 0.40, 0.46, 0.3), WHITE, [0.475, 0.20, 0]),
+    part(soft(0.90, 0.035, 0.44, 0.3), WOOD, [0, 0.20, 0]),        // 가운데 선반
     part(new BoxGeometry(0.90, 0.36, 0.03), WOOD, [0, 0.22, -0.215]),    // 뒷판
     // 굽 넷. 바닥에 딱 붙으면 상자로 보인다
     ...([[0.42, 0.18], [-0.42, 0.18], [0.42, -0.18], [-0.42, -0.18]] as const).map(
-      ([x, z]) => part(new BoxGeometry(0.06, 0.06, 0.06), DARK, [x, 0.03, z])),
+      ([x, z]) => part(soft(0.06, 0.06, 0.06, 0.25), DARK, [x, 0.03, z])),
   ]),
 
   /**
@@ -70,14 +70,14 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 여태 거실 책장은 압출 조각 넷이라 세로선만 있었다.
    */
   책장: () => assemble([
-    part(new BoxGeometry(0.05, 1.00, 0.32), WHITE, [-0.34, 0.50, 0]),    // 측판
-    part(new BoxGeometry(0.05, 1.00, 0.32), WHITE, [0.34, 0.50, 0]),
-    part(new BoxGeometry(0.73, 0.04, 0.32), WHITE, [0, 0.98, 0]),        // 위 마감
+    part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [-0.34, 0.50, 0]),    // 측판
+    part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [0.34, 0.50, 0]),
+    part(soft(0.73, 0.04, 0.32, 0.3), WHITE, [0, 0.98, 0]),        // 위 마감
     part(new BoxGeometry(0.68, 0.98, 0.03), PAPER, [0, 0.50, -0.155]),   // 뒷판
     // 선반 셋 — 이게 책장의 정체다
     ...([0.30, 0.56, 0.82] as const).map((y) =>
-      part(new BoxGeometry(0.68, 0.032, 0.30), WOOD, [0, y, 0])),
-    part(new BoxGeometry(0.73, 0.06, 0.32), WOOD, [0, 0.03, 0]),         // 굽
+      part(soft(0.68, 0.032, 0.30, 0.3), WOOD, [0, y, 0])),
+    part(soft(0.73, 0.06, 0.32, 0.3), WOOD, [0, 0.03, 0]),         // 굽
   ]),
 
   /**
@@ -94,8 +94,8 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
     ...([[0.30, 0.30], [-0.30, 0.30], [0.30, -0.30], [-0.30, -0.30]] as const).map(
       ([x, z]) => part(new CylinderGeometry(0.030, 0.024, 0.30, 6), WOOD, [x, 0.15, z])),
     // 다리를 잇는 가로대. 없으면 다리가 허공에 꽂힌 막대로 보인다
-    part(new BoxGeometry(0.58, 0.025, 0.025), WOOD, [0, 0.08, 0.30]),
-    part(new BoxGeometry(0.58, 0.025, 0.025), WOOD, [0, 0.08, -0.30]),
+    part(soft(0.58, 0.025, 0.025, 0.35), WOOD, [0, 0.08, 0.30]),
+    part(soft(0.58, 0.025, 0.025, 0.35), WOOD, [0, 0.08, -0.30]),
   ]),
 
   /**

@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdMid } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
 import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -29,9 +29,9 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   껌: () => assemble([
     // 은박에 싸인 판형 껌 (8.5cm)
-    part(new BoxGeometry(0.90, 0.10, 0.32), WHITE, [0, 0.05, 0]),
-    part(new BoxGeometry(0.62, 0.11, 0.33), WHITE, [0.10, 0.05, 0], undefined, TILE.GUM),
-    part(new BoxGeometry(0.10, 0.09, 0.30), PAPER, [-0.44, 0.05, 0]),
+    part(soft(0.90, 0.10, 0.32, 0.3), WHITE, [0, 0.05, 0]),
+    part(soft(0.62, 0.11, 0.33, 0.3), WHITE, [0.10, 0.05, 0], undefined, TILE.GUM),
+    part(soft(0.10, 0.09, 0.30, 0.3), PAPER, [-0.44, 0.05, 0]),
   ]),
 
   달팽이: () => assemble([
@@ -46,8 +46,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   '캐러멜 상자': () => assemble([
     // 세워둔 갑 (11.3cm). 뚜껑 단이 있어야 상자가 아니라 캐러멜 갑이다
-    part(new BoxGeometry(0.44, 0.90, 0.24), WHITE, [0, 0.45, 0], undefined, TILE.CARAMEL),
-    part(new BoxGeometry(0.46, 0.16, 0.26), PAPER, [0, 0.82, 0]),
+    part(soft(0.44, 0.90, 0.24, 0.16), WHITE, [0, 0.45, 0], undefined, TILE.CARAMEL),
+    part(soft(0.46, 0.16, 0.26, 0.2), PAPER, [0, 0.82, 0]),
     part(new BoxGeometry(0.40, 0.34, 0.02), [0.85, 0.45, 0.15], [0, 0.42, 0.13]),
   ]),
 
@@ -119,8 +119,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   'RC 컨트롤러': () => assemble([
     // 안테나 세운 조종기 (30.1cm). 안테나가 실루엣의 전부다
-    part(new BoxGeometry(0.56, 0.30, 0.40), WHITE, [0, 0.15, 0]),
-    part(new BoxGeometry(0.60, 0.08, 0.44), WHITE, [0, 0.29, 0], undefined, TILE.RC),
+    part(soft(0.56, 0.30, 0.40, 0.2), WHITE, [0, 0.15, 0]),
+    part(soft(0.60, 0.08, 0.44, 0.25), WHITE, [0, 0.29, 0], undefined, TILE.RC),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [-0.16, 0.35, 0]),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [0.16, 0.35, 0]),
     part(new CylinderGeometry(0.03, 0.02, 0.58, 5), METAL, [0.24, 0.62, -0.12]),
@@ -199,13 +199,13 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   전화기: () => assemble([
     // 다이얼식 탁상 전화. 원작 복도에 있는 그 검은 것
-    part(new BoxGeometry(0.80, 0.24, 0.56), WHITE, [0, 0.12, 0]),
+    part(soft(0.80, 0.24, 0.56, 0.25), WHITE, [0, 0.12, 0]),
     part(new CylinderGeometry(0.24, 0.24, 0.06, 14), DARK, [0, 0.26, -0.06]),
     part(new CylinderGeometry(0.09, 0.09, 0.08, 8), WHITE, [0, 0.30, -0.06]),
     // 수화기 — 가운데 잘록한 막대
-    part(new BoxGeometry(0.66, 0.14, 0.14), WHITE, [0, 0.31, 0.20]),
-    part(new BoxGeometry(0.20, 0.20, 0.20), WHITE, [0.30, 0.34, 0.20]),
-    part(new BoxGeometry(0.20, 0.20, 0.20), WHITE, [-0.30, 0.34, 0.20]),
+    part(soft(0.66, 0.14, 0.14, 0.35), WHITE, [0, 0.31, 0.20]),
+    part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [0.30, 0.34, 0.20]),
+    part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [-0.30, 0.34, 0.20]),
   ]),
 
   밥솥: () => assemble([

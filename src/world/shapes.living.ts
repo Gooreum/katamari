@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLiving } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
@@ -48,11 +48,11 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
    * 종이 쪽(앞면)과 표지(뒷면)의 색·두께가 달라야 「닫힌 책」으로 읽힌다.
    */
   책: () => assemble([
-    part(new BoxGeometry(0.62, 1.00, 0.16), WHITE, [0, 0.50, 0], undefined, TILE.BOOK),
+    part(soft(0.62, 1.00, 0.16, 0.1), WHITE, [0, 0.50, 0], undefined, TILE.BOOK),
     // 책배 — 종이 단면. 표지보다 밝고 살짝 안쪽으로 들어간다
     part(new BoxGeometry(0.58, 0.94, 0.10), PAPER, [0.015, 0.50, 0.045]),
     // 책등. 표지가 접히는 쪽이라 조금 두껍다
-    part(new BoxGeometry(0.05, 1.00, 0.17), WHITE, [-0.31, 0.50, 0]),
+    part(soft(0.05, 1.00, 0.17, 0.3), WHITE, [-0.31, 0.50, 0]),
     // 책등 위아래 가름끈
     part(new BoxGeometry(0.06, 0.035, 0.18), [0.85, 0.72, 0.45], [-0.31, 0.94, 0]),
     part(new BoxGeometry(0.06, 0.035, 0.18), [0.85, 0.72, 0.45], [-0.31, 0.06, 0]),
@@ -69,7 +69,7 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
    * 앞 셔터(은색 띠)와 라벨 종이가 나머지를 맡는다.
    */
   비디오테이프: () => assemble([
-    part(new BoxGeometry(1.00, 0.135, 0.57), DARK, [0, 0.09, 0]),
+    part(soft(1.00, 0.135, 0.57, 0.14), DARK, [0, 0.09, 0]),
     // 위 라벨면. 손글씨가 찍힌다
     part(new BoxGeometry(0.92, 0.02, 0.50), WHITE, [0, 0.163, 0], undefined, TILE.VIDEO),
     // 릴 창 둘 — 안이 비쳐야 테이프다
@@ -123,10 +123,10 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
     // 그림면. 안쪽으로 들어가 있어야 테가 튀어나온 게 보인다
     part(new BoxGeometry(0.72, 0.86, 0.03), WHITE, [0, 0.52, 0], undefined, TILE.PICTURE),
     // 테 넷
-    part(new BoxGeometry(0.86, 0.09, 0.07), WOOD, [0, 0.955, 0.015]),
-    part(new BoxGeometry(0.86, 0.09, 0.07), WOOD, [0, 0.085, 0.015]),
-    part(new BoxGeometry(0.09, 1.00, 0.07), WOOD, [-0.385, 0.52, 0.015]),
-    part(new BoxGeometry(0.09, 1.00, 0.07), WOOD, [0.385, 0.52, 0.015]),
+    part(soft(0.86, 0.09, 0.07, 0.3), WOOD, [0, 0.955, 0.015]),
+    part(soft(0.86, 0.09, 0.07, 0.3), WOOD, [0, 0.085, 0.015]),
+    part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [-0.385, 0.52, 0.015]),
+    part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [0.385, 0.52, 0.015]),
     // 뒤판
     part(new BoxGeometry(0.80, 0.92, 0.02), PAPER, [0, 0.52, -0.025]),
     // 받침대. 뒤로 비스듬히 뻗는다
