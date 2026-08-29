@@ -58,8 +58,6 @@ const FENCE_H = 1.2;
  */
 const C_WALL = 0xfbf0d2;   // 회벽
 const C_BASE = 0x6b4a2a;   // 걸레받이 — 벽 밑을 두르는 나무 띠
-const C_OUTLET = 0xf2ece0; // 콘센트 판
-const C_SLOT = 0x2a2724;   // 콘센트 구멍 — 판을 콘센트로 만드는 건 이 두 점이다
 /**
  * 창호지. **`C_DOOR`(0xfffaea)를 쓰면 안 보인다** — 벽(0xfbf0d2)과 대비가 1.06:1 이라
  * 둘 다 near-white 라서 원리상 구별이 안 된다(실제로 넣어보고 화면에서 확인했다).
@@ -421,39 +419,6 @@ function windowZ(z0: number, z1: number, x: number): CityBuilding[] {
   return b;
 }
 
-/**
- * 콘센트. 판 + 구멍 둘.
- *
- * ## 예전 것은 두 겹으로 안 보였다
- *
- *   1. **색**: `C_OUTLET`(0xf2ece0) 대 `C_WALL`(0xfbf0d2) 대비가 **1.05:1** —
- *      둘 다 near-white 라 원리상 구별이 안 된다
- *   2. **위치**: 두께 `WALL_T + 0.03`(0.13) 에 높이 0.06 인데, 걸레받이가
- *      `WALL_T + 0.04`(0.14) 에 높이 0.06 이다. **더 두껍고 같은 높이라
- *      콘센트가 걸레받이 속에 통째로 파묻혀 있었다.**
- *
- * 「콘센트를 화면으로 확인 못 했다」고 남겨뒀던 게 이거였다. 못 본 게 아니라 없었다.
- *
- * 그래서 판을 걸레받이보다 **두껍고 높게** 올리고, 구멍을 **어두운 조각**으로 판다.
- * 콘센트를 콘센트로 만드는 건 판이 아니라 그 두 구멍이다.
- *
- * 높이 0.16m 는 실제 콘센트보다 낮다. `City.geometryFor()` 의 압출이 바닥에서
- * 시작해서 공중에 뜬 조각을 못 만드는 게 이유다 — 이 파일의 「평면 엔진의 한계」와 같은 계열.
- */
-function outlet(x: number, z: number, alongX: boolean): CityBuilding[] {
-  const bar = (w: number, t: number, h: number, color: number, off: number): CityBuilding =>
-    kitPiece(
-      alongX ? x + off - w : x, alongX ? z : z + off - w,
-      alongX ? x + off + w : x, alongX ? z : z + off + w,
-      { t, h, color },
-    );
-  return [
-    bar(0.06, WALL_T + 0.08, 0.16, C_OUTLET, 0),
-    bar(0.010, WALL_T + 0.11, 0.12, C_SLOT, -0.022),
-    bar(0.010, WALL_T + 0.11, 0.12, C_SLOT, +0.022),
-  ];
-}
-
 function piece(x0: number, z0: number, x1: number, z1: number, o: SlabOpts = {}): CityBuilding {
   return kitPiece(x0, z0, x1, z1, WALL, o);
 }
@@ -512,8 +477,6 @@ function buildWalls(area: StageArea): CityBuilding[] {
     // 붙박이 장지문 — 북(복도 쪽)·남(툇마루 쪽). `house` 분기에서 문이 서는 자리다.
     // 여기서는 열리지 않는다 — 이 판에는 갈 곳이 없다.
     b.push(...shoji(-1.8, 1.8, lz0), ...shoji(-1.8, 1.8, lz1));
-    // 콘센트 둘 — 북벽과 서벽에 하나씩. 북쪽은 **장지문 폭 밖의 민벽**에 붙인다
-    b.push(...outlet(-2.05, lz0, true), ...outlet(lx0, 0.7, false));
     // 동벽 창 — 북·남벽은 장지문이 갈라주는데 동벽만 5.4m 통짜였다
     b.push(...windowZ(-0.9, 0.6, lx1));
     return b;
@@ -535,10 +498,6 @@ function buildWalls(area: StageArea): CityBuilding[] {
   b.push(pillar(lx0, lz0), pillar(lx1, lz0), pillar(lx0, lz1), pillar(lx1, lz1));
   // 동벽 창 — living 분기와 같은 자리. 거실은 어느 판에서든 같은 방이어야 한다
   b.push(...windowZ(-0.9, 0.6, lx1));
-  // 콘센트 둘도 마찬가지. **여태 living 분기에만 있었다** — star2·star4 의 거실에는
-  // 콘센트가 아예 없었고, 그건 같은 방이 판마다 다르게 생겼다는 뜻이다.
-  // 북벽은 미닫이문(x −0.6~0.6) 밖, 서벽은 통짜라 둘 다 자리가 있다
-  b.push(...outlet(-2.05, lz0, true), ...outlet(lx0, 0.7, false));
 
   // ── 복도 서벽 — 두 토막, 각각 문 하나 ───────────────────
   // 아이 방 구간(z −5.85…−2.25)과 부엌 구간(z −8.55…−5.85)을 따로 세운다.
@@ -674,6 +633,23 @@ export const LIVING_PROPS: readonly StageProp[] = [
   // 다리 셋짜리 스탠드. 아래 선반(y 0.26)까지는 비어 있다
   { label: '화분대', x: 2.38, z: 1.10, size: 0.55, underPass: 0.44 },
   { label: '방석더미', x: 2.38, z: 1.75, size: 0.50 },
+
+  // ── 벽에 걸린 것 ────────────────────────────────────────
+  /**
+   * 콘센트 둘. **압출(`CityBuilding`)이 아니라 형상이다.**
+   *
+   * 압출은 y=0 에서 위로만 뽑아서 공중에 뜬 조각을 못 만든다. 그래서 여태 콘센트가
+   * 「바닥에 선 12×16cm 흰 판 + 바닥까지 내려온 검은 줄 둘」이었고, 그게 사용자가
+   * **오니기리**라고 부른 것이다. `StageProp.y` 로 벽에 건다 — 엔진은 안 건드린다.
+   *
+   * 벽 안쪽 면은 x −2.63 · z −2.18 이다. 판 두께(0.12 × 0.16 ≈ 0.019m)의 절반만
+   * 방 쪽으로 물려서 벽에 붙인다. 높이 0.22m 는 실제 매입 콘센트(바닥에서 25~30cm)와 같다.
+   *
+   * **별1에서는 안 먹힌다.** 충돌 상자 밑면이 0.22m 라 지름 44cm 부터 닿는데
+   * 별1 목표가 25cm 다 — 거실에서는 벽에 붙어 있는 것으로 끝나고 별2·별4 에서 먹힌다.
+   */
+  { label: '콘센트', x: -2.05, z: -2.170, size: 0.12, y: 0.22 },
+  { label: '콘센트', x: -2.620, z: 0.70, size: 0.12, y: 0.22, rotY: Math.PI / 2 },
 ];
 
 /**
