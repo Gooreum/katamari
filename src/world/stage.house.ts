@@ -71,7 +71,12 @@ const C_SHOJI = 0xe8eef2;
 const C_SHOJI_RAIL = 0x8a5a24;
 const C_PILLAR = 0xc2762c; // 기둥·문틀 나무
 const C_DOOR = 0xfffaea;   // 장지문 창호지
-const C_FENCE = 0xc07d33;  // 판자 담장
+/**
+ * 담장. **0xc07d33 주황갈색에서 대나무 탠으로 옮겼다.**
+ * 마당 바닥이 흙색일 때는 안 튀었는데 이끼를 깔고 나니 초록과 정면으로 부딪혀
+ * 「흙벽」으로 읽혔다. 색 하나를 바꾸는 건 바닥을 바꾸면 따라와야 하는 것이다.
+ */
+const C_FENCE = 0xa8964e;  // 대나무 울타리
 
 // ─── 가구 색 ─────────────────────────────────────────────────
 //
@@ -134,7 +139,10 @@ type Rect = readonly [number, number, number, number];
  *
  * 크기 범위는 원작 아이템 실측에 맞췄다. 거실이 28cm까지인 건
  * RC 컨트롤러(30.1cm)가 거실 물건이라 그 바로 아래에서 끊은 것이고,
- * 뒷마당이 1.2m까지인 건 화분·물뿌리개가 거기 있기 때문이다.
+ * 뒷마당은 **0.70m 에서 끊는다.** 1.2m 로 두었더니 `의자` 를 1.04m, `스툴` 을
+ * 0.90m 로 뽑아 갈퀴로 그은 자갈 마당 위에 앉혔다 — 정원 한가운데 거대한
+ * 갈색 원반 넷이었다. 정원에서 제일 큰 물건은 **손배치가 맡는다**
+ * (석등 1.15 · 소나무 1.45 · 대나무 1.90 · 창고 1.80 · 나무 2.60).
  * **아이 방이 40cm까지인 건 곰인형(35cm) 때문이다** — 34cm로 끊었더니
  * 30~60cm 칸이 좁은 슬라이스뿐이라 곰인형이 한 판에 0개로 나왔다.
  *
@@ -185,7 +193,7 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 48, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
   { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true, ceiling: 2.4 },
   { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true, ceiling: 2.2 },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_MOSS, floorTex: 'moss', sizeMin: 0.030, sizeMax: 1.20, count: 90, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_MOSS, floorTex: 'moss', sizeMin: 0.030, sizeMax: 0.70, count: 90, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
 ];
 
 
@@ -359,14 +367,33 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   { id: 'spot-porch-step', rect: [0.90, 2.45, 2.30, 3.20], sizeMin: 0.02, sizeMax: 0.24, count: 18, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, align: true, only: ['슬리퍼'], arrange: 'row' },
   { id: 'spot-porch-corner', rect: [2.15, 2.40, 2.60, 3.30], sizeMin: 0.02, sizeMax: 0.16, count: 12, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, align: true, only: ['솔방울', '병뚜껑', '동전'] },
 
-  // ── 뒷마당 160 (방 90) ──────────────────────────────────
-  // **바깥은 좀 흩어져 있는 게 맞다** — 자리 비율을 실내보다 낮게 둔다
-  { id: 'spot-dog', rect: [1.15, 5.30, 2.80, 6.25], sizeMin: 0.03, sizeMax: 0.30, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['개밥그릇', '골프공', '연어 캔'] },
-  { id: 'spot-deck', rect: [2.20, 7.10, 3.65, 8.60], sizeMin: 0.03, sizeMax: 0.34, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['양동이', '화분', '페트병'], arrange: 'row' },
-  { id: 'spot-shed', rect: [-3.90, 7.10, -2.10, 7.80], sizeMin: 0.03, sizeMax: 0.40, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['삽', '모종삽', '양동이'], arrange: 'lean' },
-  { id: 'spot-tree', rect: [-2.00, 7.20, -0.85, 8.85], sizeMin: 0.02, sizeMax: 0.12, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['솔방울', '도토리', '꽃', '자갈'] },
-  { id: 'spot-fence-west', rect: [-3.75, 4.10, -3.25, 6.40], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['페트병', '병뚜껑', '연어 캔'], arrange: 'lean' },
-  { id: 'spot-yard-flower', rect: [-1.80, 4.20, -0.40, 5.40], sizeMin: 0.02, sizeMax: 0.14, count: 22, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['꽃', '청개구리', '달팽이'] },
+  /**
+   * ── 뒷마당 160 (방 90) — 일본식 정원 ────────────────────
+   *
+   * **총합 160 은 안 건드린다.** 사다리·성장 곡선이 그 숫자를 쓴다 —
+   * 「무엇이 놓이는가」(`only`)만 정원 물건으로 바꾼다.
+   *
+   * 옛 자리 셋의 `only` 에 **페트병·연어 캔·양동이**가 들어 있었다. 마당에서
+   * 제일 많은 셋이 그것들이었고(28·25·23개), 그게 마당이 정원이 아니라
+   * **재활용 수거장**으로 읽히던 이유다.
+   *
+   * **자갈 마당(x −3.67~0.77 · z 4.47~8.23)에는 자리를 두지 않는다.**
+   * 갈퀴로 그은 자갈 위에 스툴과 양동이가 널려 있으면 그건 갈퀴질이 아니다.
+   * 여섯 자리 전부 자갈 밖 이끼 위나 담장 가에 있다.
+   *
+   * **`align` 을 안 준다** — 바깥은 각도가 제멋대로인 게 맞다(옛 판단 그대로).
+   */
+  { id: 'spot-dog', rect: [2.15, 3.60, 3.60, 4.05], sizeMin: 0.03, sizeMax: 0.30, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['개밥그릇', '자갈', '도토리'] },
+  // 평상 앞 — 신발 벗어둔 자리
+  { id: 'spot-deck', rect: [2.45, 9.15, 3.85, 9.36], sizeMin: 0.03, sizeMax: 0.30, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['게타', '찻잔', '화분'], arrange: 'row' },
+  // 창고 앞 — **연장은 여기만.** 양동이가 마당에 흩어져 있던 걸 한 곳으로 모은다
+  { id: 'spot-shed', rect: [-2.10, 8.35, -1.20, 9.25], sizeMin: 0.03, sizeMax: 0.40, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['삽', '모종삽', '갈퀴', '양동이'], arrange: 'lean' },
+  // 나무 밑 — 낙엽
+  { id: 'spot-tree', rect: [0.60, 8.35, 1.80, 9.25], sizeMin: 0.02, sizeMax: 0.12, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['솔방울', '도토리', '꽃잎', '자갈'] },
+  // 물확 둘레 — 손 씻는 자리
+  { id: 'spot-tsukubai', rect: [0.95, 3.60, 2.05, 4.35], sizeMin: 0.02, sizeMax: 0.16, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['자갈', '꽃잎', '달팽이', '청개구리'] },
+  // 대나무 밑 — 서쪽 담장 가
+  { id: 'spot-bamboo', rect: [-3.85, 3.60, -2.90, 4.20], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['꽃', '자갈', '솔방울'] },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
@@ -596,6 +623,25 @@ function buildWalls(area: StageArea): CityBuilding[] {
     piece(px1, pz1, yx1, pz1, { t: FENCE_T, h: FENCE_H, color: C_FENCE }),
   );
 
+  /**
+   * ── 담장 기둥 — 판 한 장을 「엮은 울타리」로 만든다 ──────
+   *
+   * 담장이 **무늬 없는 판 한 장**이었다. 켄닌지가키(建仁寺垣)처럼 일정 간격
+   * 세로 기둥이 서야 판이 「엮은 것」으로 읽힌다. 이끼·자갈을 깔고 나니
+   * 담장만 평평해서 더 두드러졌다.
+   *
+   * **`kind: 'wall'` 이다**(`kitPillar` 가 항상 그렇게 만든다). 먹을 수 있는
+   * 물체로 만들면 사다리에 스물다섯이 얹혀서 판 균형이 흔들린다 —
+   * 이건 «장식»이지 «물건»이 아니다.
+   *
+   * 담장보다 6cm 높게 세운다. 같은 높이면 판에 묻혀서 안 보인다.
+   */
+  const POST = { t: 0.10, h: FENCE_H + 0.06, color: C_FENCE };
+  for (let x = yx0 + 0.45; x < yx1; x += 0.9) b.push(kitPillar(x, yz1, POST, 0.05));
+  for (let z = yz0 + 0.45; z < yz1; z += 0.9) {
+    b.push(kitPillar(yx0, z, POST, 0.05), kitPillar(yx1, z, POST, 0.05));
+  }
+
   return b;
 }
 
@@ -755,8 +801,43 @@ export const HOUSE_PROPS: readonly StageProp[] = [
   // 거실 화분대와 **같은 형상을 나눠 쓴다**
   { label: '화분대', x: -2.25, z: 2.65, size: 0.42, underPass: 0.34 },
 
-  // ── 뒷마당 ──────────────────────────────────────────────
-  { label: '개집', x: 2.05, z: 4.65, size: 0.90 },
+  /**
+   * ── 뒷마당 — 일본식 정원 ────────────────────────────────
+   *
+   * **길은 동쪽, 자갈 마당은 서쪽, 살림 물건은 담장 라인으로 민다.**
+   * 툇마루에 앉아 보면 왼쪽에 갈퀴질한 자갈과 석등이 있고, 오른쪽으로 징검돌이
+   * 평상까지 간다. 개집·창고·빨래 기둥은 «버리지 않고» 시야에서 비켰다 —
+   * 살림하는 집 마당이지 절 정원이 아니다.
+   *
+   * 자갈 깔개(`buildRugs`)가 x −3.67~0.77 · z 4.47~8.23 을 덮는다.
+   * 그 위에 서는 건 석등뿐이고(자갈에 선 석등은 정석이다) 나머지는 이끼 위다.
+   */
+  // 물확(쓰쿠바이)는 **툇마루에서 손이 닿는 자리**가 전통 위치다
+  { label: '물확', x: 1.80, z: 4.50, size: 0.55 },
+  // 석등 — 정원의 초점. 자갈 마당 북동 모서리에 선다
+  { label: '석등', x: -0.40, z: 4.95, size: 1.15 },
+  // 대나무 — 서북 담장 앞. 서쪽 빨래 기둥이 있던 자리다
+  { label: '대나무', x: -3.40, z: 4.55, size: 1.90 },
+  // 소나무(전정목) — 동벽. 동쪽 빨래 기둥이 있던 자리다
+  { label: '소나무', x: 3.35, z: 6.35, size: 1.45 },
+  /**
+   * 징검돌 일곱 — 툇마루(z 3.45)에서 평상까지 **굽어** 간다.
+   *
+   * 곧게 놓으면 길이 아니라 자와 눈금이다. 이웃 간격은 0.7~0.9m —
+   * 사람 보폭이고, 이보다 벌어지면 「띄엄띄엄 놓인 돌」이지 길이 아니다.
+   * 각 돌은 **높이 5cm** 라 10cm 에 열리는 마당의 걸림돌이 아니다.
+   */
+  { label: '징검돌', x: 0.55, z: 3.95, size: 0.30, rotY: 0.3 },
+  { label: '징검돌', x: 0.95, z: 4.70, size: 0.30, rotY: -0.5 },
+  { label: '징검돌', x: 1.25, z: 5.50, size: 0.30, rotY: 0.9 },
+  { label: '징검돌', x: 1.55, z: 6.30, size: 0.30, rotY: -0.2 },
+  { label: '징검돌', x: 1.90, z: 7.05, size: 0.30, rotY: 0.6 },
+  { label: '징검돌', x: 2.05, z: 7.85, size: 0.30, rotY: -0.8 },
+  // 마지막 돌은 평상 «앞»에 선다 — 발판을 물면 평상에 오르는 돌이 아니라 걸림돌이다
+  { label: '징검돌', x: 2.20, z: 8.65, size: 0.30, rotY: 0.1 },
+
+  // 개집 — 동북 구석으로 밀었다 (2.05, 4.65 → 2.95, 4.55)
+  { label: '개집', x: 2.95, z: 4.55, size: 0.90 },
   { label: '창고', x: -3.00, z: 8.575, size: 1.80 },
   /**
    * 마당 나무. 집 맵에서 제일 큰 물건이다.
@@ -764,12 +845,17 @@ export const HOUSE_PROPS: readonly StageProp[] = [
    * **`size` 2.60 은 안 건드린다.** `ladder` 가 이 그루 때문에 꼭대기 칸을
    * 「얇음」으로 잡지만, 그 칸에 닿으려면 공이 1.5m 는 돼야 하는데 집 스테이지
    * 목표는 별4의 1m 가 최대다 — **아무도 안 밟는 칸**이다.
+   *
+   * 남쪽으로 밀어(z 8.00 → 8.85) 자갈 마당 밖 배경으로 물렸다.
    */
-  { label: '나무', x: 0, z: 8.00, size: 2.60 },
-  { label: '평상', x: 2.95, z: 7.85, size: 1.10, underPass: 0.28 },
-  // 빨래 기둥 둘. 사이의 빨랫줄은 **공중에 뜬 면**이라 못 만든다(밥상 상판과 같은 한계)
-  { label: '빨래 기둥', x: -2.56, z: 5.24, size: 1.70 },
-  { label: '빨래 기둥', x: 2.56, z: 6.60, size: 1.70 },
+  { label: '나무', x: -0.20, z: 8.85, size: 2.60 },
+  { label: '평상', x: 3.15, z: 8.55, size: 1.10, underPass: 0.28 },
+  /**
+   * 빨래 기둥 둘. 사이의 빨랫줄은 **공중에 뜬 면**이라 못 만든다(밥상 상판과 같은 한계).
+   * 서쪽 담장 라인으로 밀었다 — 정원 한가운데를 세로로 가르고 있었다.
+   */
+  { label: '빨래 기둥', x: -3.52, z: 5.60, size: 1.70 },
+  { label: '빨래 기둥', x: -3.52, z: 7.30, size: 1.70 },
 ];
 
 /**
