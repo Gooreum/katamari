@@ -3,6 +3,7 @@ import { SHAPE_IDS, type ShapeId } from './generation';
 import { FURNITURE_BUILDERS } from './shapes.furniture';
 import { HOUSE_BUILDERS } from './shapes.house';
 import { LIVING_BUILDERS } from './shapes.living';
+import { ROOM_BUILDERS } from './shapes.rooms';
 import { LARGE_BUILDERS } from './shapes.large';
 import { MID_BUILDERS } from './shapes.mid';
 import { SMALL_BUILDERS } from './shapes.small';
@@ -21,6 +22,7 @@ export { withWhiteColors } from './shapes.kit';
  *   shapes.house.ts  방 정체성 전용 (부엌·화장실·아이 방 — 크기가 아니라 방으로 묶었다)
  *   shapes.furniture.ts  가구 — 손배치(`StageProp`) 전용. 난수로는 안 뽑힌다
  *   shapes.living.ts 거실 소품 — 책·비디오테이프·시계처럼 「거실이니까 있는」 것들
+ *   shapes.rooms.ts  나머지 여섯 방의 가구 — 손배치 전용. 싱크대·욕조·변기·이불 등
  *   shapes.town.ts   동네 맵 전용 (집에 없는 것들)
  *   shapes.world.ts  World 맵 전용 (1.15~4m — 동네에서는 배경이던 것들)
  * 조립 도구(part/assemble/normalize)와 형태 규약은 shapes.kit.ts 에 있다.
@@ -35,6 +37,7 @@ const BUILDERS: Record<ShapeId, () => BufferGeometry> = {
   ...HOUSE_BUILDERS,
   ...FURNITURE_BUILDERS,
   ...LIVING_BUILDERS,
+  ...ROOM_BUILDERS,
   ...TOWN_BUILDERS,
   ...WORLD_BUILDERS,
 };

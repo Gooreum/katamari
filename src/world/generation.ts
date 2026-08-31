@@ -107,6 +107,16 @@ export const SHAPE_COLOR: Record<string, readonly number[]> = {
   // 적혀 있는 그 칸이다. 예전 압출 색(0xf2ece0)은 벽(0xfbf0d2) 대비 1.05:1 이라
   // **원리상 안 보였다.** 이 색은 1.6:1 이다
   콘센트: [3],
+  // ── 나머지 여섯 방의 가구 (손배치 전용) ─────────────────────
+  // 나무 가구는 7(나무), 도기는 0(종이 흰색), 스테인리스는 6(은색).
+  // 이불은 두 색을 준다 — 요와 걷어놓은 이불이 같은 색이면 층이 안 보인다
+  신발장: [7], 우산꽂이: [13, 8],
+  책상: [7], 이불: [1, 15], '장난감 상자': [10, 14],
+  싱크대: [6], 냉장고: [0], 찬장: [0], 식탁: [7],
+  // 욕조·찬장은 **팔레트를 흰색(0)으로 둔다.** 팔레트가 물건 색이면 유리문과
+  // 파인 안쪽까지 그 색에 눌려서, 찬장이 통짜 나무 궤짝으로 욕조가 민트색 상자로
+  // 보였다. 흰색에 계수를 곱하는 쪽이 부품끼리 밝기를 벌릴 수 있다
+  욕조: [0], 변기: [0], 세면대: [0],
   // ── 동네 맵 전용 ────────────────────────────────────────────
   꽃잎: [8, 10, 13], 자갈: [3, 4], 병뚜껑: [8, 11], 도토리: [7], 솔방울: [7],
   동전: [6], 꽃: [8, 10, 13, 16], '연어 캔': [6, 11], 쥐: [5], 골프공: [0],
@@ -258,9 +268,29 @@ export const SHAPE_IDS_LIVING = [
   '콘센트',
 ] as const;
 
+/**
+ * **나머지 여섯 방의 가구 형상.** `shapes.rooms.ts` 가 전부 구현해야 한다.
+ *
+ * 거실 가구(`SHAPE_IDS_FURNITURE`)와 같은 손배치 전용이다 — 라벨 표에 없으므로
+ * 난수로는 절대 안 뽑히고, `HOUSE_PROPS` 가 이름으로 불러야만 놓인다.
+ *
+ * 여태 이 열둘은 `CityBuilding`(압출 프리즘)이었다. 그 엔진은 2D 외곽선을 y=0 에서
+ * 위로 뽑는 것뿐이라 **프리즘밖에 못 만든다** — 변기가 43×45×72cm 짜리 상자였다.
+ */
+export const SHAPE_IDS_ROOMS = [
+  // 복도
+  '신발장', '우산꽂이',
+  // 아이 방
+  '책상', '이불', '장난감 상자',
+  // 부엌
+  '싱크대', '냉장고', '찬장', '식탁',
+  // 화장실
+  '욕조', '변기', '세면대',
+] as const;
+
 export const SHAPE_IDS = [
   ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_HOUSE,
-  ...SHAPE_IDS_FURNITURE, ...SHAPE_IDS_LIVING,
+  ...SHAPE_IDS_FURNITURE, ...SHAPE_IDS_LIVING, ...SHAPE_IDS_ROOMS,
   ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
 ];
 
@@ -270,11 +300,12 @@ export type ShapeIdLarge = (typeof SHAPE_IDS_LARGE)[number];
 export type ShapeIdHouse = (typeof SHAPE_IDS_HOUSE)[number];
 export type ShapeIdFurniture = (typeof SHAPE_IDS_FURNITURE)[number];
 export type ShapeIdLiving = (typeof SHAPE_IDS_LIVING)[number];
+export type ShapeIdRooms = (typeof SHAPE_IDS_ROOMS)[number];
 export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
 export type ShapeIdWorld = (typeof SHAPE_IDS_WORLD)[number];
 export type ShapeId =
   | ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdHouse | ShapeIdFurniture
-  | ShapeIdLiving | ShapeIdTown | ShapeIdWorld;
+  | ShapeIdLiving | ShapeIdRooms | ShapeIdTown | ShapeIdWorld;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;
