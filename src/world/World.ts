@@ -147,17 +147,39 @@ function buildProps(
       throw new Error(`'${p.label}' 의 underPass ${p.underPass} 가 형상 높이 ${(top - floor).toFixed(3)} 이상이다 — 충돌이 통째로 사라진다`);
     }
 
-    // x·z 는 **회전을 먹여야 한다.** 정육면체일 때는 돌려도 같아서 무시할 수 있었지만
-    // 이제는 아니다 — 90° 돌린 TV장은 폭과 깊이가 바뀐다.
-    const hx = ((bb.max.x - bb.min.x) * s) / 2;
-    const hz = ((bb.max.z - bb.min.z) * s) / 2;
-    const ca = Math.abs(Math.cos(spec.rotY));
-    const sa = Math.abs(Math.sin(spec.rotY));
-
-    spec.colHalf = [ca * hx + sa * hz, (top - lo) / 2, sa * hx + ca * hz];
+    const [halfX, halfZ] = propFootprint(p, g);
+    spec.colHalf = [halfX, (top - lo) / 2, halfZ];
     spec.colOffsetY = (lo + top) / 2 - baseY;
     return spec;
   });
+}
+
+/**
+ * 손배치 물건의 **바닥 발판 반쪽(x, z)** — 형상 실측 × `size`, 회전 반영.
+ *
+ * 두 곳이 이걸 쓴다. **같은 자를 써야 한다:**
+ *   - `buildProps` — 공이 부딪히는 충돌 상자
+ *   - `World.buildBlocked` — 소품 흩뿌림이 피하는 자리
+ *
+ * 처음엔 `buildBlocked` 가 `size / 2` 짜리 정사각형으로 막았다. 스탠드는 최장축이
+ * «높이»라 `size 1.20` 이면 발판을 1.2m 로 잡는데 실제 갓은 0.53m 다 —
+ * **두 배 넘게 과하게 막아서** 자리가 통째로 막힌 것처럼 보였고, `emit` 의 재시도가
+ * 다 실패한 뒤 어차피 그 자리에 놓여서 「묻혔다」로 잡혔다. 막는 자와 부딪히는 자가
+ * 다르면 그 숫자는 거짓말이다.
+ *
+ * **회전을 먹인다.** 정육면체일 때는 돌려도 같아서 무시할 수 있었지만 이제는
+ * 아니다 — 90° 돌린 TV장은 폭과 깊이가 바뀐다.
+ */
+export function propFootprint(
+  p: StageProp, geo: BufferGeometry,
+): readonly [number, number] {
+  if (!geo.boundingBox) geo.computeBoundingBox();
+  const bb = geo.boundingBox!;
+  const hx = ((bb.max.x - bb.min.x) * p.size) / 2;
+  const hz = ((bb.max.z - bb.min.z) * p.size) / 2;
+  const ca = Math.abs(Math.cos(p.rotY ?? 0));
+  const sa = Math.abs(Math.sin(p.rotY ?? 0));
+  return [ca * hx + sa * hz, sa * hx + ca * hz];
 }
 
 export class World {
@@ -490,6 +512,17 @@ export class World {
   private buildBlocked(city: CityData): BlockedFn {
     const boxes: Array<readonly [number, number, number, number]> = [];
     const grid = new Map<number, number[]>();
+    const add = (minX: number, maxX: number, minZ: number, maxZ: number): void => {
+      const index = boxes.push([minX, maxX, minZ, maxZ]) - 1;
+      for (let cx = Math.floor(minX / BLOCK_CELL); cx <= Math.floor(maxX / BLOCK_CELL); cx++) {
+        for (let cz = Math.floor(minZ / BLOCK_CELL); cz <= Math.floor(maxZ / BLOCK_CELL); cz++) {
+          const key = (cx + 2048) * 4096 + (cz + 2048);
+          let list = grid.get(key);
+          if (!list) grid.set(key, (list = []));
+          list.push(index);
+        }
+      }
+    };
 
     for (const b of city.buildings) {
       let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -501,15 +534,38 @@ export class World {
       }
       // OSM에는 깨진 폴리곤이 섞여 들어온다. City 생성자도 같은 것을 걸러낸다.
       if (!Number.isFinite(minX) || !Number.isFinite(minZ)) continue;
-      const index = boxes.push([minX, maxX, minZ, maxZ]) - 1;
-      for (let cx = Math.floor(minX / BLOCK_CELL); cx <= Math.floor(maxX / BLOCK_CELL); cx++) {
-        for (let cz = Math.floor(minZ / BLOCK_CELL); cz <= Math.floor(maxZ / BLOCK_CELL); cz++) {
-          const key = (cx + 2048) * 4096 + (cz + 2048);
-          let list = grid.get(key);
-          if (!list) grid.set(key, (list = []));
-          list.push(index);
-        }
-      }
+      add(minX, maxX, minZ, maxZ);
+    }
+
+    /**
+     * **손배치 가구도 발판을 비운다.**
+     *
+     * 가구가 `CityBuilding`(압출)일 때는 위 루프가 그 자리를 막아줘서 소품이
+     * 가구 속에 안 파묻혔다. 거실 가구를 `placement.props` 로 옮기면서
+     * **그 보호가 조용히 사라졌다** — 이 함수는 `buildings` 만 보기 때문이다.
+     *
+     * 거실에서는 피해가 작았다(바닥 물체 13개, 대부분 스탠드 기둥 둘레라 무해).
+     * 그런데 부엌 140개·아이 방 200개를 뿌리는 방에 1.75m 싱크대를 옮기면
+     * 그대로 묻힌다. 그래서 가구를 옮기기 «전»에 여기를 먼저 고친다.
+     *
+     * **`underPass` 가구는 안 막는다.** 「밑이 뚫려 있다」가 그 값의 정의고,
+     * `spot-under-table` 은 상 밑에 동전을 놓으려고 있는 자리다.
+     *
+     * **표면(`surf-*`)은 원래 `blocked` 를 안 탄다** — `generation.ts` 의
+     * 「표면 배치는 `retryPos` 를 안 넘긴다」가 그것이다. 그래서 상판 위 물건은
+     * 여기서 무엇을 막든 영향을 안 받는다.
+     *
+     * 발판은 **공이 부딪히는 상자와 같은 것**이다(`propFootprint`). 처음엔
+     * `size / 2` 짜리 정사각형으로 막았다가, 최장축이 «높이»인 물건(스탠드)에서
+     * 두 배 넘게 과하게 막혀 자리가 통째로 막힌 것처럼 보였다.
+     * **막는 자와 부딪히는 자가 다르면 그 숫자는 거짓말이다.**
+     */
+    for (const p of city.placement?.props ?? []) {
+      if (p.underPass !== undefined) continue;
+      const geo = this.geometries[geoIndexOf(p.label) ?? -1];
+      if (geo === undefined) continue;
+      const [hx, hz] = propFootprint(p, geo);
+      add(p.x - hx, p.x + hx, p.z - hz, p.z + hz);
     }
 
     return (x: number, z: number): boolean => {

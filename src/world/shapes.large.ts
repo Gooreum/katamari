@@ -85,18 +85,28 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(soft(0.12, 0.10, 0.06, 0.3), WOOD, [0, 0.06, 0.22]),
   ].flat()),
 
+  /**
+   * 갓 달린 스탠드. 갓과 가는 기둥이 실루엣이다.
+   *
+   * **갓을 좁혔다 (지름 0.68 → 0.46).** 예전 갓은 «키의 57%» 였는데 실물 플로어
+   * 스탠드는 27% 쯤이다. 그 차이가 화면이 아니라 **충돌 상자**에서 터졌다 —
+   * 손배치 스탠드(size 1.20)의 AABB 가 0.83m 라
+   *   ① 거실 동벽 안쪽 면(x 2.63)을 **0.21m 뚫고** 나갔고
+   *   ② `spot-shelf-front`(책장 앞 책 10권)를 **통째로 덮어** 공이 못 닿았다.
+   * 둘 다 화면으로는 안 보이는 결함이고, `buildBlocked` 가 손배치 발판을 보게
+   * 되면서 처음 드러났다.
+   */
   스탠드: () => assemble([
-    // 갓 달린 탁상등. 갓이 크고 기둥이 가늘어야 스탠드로 읽힌다
-    part(new CylinderGeometry(0.30, 0.30, 0.06, 20), WHITE, [0, 0.03, 0]),
+    part(new CylinderGeometry(0.22, 0.22, 0.06, 20), WHITE, [0, 0.03, 0]),
     part(new CylinderGeometry(0.035, 0.035, 0.62, 7), METAL, [0, 0.35, 0]),
-    part(new CylinderGeometry(0.34, 0.20, 0.36, 20), WHITE, [0, 0.82, 0]),
+    part(new CylinderGeometry(0.23, 0.14, 0.36, 20), WHITE, [0, 0.82, 0]),
     // 갓 안쪽 — 밝게 둬야 불이 켜진 것처럼 보인다
-    part(new CylinderGeometry(0.30, 0.17, 0.04, 20), [1, 0.95, 0.75], [0, 0.66, 0]),
-    part(new SphereGeometry(0.10, 8, 6), GLASS, [0, 0.72, 0]),
+    part(new CylinderGeometry(0.20, 0.12, 0.04, 20), [1, 0.95, 0.75], [0, 0.66, 0]),
+    part(new SphereGeometry(0.09, 8, 6), GLASS, [0, 0.72, 0]),
     // 갓 위아래 테. **갓의 윤곽을 그리는 건 천이 아니라 이 테다** —
     // 원뿔대 하나만 있으면 옆에서 사다리꼴 색면으로 보인다
-    part(new TorusGeometry(0.335, 0.016, 4, 20), PAPER, [0, 0.64, 0], LIE_Z),
-    part(new TorusGeometry(0.195, 0.014, 4, 14), PAPER, [0, 1.00, 0], LIE_Z),
+    part(new TorusGeometry(0.225, 0.014, 4, 20), PAPER, [0, 0.64, 0], LIE_Z),
+    part(new TorusGeometry(0.135, 0.012, 4, 14), PAPER, [0, 1.00, 0], LIE_Z),
   ]),
 
   물뿌리개: () => assemble([
