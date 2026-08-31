@@ -169,7 +169,14 @@ const F_WOOD = 0xcf9042;
 const F_TILE = 0xeceadf;
 const F_BATH = 0xa8d4e0;
 const F_PORCH = 0xbf8038;
-const F_DIRT = 0x9c7b48;
+/**
+ * 뒷마당 바닥. **흙이 아니라 이끼다.**
+ *
+ * `0x9c7b48` 흙색 한 장이었을 때 마당은 정원이 아니라 공사장이었다 —
+ * 일곱 방 중 마당만 `floorTex` 가 없어서 화면 절반이 무늬 없는 갈색 판이었다.
+ * 일본 정원의 바탕은 이끼고, 그 위를 자갈 마당(`buildRugs`)이 가른다.
+ */
+const F_MOSS = 0x5f7a3a;
 
 export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.022, sizeMax: 0.28, count: 40, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
@@ -178,7 +185,7 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 48, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
   { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true, ceiling: 2.4 },
   { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true, ceiling: 2.2 },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_DIRT, sizeMin: 0.030, sizeMax: 1.20, count: 90, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_MOSS, floorTex: 'moss', sizeMin: 0.030, sizeMax: 1.20, count: 90, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
 ];
 
 
@@ -856,6 +863,27 @@ function buildRugs(area: StageArea): CityRug[] {
    * 물건을 얹는 높이 정보는 `HOUSE_SPOTS` 의 `y` 가 이미 갖고 있으므로
    * 여기 남는 건 바닥 깔개 한 장뿐이다.
    */
-  return [{ cx: 0.75, cz: 0.45, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' }];
+  const rugs: CityRug[] = [{ cx: 0.75, cz: 0.45, w: 2.4, d: 1.6, rotY: 0.34, tex: 'rug' }];
+  if (area !== 'house') return rugs;
+
+  /**
+   * ── 뒷마당 자갈 ─────────────────────────────────────────
+   *
+   * **깔개는 이미 「충돌 없는 렌더 전용 평면」이다** — 자갈 마당이 정확히 그것이라
+   * 새 개념이 필요 없었다. 거실 카펫이 다다미를 대각선으로 자르는 그 장치 그대로다.
+   *
+   * **축에서 0.15rad 비튼다.** 축에 맞추면 마당을 한 번 더 사각형으로 나눈 것에
+   * 그치고 「이끼 위에 자갈을 깔았다」가 안 읽힌다.
+   *
+   * 둘이 겹치면 안 된다 — 깔개는 전부 y = 0.006 이라 겹치는 자리가 z-fighting 으로
+   * 깜빡인다. 아래 둘은 x 로 0.6m 떨어져 있다.
+   */
+  rugs.push(
+    // 마당(48m²) 의 약 27%. 서쪽 절반을 덮고 석등이 그 모서리에 선다
+    { cx: -1.45, cz: 6.35, w: 4.0, d: 3.2, rotY: 0.15, tex: 'gravel' },
+    // 물확 앞 물받이. 쓰쿠바이 밑에는 물 빠지라고 자갈을 깐다
+    { cx: 1.80, cz: 4.50, w: 0.9, d: 0.9, rotY: 0.40, tex: 'gravel' },
+  );
+  return rugs;
 }
 

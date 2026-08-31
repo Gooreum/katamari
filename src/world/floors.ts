@@ -142,11 +142,87 @@ export function buildWoodTexture(): CanvasTexture {
   return finish(cv);
 }
 
+/**
+ * 이끼. **일본 정원 바닥의 바탕이다.**
+ *
+ * 한 가지 초록으로 칠하면 흙을 초록으로 바꾼 것에 그친다 — 뒷마당이
+ * `F_DIRT` 색면 하나였을 때가 정확히 그 상태였고, 화면 절반이 그 한 장이었다.
+ * 이끼가 이끼로 읽히는 건 **덩어리진 얼룩**이다: 밝기가 다른 초록 원반을
+ * 반지름 6 → 3 → 2 로 줄여가며 겹쳐 깔면 가장자리가 서로 갉아먹어서 결이 생긴다.
+ * 다다미의 짚 얼룩·`buildGround` 의 잔디 얼룩과 같은 수법이다.
+ *
+ * 128px = 1.8m. 반지름 6px 는 실제 8cm 짜리 이끼 덩어리다.
+ */
+export function buildMossTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#5f7a3a';                       // 바탕 이끼
+  cx.fillRect(0, 0, 128, 128);
+
+  // 덩어리. 소수 곱 나머지로 흩어야 새로고침해도 같은 무늬가 나온다
+  const blob = (n: number, r: number, color: string, a: number, b: number): void => {
+    cx.fillStyle = color;
+    for (let i = 0; i < n; i++) {
+      cx.beginPath();
+      cx.arc((i * a) % 128, (i * b) % 128, r, 0, Math.PI * 2);
+      cx.fill();
+    }
+  };
+  blob(90, 6, '#6d8a41', 3121, 4483);
+  blob(140, 3, '#557033', 2657, 3931);
+  blob(200, 2, '#7b9a4b', 1861, 2939);
+
+  // 낙엽 몇 점. 이끼만 있으면 「초록 장판」이고, 떨어진 게 있어야 «바깥»이 된다
+  cx.fillStyle = '#8a6a34';
+  for (let i = 0; i < 24; i++) cx.fillRect((i * 5417) % 128, (i * 2711) % 128, 3, 2);
+
+  return finish(cv);
+}
+
+/**
+ * 갈퀴질한 흰 자갈 — 카레산스이(枯山水).
+ *
+ * **이 텍스처의 정체는 자갈이 아니라 «고랑»이다.** 흰 점만 찍으면 그냥 모래고,
+ * 일정 간격 고랑이 있어야 「사람이 갈퀴로 그었다」가 읽힌다. 일본 정원을
+ * 한눈에 알아보게 하는 표식이 이 줄 하나다.
+ *
+ * 128px = 1.8m 이므로 16px ≈ 22cm 주기 — 실제 갈퀴 이 간격이 그쯤이다.
+ * 고랑은 **그림자 2px 바로 밑에 이랑 마루 1px** 을 붙여야 «패였다»로 보인다.
+ * 어두운 줄만 그으면 종이에 그은 선이다.
+ */
+export function buildGravelTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#ddd8c8';
+  cx.fillRect(0, 0, 128, 128);
+
+  // 자갈알. 2px = 실제 2.8cm — 자갈 한 알의 크기다
+  for (let i = 0; i < 700; i++) {
+    const v = 196 + ((i * 6151) % 40);
+    cx.fillStyle = `rgb(${v},${v - 4},${v - 18})`;
+    cx.fillRect((i * 29) % 128, (i * 47) % 128, 2, 2);
+  }
+
+  // 고랑. 128 / 16 = 여덟 줄이라 타일 이음매에서 간격이 안 어긋난다
+  for (let k = 0; k < 128; k += 16) {
+    cx.fillStyle = '#b6b0a0'; cx.fillRect(0, k, 128, 2);
+    cx.fillStyle = '#efeade'; cx.fillRect(0, k + 2, 128, 1);
+  }
+
+  return finish(cv);
+}
+
 /** 방 정의(`StageRoom.floorTex`)가 고르는 이름 → 생성 함수. */
 export const FLOOR_TEX = {
   tatami: buildTatamiTexture,
   rug: buildRugTexture,
   wood: buildWoodTexture,
+  moss: buildMossTexture,
+  gravel: buildGravelTexture,
 } as const;
 
 export type FloorTex = keyof typeof FLOOR_TEX;
