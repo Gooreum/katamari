@@ -125,7 +125,7 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
     // 테 넷
     part(soft(0.86, 0.09, 0.07, 0.3), WOOD, [0, 0.955, 0.015]),
     part(soft(0.86, 0.09, 0.07, 0.3), WOOD, [0, 0.085, 0.015]),
-    part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [-0.385, 0.52, 0.015]),
+    part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [-0.385, 0.52, 0.015], undefined, TILE.WOOD_C),
     part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [0.385, 0.52, 0.015]),
     // 뒤판
     part(new BoxGeometry(0.80, 0.92, 0.02), PAPER, [0, 0.52, -0.025]),

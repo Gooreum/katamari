@@ -53,7 +53,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 거실에 서 있던 것이다. 상판·측판·선반·뒷판을 따로 세워 칸을 만든다.
    */
   TV장: () => assemble([
-    part(soft(1.00, 0.05, 0.46, 0.35), WHITE, [0, 0.42, 0]),        // 상판
+    part(soft(1.00, 0.05, 0.46, 0.35), WHITE, [0, 0.42, 0], undefined, TILE.WOOD_C),        // 상판
     part(soft(0.05, 0.40, 0.46, 0.3), WHITE, [-0.475, 0.20, 0]),   // 측판
     part(soft(0.05, 0.40, 0.46, 0.3), WHITE, [0.475, 0.20, 0]),
     part(soft(0.90, 0.035, 0.44, 0.3), WOOD, [0, 0.20, 0]),        // 가운데 선반
@@ -70,7 +70,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 여태 거실 책장은 압출 조각 넷이라 세로선만 있었다.
    */
   책장: () => assemble([
-    part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [-0.34, 0.50, 0]),    // 측판
+    part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [-0.34, 0.50, 0], undefined, TILE.WOOD_C),    // 측판
     part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [0.34, 0.50, 0]),
     part(soft(0.73, 0.04, 0.32, 0.3), WHITE, [0, 0.98, 0]),        // 위 마감
     part(new BoxGeometry(0.68, 0.98, 0.03), PAPER, [0, 0.50, -0.155]),   // 뒷판
@@ -92,7 +92,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
     part(new TorusGeometry(0.49, 0.022, 4, 20), WOOD, [0, 0.325, 0], LIE_Z),
     // 다리 넷. 상판 지름(1.0)보다 안쪽에 모아야 상다리로 보인다
     ...([[0.30, 0.30], [-0.30, 0.30], [0.30, -0.30], [-0.30, -0.30]] as const).map(
-      ([x, z]) => part(new CylinderGeometry(0.030, 0.024, 0.30, 6), WOOD, [x, 0.15, z])),
+      ([x, z]) => part(new CylinderGeometry(0.030, 0.024, 0.30, 6), WOOD, [x, 0.15, z], undefined, TILE.WOOD_C)),
     // 다리를 잇는 가로대. 없으면 다리가 허공에 꽂힌 막대로 보인다
     part(soft(0.58, 0.025, 0.025, 0.35), WOOD, [0, 0.08, 0.30]),
     part(soft(0.58, 0.025, 0.025, 0.35), WOOD, [0, 0.08, -0.30]),
@@ -124,7 +124,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
     // 다리 셋. 120°씩
     ...([0, 2.0944, 4.1888] as const).map((a) =>
       part(new CylinderGeometry(0.028, 0.022, 0.96, 6), WOOD,
-        [Math.cos(a) * 0.26, 0.48, Math.sin(a) * 0.26])),
+        [Math.cos(a) * 0.26, 0.48, Math.sin(a) * 0.26], undefined, TILE.WOOD_C)),
     part(new CylinderGeometry(0.20, 0.20, 0.03, 14), WOOD, [0, 0.26, 0]),    // 아래 선반
     // 다리를 묶는 가로대 — 없으면 다리 셋이 따로 논다
     part(new TorusGeometry(0.255, 0.014, 4, 20), WOOD, [0, 0.62, 0], LIE_Z),
@@ -141,7 +141,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
     // 가장자리 시접 — 방석을 방석으로 만드는 테두리
     part(new TorusGeometry(0.42, 0.024, 4, 20), PAPER, [0, 0.045, 0], LIE_Z),
     part(new TorusGeometry(0.39, 0.022, 4, 20), PAPER, [-0.02, 0.235, -0.02], LIE_Z),
-    part(new CylinderGeometry(0.04, 0.04, 0.02, 8), PAPER, [-0.02, 0.29, -0.02]),   // 단추
+    part(new CylinderGeometry(0.04, 0.04, 0.02, 8), PAPER, [-0.02, 0.29, -0.02], undefined, TILE.CLOTH),   // 단추
     part(new CylinderGeometry(0.012, 0.012, 0.10, 6), PAPER, [0.30, 0.05, 0.30], LIE_X),  // 술
   ]),
 };

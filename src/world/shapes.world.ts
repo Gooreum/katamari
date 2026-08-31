@@ -4,6 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdWorld } from './generation';
 import { assemble, DARK, GLASS, METAL, part, PAPER, WHITE, WOOD } from './shapes.kit';
+import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -26,7 +27,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   // ── 19~32cm (길바닥) ──────────────────────────────────────
   벽돌: () => assemble([
     // 구멍 셋이 실루엣의 전부다. 없으면 그냥 상자다.
-    part(new BoxGeometry(1.0, 0.42, 0.46), WHITE),
+    part(new BoxGeometry(1.0, 0.42, 0.46), WHITE, undefined, undefined, TILE.STONE),
     part(new BoxGeometry(0.16, 0.44, 0.16), DARK, [-0.26, 0, 0]),
     part(new BoxGeometry(0.16, 0.44, 0.16), DARK, [0, 0, 0]),
     part(new BoxGeometry(0.16, 0.44, 0.16), DARK, [0.26, 0, 0]),
@@ -36,7 +37,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new SphereGeometry(0.5, 16, 10), WHITE),
     // 검은 조각 다섯. 구면에 살짝 박아 실루엣은 안 건드린다 —
     // 밖으로 튀어나오면 normalize() 가 그만큼 전체를 줄여서 공이 작아진다.
-    part(new SphereGeometry(0.15, 12, 8), DARK, [0, 0.44, 0]),
+    part(new SphereGeometry(0.15, 12, 8), DARK, [0, 0.44, 0], undefined, TILE.RUBBER),
     part(new SphereGeometry(0.13, 12, 8), DARK, [0.40, 0.10, 0.22]),
     part(new SphereGeometry(0.13, 12, 8), DARK, [-0.40, 0.10, 0.22]),
     part(new SphereGeometry(0.13, 12, 8), DARK, [0.22, 0.05, -0.42]),
@@ -47,7 +48,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   타이어: () => assemble([
     // 눕혀 놓은 폐타이어. Torus 는 기본이 XY 평면(구멍이 Z축)이라
     // 세로로 서 있다 — 눕히려면 LIE_Z 를 걸어야 한다.
-    part(new TorusGeometry(0.34, 0.16, 6, 20), DARK, [0, 0, 0], LIE_Z),
+    part(new TorusGeometry(0.34, 0.16, 6, 20), DARK, [0, 0, 0], LIE_Z, TILE.RUBBER),
     // 가운데 휠. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다
     part(new CylinderGeometry(0.20, 0.20, 0.22, 14), WHITE),
   ]),
@@ -56,7 +57,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   소화전: () => assemble([
     part(new CylinderGeometry(0.10, 0.13, 0.14, 14), METAL, [0, -0.43, 0]),
     part(new CylinderGeometry(0.17, 0.19, 0.62, 14), WHITE, [0, -0.05, 0]),
-    part(new SphereGeometry(0.17, 14, 9), WHITE, [0, 0.26, 0]),
+    part(new SphereGeometry(0.17, 14, 9), WHITE, [0, 0.26, 0], undefined, TILE.METAL),
     part(new CylinderGeometry(0.05, 0.05, 0.10, 10), METAL, [0, 0.40, 0]),
     // 양옆 배출구가 소화전을 소화전으로 만든다. 이게 없으면 볼라드와 구별이 안 된다
     part(new CylinderGeometry(0.08, 0.08, 0.16, 10), METAL, [0.22, 0.02, 0], LIE_X),
@@ -65,7 +66,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   볼라드: () => assemble([
     part(new CylinderGeometry(0.13, 0.15, 0.86, 14), WHITE, [0, -0.05, 0]),
-    part(new SphereGeometry(0.13, 14, 9), WHITE, [0, 0.38, 0]),
+    part(new SphereGeometry(0.13, 14, 9), WHITE, [0, 0.38, 0], undefined, TILE.METAL),
     // 반사띠 둘 — 이게 없으면 그냥 기둥이다
     part(new CylinderGeometry(0.145, 0.145, 0.09, 14), PAPER, [0, 0.20, 0]),
     part(new CylinderGeometry(0.155, 0.155, 0.09, 14), PAPER, [0, -0.10, 0]),
@@ -89,7 +90,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new BoxGeometry(0.52, 0.30, 0.02), PAPER, [0, 0.068, 0.129], [-0.32, 0, 0]),
     // 경첩은 두 판의 **실제 윗끝**(y≈0.41)에 온다. 예전엔 0.36 이었는데
     // 그 높이에서 두 판이 한참 벌어져 있어 아무것도 잇지 않았다
-    part(new CylinderGeometry(0.02, 0.02, 0.30, 6), WOOD, [0, 0.41, 0], LIE_X),
+    part(new CylinderGeometry(0.02, 0.02, 0.30, 6), WOOD, [0, 0.41, 0], LIE_X, TILE.METAL),
   ]),
 
   // ── 버킷 5 (1.15~2.14m) ───────────────────────────────────
@@ -99,7 +100,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 그대로 두면 서 있고, 눕히면 바닥에 붙은 팬케이크가 된다 (처음에 그렇게 나왔다).
     // **바퀴 간격이 반지름보다 커야 한다.** `normalize()` 가 최장축을 1.0으로 줄이는데,
     // 처음엔 간격 0.34 · 반지름 0.30이라 줄이고 나니 두 바퀴가 겹쳐 안경처럼 보였다.
-    part(new TorusGeometry(0.26, 0.06, 5, 20), DARK, [-0.44, 0.26, 0]),
+    part(new TorusGeometry(0.26, 0.06, 5, 20), DARK, [-0.44, 0.26, 0], undefined, TILE.METAL),
     part(new TorusGeometry(0.26, 0.06, 5, 20), DARK, [0.44, 0.26, 0]),
     // 프레임은 **굵어야 남는다** — 0.028은 이 크기에서 사라졌다
     part(new CylinderGeometry(0.05, 0.05, 0.80, 14), WHITE, [0, 0.42, 0], LIE_X),
@@ -119,20 +120,20 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new BoxGeometry(0.30, 0.18, 0.28), WHITE, [-0.26, 0.58, 0]),
     part(new CylinderGeometry(0.035, 0.035, 0.34, 10), METAL, [0.42, 0.62, 0], LIE_Z),
     part(new CylinderGeometry(0.06, 0.06, 0.34, 14), METAL, [0.40, 0.44, 0], [0, 0, -0.4]),
-    part(new SphereGeometry(0.12, 14, 9), GLASS, [0.50, 0.50, 0]),
+    part(new SphereGeometry(0.12, 14, 9), GLASS, [0.50, 0.50, 0], undefined, TILE.METAL),
   ]),
 
   우체통: () => assemble([
     // 기둥 위에 둥근 통. 동네의 그것보다 크고 다리가 보인다
     part(new CylinderGeometry(0.10, 0.12, 0.44, 14), METAL, [0, 0.22, 0]),
     part(new BoxGeometry(0.44, 0.46, 0.34), WHITE, [0, 0.66, 0]),
-    part(new CylinderGeometry(0.22, 0.22, 0.34, 20, 1, false, 0, Math.PI), WHITE, [0, 0.89, 0], LIE_Z),
+    part(new CylinderGeometry(0.22, 0.22, 0.34, 20, 1, false, 0, Math.PI), WHITE, [0, 0.89, 0], LIE_Z, TILE.WOOD_C),
     // 투입구
     part(new BoxGeometry(0.30, 0.05, 0.36), DARK, [0, 0.80, 0]),
   ]),
 
   표지판: () => assemble([
-    part(new CylinderGeometry(0.045, 0.045, 1.10, 10), METAL, [0, 0.55, 0]),
+    part(new CylinderGeometry(0.045, 0.045, 1.10, 10), METAL, [0, 0.55, 0], undefined, TILE.METAL),
     part(new CylinderGeometry(0.34, 0.34, 0.06, 20), WHITE, [0, 1.02, 0], LIE_Z),
     part(new CylinderGeometry(0.24, 0.24, 0.08, 20), PAPER, [0, 1.02, 0], LIE_Z),
     part(new BoxGeometry(0.30, 0.05, 0.30), METAL, [0, 0.025, 0]),
@@ -141,13 +142,13 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   드럼통: () => assemble([
     part(new CylinderGeometry(0.40, 0.40, 1.00, 20), WHITE, [0, 0.50, 0]),
     // 테 둘 — 이게 있어야 드럼통이다
-    part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.28, 0], LIE_Z),
+    part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.28, 0], LIE_Z, TILE.METAL),
     part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z),
     part(new CylinderGeometry(0.38, 0.38, 0.05, 20), METAL, [0, 1.00, 0]),
   ]),
 
   벤치: () => assemble([
-    part(new BoxGeometry(1.20, 0.08, 0.40), WOOD, [0, 0.44, 0]),
+    part(new BoxGeometry(1.20, 0.08, 0.40), WOOD, [0, 0.44, 0], undefined, TILE.WOOD_C),
     part(new BoxGeometry(1.20, 0.34, 0.07), WOOD, [0, 0.64, -0.17]),
     // 다리 넷 — 주철 느낌으로 어둡게
     ...[[-0.50, 0.15], [-0.50, -0.15], [0.50, 0.15], [0.50, -0.15]].map(
@@ -158,7 +159,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   그네: () => assemble([
     // **판이 커야 그네로 읽힌다.** 처음엔 A자 프레임만 보이고 판이 안 보여서
     // 뒤집힌 A 두 개처럼 읽혔다 — 판을 키우고 줄을 굵혔다.
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, 0.26], [0.42, 0, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, 0.26], [0.42, 0, 0], TILE.METAL),
     part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, -0.26], [-0.42, 0, 0]),
     part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [0.46, 0.56, 0.26], [0.42, 0, 0]),
     part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [0.46, 0.56, -0.26], [-0.42, 0, 0]),
@@ -170,7 +171,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   // ── 버킷 6 (2.14~4m) ──────────────────────────────────────
   자판기: () => assemble([
-    part(new BoxGeometry(0.66, 1.10, 0.44), WHITE, [0, 0.55, 0]),
+    part(new BoxGeometry(0.66, 1.10, 0.44), WHITE, [0, 0.55, 0], undefined, TILE.PANEL),
     // 앞면 유리 + 진열 칸
     part(new BoxGeometry(0.44, 0.62, 0.04), GLASS, [-0.06, 0.66, 0.23]),
     ...[0, 1, 2].map((i) => part(
@@ -187,7 +188,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new BoxGeometry(0.10, 1.00, 0.10), METAL, [-0.44, 0.50, -0.22]),
     part(new BoxGeometry(0.40, 0.06, 0.54), WHITE, [-0.44, 1.00, 0]),
     // 경사판 + 난간
-    part(new BoxGeometry(1.10, 0.06, 0.50), WHITE, [0.16, 0.56, 0], [0, 0, -0.52]),
+    part(new BoxGeometry(1.10, 0.06, 0.50), WHITE, [0.16, 0.56, 0], [0, 0, -0.52], TILE.METAL),
     part(new BoxGeometry(1.10, 0.14, 0.05), METAL, [0.16, 0.66, 0.25], [0, 0, -0.52]),
     part(new BoxGeometry(1.10, 0.14, 0.05), METAL, [0.16, 0.66, -0.25], [0, 0, -0.52]),
     // 사다리 발판
@@ -201,7 +202,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 면으로 채우면 그냥 상자가 되어 미끄럼틀과 구별이 안 된다.
     // 원작 어친타운의 선물 위치가 "정글짐 옆"이다.
     ...[[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].map(([x, z]) =>
-      part(new CylinderGeometry(0.035, 0.035, 1.0, 14), WHITE, [x!, 0, z!])),
+      part(new CylinderGeometry(0.035, 0.035, 1.0, 14), WHITE, [x!, 0, z!], undefined, TILE.METAL)),
     ...[0.16, -0.30].flatMap((y) => [
       part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0, y, -0.4], LIE_X),
       part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0, y, 0.4], LIE_X),
@@ -215,7 +216,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new CylinderGeometry(0.11, 0.11, 0.44, 14), WHITE, [0, 0.22, -0.06]),
     part(new CylinderGeometry(0.11, 0.11, 0.44, 14), WHITE, [0, 0.22, 0.06]),
     part(new BoxGeometry(0.30, 0.46, 0.20), WHITE, [0, 0.66, 0]),
-    part(new SphereGeometry(0.15, 14, 9), [0.95, 0.8, 0.7], [0, 1.02, 0]),
+    part(new SphereGeometry(0.15, 14, 9), [0.95, 0.8, 0.7], [0, 1.02, 0], undefined, TILE.CLOTH),
     part(new SphereGeometry(0.16, 14, 9).scale(1, 0.6, 1), DARK, [0, 1.10, 0]),
     // 팔 둘
     part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, -0.21], [0.12, 0, 0]),
@@ -230,12 +231,12 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     ...[[-0.42, 0.31], [-0.42, -0.31], [0.42, 0.31], [0.42, -0.31]].map(
       ([x, z]) => part(new CylinderGeometry(0.17, 0.17, 0.10, 20), DARK, [x!, 0.17, z!], LIE_Z),
     ),
-    part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, 0.20]),
+    part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, 0.20], undefined, TILE.PAPER),
     part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, -0.20]),
   ]),
 
   가로수: () => assemble([
-    part(new CylinderGeometry(0.10, 0.14, 0.62, 20), WOOD, [0, 0.31, 0]),
+    part(new CylinderGeometry(0.10, 0.14, 0.62, 20), WOOD, [0, 0.31, 0], undefined, TILE.WOOD_C),
     // 잎은 덩어리 셋 — 하나면 사탕처럼 보인다
     part(new SphereGeometry(0.40, 20, 13), WHITE, [0, 0.86, 0]),
     part(new SphereGeometry(0.28, 20, 13), WHITE, [-0.26, 0.72, 0.10]),

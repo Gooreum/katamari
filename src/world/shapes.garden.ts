@@ -7,6 +7,7 @@ import {
   assemble, DARK, hollow, part, soft, WHITE, WOOD,
   type Part, type RGB,
 } from './shapes.kit';
+import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -194,7 +195,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     part(new CylinderGeometry(0.13, 0.168, 0.04, 14), STONE_DARK, [0, 0.11, 0]),
     // 간 — 기둥. 가운데가 살짝 잘록해야 «깎은 돌»이다
     part(new CylinderGeometry(0.062, 0.072, 0.20, 10), STONE, [0, 0.23, 0]),
-    part(new TorusGeometry(0.068, 0.014, 4, 8), STONE_DARK, [0, 0.33, 0], LIE_Z),
+    part(new TorusGeometry(0.068, 0.014, 4, 8), STONE_DARK, [0, 0.33, 0], LIE_Z, TILE.STONE),
     // SEAM-OK: 바로 위 `TorusGeometry` 가 이미 단을 만든다 — 간(竿) 가운데의
     // 잘록한 마디가 그것이고, 원기둥 반지름이 같은 건 그 마디를 사이에 둔 것이다
     part(new CylinderGeometry(0.072, 0.062, 0.16, 10), STONE, [0, 0.41, 0]),
@@ -239,7 +240,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // 대나무 물대 — 세운 대 + 기울여 뻗은 홈통. 끝이 그릇 위에 와야 한다
     ...culm(-0.30, -0.12, 0.46, 0.032, 0, 2),
     part(new CylinderGeometry(0.028, 0.028, 0.34, 7), BAMBOO,
-      [-0.17, 0.455, -0.06], [0.32, 0.42, 0.30]),
+      [-0.17, 0.455, -0.06], [0.32, 0.42, 0.30], TILE.STONE),
     part(new TorusGeometry(0.032, 0.010, 4, 7), BAMBOO_NODE, [-0.30, 0.46, -0.12], LIE_Z),
   ]),
 
@@ -258,7 +259,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     part(new CylinderGeometry(0.150, 0.145, 0.016, 10), STONE, [0, 0.044, 0]),
     // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다
     part(new CylinderGeometry(0.152, 0.150, 0.006, 10), MOSS, [0, 0.049, 0]),
-    part(new CylinderGeometry(0.112, 0.112, 0.008, 7), STONE, [0.008, 0.052, -0.006]),
+    part(new CylinderGeometry(0.112, 0.112, 0.008, 7), STONE, [0.008, 0.052, -0.006], undefined, TILE.STONE),
   ]),
 
   /**
@@ -282,7 +283,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       [-0.14, 0.71, -0.05, 0.14, -1.5], [0.13, 0.63, 0.08, 0.13, 0.8],
       [-0.05, 0.56, -0.11, 0.12, 2.6], [0.09, 0.49, 0.03, 0.10, -2.2],
     ] as const).map(([x, y, z, r, a]) =>
-      part(new SphereGeometry(r, 6, 4).scale(1, 0.34, 1), LEAF, [x, y, z], [0.18, a, 0.22])),
+      part(new SphereGeometry(r, 6, 4).scale(1, 0.34, 1), LEAF, [x, y, z], [0.18, a, 0.22], TILE.LEAF)),
   ]),
 
   /**
@@ -325,7 +326,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       ...tuft(s2.end, 0.14, 0.04, 0.165),
       // 꼭대기 — 가지 없이 줄기 끝에 바로 얹는다
       part(new SphereGeometry(0.125, 14, 9).scale(1, 0.46, 1), PINE,
-        [s3.end[0], s3.end[1] + 0.02, s3.end[2]]),
+        [s3.end[0], s3.end[1] + 0.02, s3.end[2]], undefined, TILE.LEAF),
     ]);
   },
 
@@ -359,7 +360,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // 살 다섯 — 부채꼴. 각도를 벌려 심는다
     ...([-0.42, -0.21, 0, 0.21, 0.42] as const).map((a) =>
       part(new CylinderGeometry(0.006, 0.008, 0.20, 6), BAMBOO,
-        [Math.sin(a) * 0.10, 0.80, 0], [0, 0, a])),
+        [Math.sin(a) * 0.10, 0.80, 0], [0, 0, a], TILE.WOOD_F)),
     // 살을 묶는 가로대 둘
     part(new CylinderGeometry(0.006, 0.006, 0.17, 6), BAMBOO_NODE, [0, 0.755, 0], LIE_X),
     part(new CylinderGeometry(0.005, 0.005, 0.22, 6), BAMBOO_NODE, [0, 0.845, 0], LIE_X),

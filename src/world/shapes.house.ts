@@ -98,7 +98,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     ...hollow(0.42, 0.38, 0.44, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.38]),
     // 뚜껑 — 한쪽으로 밀어 얹는다. 이게 「끓이는 중」의 정체다
     part(new CylinderGeometry(0.44, 0.44, 0.05, 20), METAL, [0.14, 0.47, 0], [0, 0, 0.16]),
-    part(new SphereGeometry(0.08, 8, 6), DARK, [0.16, 0.53, 0]),
+    part(new SphereGeometry(0.08, 8, 6), DARK, [0.16, 0.53, 0], undefined, TILE.METAL),
     // 양쪽 귀. **이게 있어야 컵이 아니라 냄비다**
     part(soft(0.16, 0.05, 0.11, 0.35), DARK, [0.49, 0.34, 0]),
     part(soft(0.16, 0.05, 0.11, 0.35), DARK, [-0.49, 0.34, 0]),
@@ -164,11 +164,11 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   구슬: () => assemble([
     part(new SphereGeometry(0.5, 16, 10), GLASS, [0, 0.5, 0]),
     // 안에 든 꽈배기 심지. **구슬을 구슬로 만드는 건 이것이다** — 없으면 그냥 공이다
-    part(new SphereGeometry(0.30, 16, 10).scale(1, 0.34, 0.34), WHITE, [0, 0.50, 0], [0, 0, 0.6]),
+    part(new SphereGeometry(0.30, 16, 10).scale(1, 0.34, 0.34), WHITE, [0, 0.50, 0], [0, 0, 0.6], TILE.CERAMIC),
   ]),
 
   '장난감 블록': () => assemble([
-    part(soft(0.98, 0.60, 0.98, 0.1), WHITE, [0, 0.30, 0]),
+    part(soft(0.98, 0.60, 0.98, 0.1), WHITE, [0, 0.30, 0], undefined, TILE.PLASTIC),
     // 돌기 넷. 이게 없으면 그냥 정육면체다
     part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [0.24, 0.68, 0.24]),
     part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [-0.24, 0.68, 0.24]),
@@ -200,7 +200,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, 0.19]),
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, -0.19]),
     // 주둥이 + 코 + 눈. 얼굴이 없으면 눈사람이다
-    part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), PAPER, [0.22, 0.85, 0]),
+    part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), PAPER, [0.22, 0.85, 0], undefined, TILE.CLOTH),
     part(new SphereGeometry(0.05, 6, 4), DARK, [0.33, 0.88, 0]),
     part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, 0.11]),
     part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, -0.11]),

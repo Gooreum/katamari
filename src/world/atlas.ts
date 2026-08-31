@@ -480,11 +480,11 @@ export function buildPrintAtlas(): CanvasTexture {
     for (let i = 0; i < lines; i++) {
       const y = rnd(i * 7 + 3, CELL);
       const w = 16 + rnd(i * 13 + 5, 60);
-      cx.fillStyle = i % 5 === 0 ? 'rgba(96,70,44,0.26)' : 'rgba(128,98,64,0.13)';
+      cx.fillStyle = i % 5 === 0 ? 'rgba(96,70,44,0.455)' : 'rgba(128,98,64,0.228)';
       cx.fillRect(rnd(i * 17 + 11, CELL) - w / 2, y, w, 1 + (i % 3));
     }
     if (!knot) return;
-    cx.strokeStyle = 'rgba(96,70,44,0.30)';
+    cx.strokeStyle = 'rgba(96,70,44,0.525)';
     for (let r = 3; r < 16; r += 4) {
       cx.lineWidth = r < 8 ? 2.4 : 1.6;
       cx.beginPath(); cx.ellipse(40, 84, r, r * 0.58, 0.42, 0, Math.PI * 2); cx.stroke();
@@ -496,10 +496,10 @@ export function buildPrintAtlas(): CanvasTexture {
   /** 천 짜임. 씨실·날실이 «교차»해야 천이다 — 한 방향 줄이면 종이다 */
   at(TILE.CLOTH, () => {
     base();
-    cx.fillStyle = 'rgba(110,100,88,0.14)';
+    cx.fillStyle = 'rgba(110,100,88,0.245)';
     for (let k = 0; k < CELL; k += 4) { cx.fillRect(k, 0, 2, CELL); cx.fillRect(0, k + 2, CELL, 2); }
     // 보풀 — 완전히 균일하면 격자무늬 벽지가 된다
-    cx.fillStyle = 'rgba(120,110,96,0.10)';
+    cx.fillStyle = 'rgba(120,110,96,0.175)';
     for (let i = 0; i < 260; i++) cx.fillRect(rnd(i * 3 + 1, CELL), rnd(i * 5 + 2, CELL), 2, 2);
   });
 
@@ -507,32 +507,32 @@ export function buildPrintAtlas(): CanvasTexture {
   at(TILE.STRAW, () => {
     base();
     for (let k = 0; k < CELL; k += 8) {
-      cx.fillStyle = 'rgba(120,104,58,0.16)'; cx.fillRect(0, k, CELL, 5);
-      cx.fillStyle = 'rgba(150,132,80,0.10)'; cx.fillRect(0, k + 5, CELL, 3);
+      cx.fillStyle = 'rgba(120,104,58,0.280)'; cx.fillRect(0, k, CELL, 5);
+      cx.fillStyle = 'rgba(150,132,80,0.175)'; cx.fillRect(0, k + 5, CELL, 3);
     }
-    cx.fillStyle = 'rgba(110,96,54,0.12)';
+    cx.fillStyle = 'rgba(110,96,54,0.210)';
     for (let k = 0; k < CELL; k += 26) cx.fillRect(k, 0, 2, CELL);
   });
 
   /** 골판지. 옆면의 «물결»과 겉면의 결 */
   at(TILE.CARDBOARD, () => {
     base();
-    cx.strokeStyle = 'rgba(120,92,58,0.20)'; cx.lineWidth = 2;
+    cx.strokeStyle = 'rgba(120,92,58,0.350)'; cx.lineWidth = 2;
     for (let k = 0; k < CELL; k += 9) {
       cx.beginPath();
       for (let x = 0; x <= CELL; x += 4) cx.lineTo(x, k + Math.sin(x * 0.22) * 2.2);
       cx.stroke();
     }
-    cx.fillStyle = 'rgba(140,110,72,0.10)';
+    cx.fillStyle = 'rgba(140,110,72,0.175)';
     for (let i = 0; i < 180; i++) cx.fillRect(rnd(i * 11 + 7, CELL), rnd(i * 19 + 3, CELL), 3, 1);
   });
 
   /** 종이. 아주 옅은 얼룩 + 접힌 자국 하나 — 완전히 매끈하면 플라스틱이다 */
   at(TILE.PAPER, () => {
     base();
-    cx.fillStyle = 'rgba(110,106,96,0.055)';
+    cx.fillStyle = 'rgba(110,106,96,0.096)';
     for (let i = 0; i < 340; i++) cx.fillRect(rnd(i * 7 + 5, CELL), rnd(i * 13 + 9, CELL), 3, 2);
-    cx.fillStyle = 'rgba(110,106,96,0.13)'; cx.fillRect(0, 62, CELL, 1);
+    cx.fillStyle = 'rgba(110,106,96,0.228)'; cx.fillRect(0, 62, CELL, 1);
   });
 
   /** 브러시 금속. **한 방향** 가는 줄이 금속을 금속으로 만든다 */
@@ -540,28 +540,28 @@ export function buildPrintAtlas(): CanvasTexture {
     base();
     for (let i = 0; i < 200; i++) {
       const y = rnd(i * 9 + 1, CELL);
-      cx.fillStyle = i % 3 === 0 ? 'rgba(90,96,104,0.15)' : 'rgba(120,128,138,0.08)';
+      cx.fillStyle = i % 3 === 0 ? 'rgba(90,96,104,0.263)' : 'rgba(120,128,138,0.140)';
       cx.fillRect(0, y, CELL, 1);
     }
     // 넓은 하이라이트 띠 — 금속은 한 줄이 밝다
     const gr = cx.createLinearGradient(0, 0, 0, CELL);
-    gr.addColorStop(0, 'rgba(70,78,88,0.14)');
-    gr.addColorStop(0.42, 'rgba(255,255,255,0)');
-    gr.addColorStop(1, 'rgba(70,78,88,0.16)');
+    gr.addColorStop(0, 'rgba(70,78,88,0.245)');
+    gr.addColorStop(0.42, 'rgba(255,255,255,0.000)');
+    gr.addColorStop(1, 'rgba(70,78,88,0.280)');
     cx.fillStyle = gr; cx.fillRect(0, 0, CELL, CELL);
   });
 
   /** 도기 유약. 큰 얼룩 몇 개 + 가장자리로 갈수록 짙어지는 굽 */
   at(TILE.CERAMIC, () => {
     base();
-    cx.fillStyle = 'rgba(96,104,112,0.07)';
+    cx.fillStyle = 'rgba(96,104,112,0.123)';
     for (let i = 0; i < 26; i++) {
       cx.beginPath();
       cx.ellipse(rnd(i * 23 + 3, CELL), rnd(i * 31 + 7, CELL),
         8 + rnd(i * 7, 18), 5 + rnd(i * 11, 12), rnd(i * 5, 3), 0, Math.PI * 2);
       cx.fill();
     }
-    cx.strokeStyle = 'rgba(96,104,112,0.13)'; cx.lineWidth = 5;
+    cx.strokeStyle = 'rgba(96,104,112,0.228)'; cx.lineWidth = 5;
     cx.strokeRect(2, 2, CELL - 4, CELL - 4);
   });
 
@@ -569,25 +569,25 @@ export function buildPrintAtlas(): CanvasTexture {
   at(TILE.PLASTIC, () => {
     base();
     for (let k = 6; k < CELL; k += 14) {
-      cx.fillStyle = 'rgba(88,96,104,0.13)'; cx.fillRect(k, 0, 3, CELL);
-      cx.fillStyle = 'rgba(255,255,255,0.0)'; cx.fillRect(k + 3, 0, 2, CELL);
+      cx.fillStyle = 'rgba(88,96,104,0.228)'; cx.fillRect(k, 0, 3, CELL);
+      cx.fillStyle = 'rgba(255,255,255,0.000)'; cx.fillRect(k + 3, 0, 2, CELL);
     }
-    cx.fillStyle = 'rgba(88,96,104,0.09)'; cx.fillRect(0, CELL - 14, CELL, 3);
+    cx.fillStyle = 'rgba(88,96,104,0.158)'; cx.fillRect(0, CELL - 14, CELL, 3);
   });
 
   /** 책 표지(재질). 위아래 띠 두 줄 — 제목 자리 */
   at(TILE.COVER, () => {
     base();
-    cx.fillStyle = 'rgba(70,64,58,0.22)'; cx.fillRect(0, 16, CELL, 10);
-    cx.fillStyle = 'rgba(70,64,58,0.14)'; cx.fillRect(0, 100, CELL, 5);
-    cx.fillStyle = 'rgba(70,64,58,0.16)';
+    cx.fillStyle = 'rgba(70,64,58,0.385)'; cx.fillRect(0, 16, CELL, 10);
+    cx.fillStyle = 'rgba(70,64,58,0.245)'; cx.fillRect(0, 100, CELL, 5);
+    cx.fillStyle = 'rgba(70,64,58,0.280)';
     for (let i = 0; i < 4; i++) cx.fillRect(18, 44 + i * 9, 60 - i * 9, 3);
   });
 
   /** 나뭇잎. 가운데 주맥 + 갈라지는 잎맥 */
   at(TILE.LEAF, () => {
     base();
-    cx.strokeStyle = 'rgba(56,78,44,0.20)'; cx.lineWidth = 3;
+    cx.strokeStyle = 'rgba(56,78,44,0.350)'; cx.lineWidth = 3;
     cx.beginPath(); cx.moveTo(64, 4); cx.lineTo(64, CELL - 4); cx.stroke();
     cx.lineWidth = 1.6;
     for (let y = 14; y < CELL - 10; y += 11) {
@@ -599,7 +599,7 @@ export function buildPrintAtlas(): CanvasTexture {
   /** 돌 결. 불규칙한 금 + 알갱이 */
   at(TILE.STONE, () => {
     base();
-    cx.strokeStyle = 'rgba(84,84,80,0.18)'; cx.lineWidth = 2;
+    cx.strokeStyle = 'rgba(84,84,80,0.315)'; cx.lineWidth = 2;
     for (let i = 0; i < 7; i++) {
       cx.beginPath();
       let x = rnd(i * 13 + 1, CELL), y = 0;
@@ -607,27 +607,27 @@ export function buildPrintAtlas(): CanvasTexture {
       while (y < CELL) { x += rnd(i * 7 + y, 26) - 13; y += 14; cx.lineTo(x, y); }
       cx.stroke();
     }
-    cx.fillStyle = 'rgba(84,84,80,0.10)';
+    cx.fillStyle = 'rgba(84,84,80,0.175)';
     for (let i = 0; i < 420; i++) cx.fillRect(rnd(i * 5 + 3, CELL), rnd(i * 17 + 11, CELL), 2, 2);
   });
 
   /** 가전 패널. 통풍 격자 + 버튼 자리 — 「기계다」가 읽히는 최소치 */
   at(TILE.PANEL, () => {
     base();
-    cx.fillStyle = 'rgba(58,60,66,0.20)';
+    cx.fillStyle = 'rgba(58,60,66,0.350)';
     for (let k = 20; k < 84; k += 7) cx.fillRect(14, k, 54, 3);
-    cx.fillStyle = 'rgba(58,60,66,0.26)';
+    cx.fillStyle = 'rgba(58,60,66,0.455)';
     for (let i = 0; i < 3; i++) {
       cx.beginPath(); cx.arc(92, 30 + i * 22, 6, 0, Math.PI * 2); cx.fill();
     }
-    cx.strokeStyle = 'rgba(58,60,66,0.16)'; cx.lineWidth = 2;
+    cx.strokeStyle = 'rgba(58,60,66,0.280)'; cx.lineWidth = 2;
     cx.strokeRect(8, 100, CELL - 16, 18);
   });
 
   /** 고무. 오돌토돌한 돌기 — 미끄럼 방지 무늬 */
   at(TILE.RUBBER, () => {
     base();
-    cx.fillStyle = 'rgba(40,40,44,0.16)';
+    cx.fillStyle = 'rgba(40,40,44,0.280)';
     for (let y = 0; y < CELL; y += 10) {
       for (let x = (y / 10) % 2 ? 5 : 0; x < CELL; x += 10) {
         cx.beginPath(); cx.arc(x, y, 3, 0, Math.PI * 2); cx.fill();
@@ -647,13 +647,13 @@ export function buildPrintAtlas(): CanvasTexture {
   /** 벽지. 아주 옅은 잔무늬 — 벽은 넓어서 무늬가 세면 어지럽다 */
   at(TILE.WALLPAPER, () => {
     base();
-    cx.fillStyle = 'rgba(120,112,100,0.055)';
+    cx.fillStyle = 'rgba(120,112,100,0.096)';
     for (let y = 0; y < CELL; y += 16) {
       for (let x = (y / 16) % 2 ? 8 : 0; x < CELL; x += 16) {
         cx.beginPath(); cx.arc(x, y, 2.4, 0, Math.PI * 2); cx.fill();
       }
     }
-    cx.fillStyle = 'rgba(120,112,100,0.04)';
+    cx.fillStyle = 'rgba(120,112,100,0.070)';
     for (let k = 0; k < CELL; k += 3) cx.fillRect(0, k, CELL, 1);
   });
 

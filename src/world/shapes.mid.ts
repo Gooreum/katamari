@@ -102,7 +102,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new BoxGeometry(0.88, 0.08, 0.58), PAPER, [0.02, 0.13, 0.01], [0, 0.05, 0]),
     part(new BoxGeometry(0.84, 0.06, 0.54), WHITE, [-0.02, 0.19, -0.01], [0, -0.04, 0], TILE.NEWSPAPER),
     // 접힌 등
-    part(new CylinderGeometry(0.05, 0.05, 0.62, 6), PAPER, [-0.44, 0.10, 0], LIE_Z),
+    part(new CylinderGeometry(0.05, 0.05, 0.62, 6), PAPER, [-0.44, 0.10, 0], LIE_Z, TILE.PAPER),
     part(new BoxGeometry(0.50, 0.02, 0.10), DARK, [0.10, 0.23, 0.10]),
   ]),
 
@@ -122,7 +122,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 안테나 세운 조종기 (30.1cm). 안테나가 실루엣의 전부다
     part(soft(0.56, 0.30, 0.40, 0.2), WHITE, [0, 0.15, 0]),
     part(soft(0.60, 0.08, 0.44, 0.25), WHITE, [0, 0.29, 0], undefined, TILE.RC),
-    part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [-0.16, 0.35, 0]),
+    part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [-0.16, 0.35, 0], undefined, TILE.PANEL),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [0.16, 0.35, 0]),
     part(new CylinderGeometry(0.03, 0.02, 0.58, 6), METAL, [0.24, 0.62, -0.12]),
     part(new SphereGeometry(0.035, 6, 4), [0.9, 0.3, 0.2], [0.24, 0.92, -0.12]),
@@ -134,7 +134,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 굽 — 접시를 살짝 띄운다
     part(new CylinderGeometry(0.24, 0.26, 0.05, 16), WHITE, [0, 0.025, 0]),
     // 청색 테두리 — 흰 원반을 «접시»로 만드는 건 이 띠다
-    part(new TorusGeometry(0.475, 0.022, 5, 20), [0.55, 0.62, 0.75], [0, 0.14, 0], LIE_Z),
+    part(new TorusGeometry(0.475, 0.022, 5, 20), [0.55, 0.62, 0.75], [0, 0.14, 0], LIE_Z, TILE.CERAMIC),
   ]),
 
   슬리퍼: () => assemble([
@@ -145,7 +145,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(soft(0.74, 0.09, 0.34, 0.4), WHITE, [-0.05, 0.045, 0]),
     part(new CylinderGeometry(0.17, 0.17, 0.09, 14), WHITE, [0.32, 0.045, 0]),
     // 발등 띠 — 폭 방향으로 걸친 아치. 축이 X여야 발등을 덮는다
-    part(new TorusGeometry(0.17, 0.045, 4, 10, Math.PI), WHITE, [0.16, 0.08, 0], [0, 0, 0]),
+    part(new TorusGeometry(0.17, 0.045, 4, 10, Math.PI), WHITE, [0.16, 0.08, 0], [0, 0, 0], TILE.CLOTH),
     part(new BoxGeometry(0.20, 0.04, 0.34), WHITE, [0.16, 0.24, 0]),
   ]),
 
@@ -164,7 +164,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   '두루마리 휴지': () => assemble([
     part(new CylinderGeometry(0.42, 0.42, 0.52, 20), WHITE, [0, 0.26, 0]),
     // 심지 구멍. 어두운 안쪽이 보여야 두루마리다
-    part(new CylinderGeometry(0.13, 0.13, 0.56, 14), [0.55, 0.48, 0.38], [0, 0.26, 0]),
+    part(new CylinderGeometry(0.13, 0.13, 0.56, 14), [0.55, 0.48, 0.38], [0, 0.26, 0], undefined, TILE.PAPER),
     // 풀린 자락
     part(new BoxGeometry(0.02, 0.34, 0.44), PAPER, [0.42, 0.17, 0], [0, 0, -0.12]),
   ]),
@@ -190,7 +190,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // **밑면 밖으로 나가면 안 된다.** 처음엔 0.34 로 눌러서 구의 아래가 몸통 바닥보다
     // 2cm 내려갔고, 그러면 `normalize()` 가 그 «돔의 밑»을 y=−0.5 로 잡아서
     // 방석이 바닥에서 2cm 뜬 채로 놓인다. 검사가 두께비 0.320 으로 잡았다.
-    part(new SphereGeometry(0.44, 14, 8).scale(1, 0.22, 1), WHITE, [0, 0.115, 0]),
+    part(new SphereGeometry(0.44, 14, 8).scale(1, 0.22, 1), WHITE, [0, 0.115, 0], undefined, TILE.CLOTH),
     // 시접 — 옆구리를 한 바퀴 도는 띠. 「천을 꿰맸다」가 여기서 나온다
     part(new TorusGeometry(0.44, 0.022, 5, 18), PAPER, [0, 0.085, 0], LIE_Z),
     part(new SphereGeometry(0.05, 6, 5), PAPER, [0.42, 0.06, 0.42]),
@@ -205,7 +205,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(soft(0.64, 0.30, 0.42, 0.3), WHITE, [0, 0.62, 0.02]),
     part(soft(0.16, 0.08, 0.06, 0.3), METAL, [0, 0.48, 0.22]),
     // 어깨끈
-    part(new TorusGeometry(0.20, 0.045, 4, 9, Math.PI), WHITE, [0.18, 0.44, -0.20], [0, 0, 0]),
+    part(new TorusGeometry(0.20, 0.045, 4, 9, Math.PI), WHITE, [0.18, 0.44, -0.20], [0, 0, 0], TILE.CLOTH),
     part(new TorusGeometry(0.20, 0.045, 4, 9, Math.PI), WHITE, [-0.18, 0.44, -0.20], [0, 0, 0]),
   ]),
 
@@ -213,14 +213,14 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // **진짜로 판다.** 예전엔 어두운 원반을 위에 얹어 「비어 있는 척」만 했다
     ...hollow(0.42, 0.32, 0.80, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.40]),
     // 구겨진 종이 한 덩이 — 통 «안»이 보인다는 걸 확실히 한다
-    part(new SphereGeometry(0.16, 10, 7), PAPER, [0.06, 0.20, -0.04]),
+    part(new SphereGeometry(0.16, 10, 7), PAPER, [0.06, 0.20, -0.04], undefined, TILE.PLASTIC),
   ]),
 
   전화기: () => assemble([
     // 다이얼식 탁상 전화. 원작 복도에 있는 그 검은 것
     part(soft(0.80, 0.24, 0.56, 0.25), WHITE, [0, 0.12, 0]),
     part(new CylinderGeometry(0.24, 0.24, 0.06, 14), DARK, [0, 0.26, -0.06]),
-    part(new CylinderGeometry(0.09, 0.09, 0.08, 8), WHITE, [0, 0.30, -0.06]),
+    part(new CylinderGeometry(0.09, 0.09, 0.08, 8), WHITE, [0, 0.30, -0.06], undefined, TILE.PANEL),
     // 수화기 — 가운데 잘록한 막대
     part(soft(0.66, 0.14, 0.14, 0.35), WHITE, [0, 0.31, 0.20]),
     part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [0.30, 0.34, 0.20]),
@@ -243,7 +243,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     ...hollow(0.38, 0.28, 0.52, 0.035, 0.06, 20, WHITE, [0.42, 0.30, 0.22]),
     part(new CylinderGeometry(0.33, 0.33, 0.04, 20), [0.28, 0.22, 0.16], [0, 0.40, 0]),
     part(new CylinderGeometry(0.03, 0.025, 0.44, 6), [0.35, 0.55, 0.25], [0, 0.64, 0]),
-    part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0]),
+    part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0], undefined, TILE.CERAMIC),
   ]),
 
   /**
@@ -264,6 +264,6 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 주둥이 — 이게 없으면 냄비다
     part(new CylinderGeometry(0.05, 0.09, 0.34, 10), WHITE, [0.36, 0.40, 0], [0, 0, -0.9]),
     // 손잡이
-    part(new TorusGeometry(0.30, 0.035, 4, 10, Math.PI), METAL, [0, 0.54, 0], [0, Math.PI / 2, 0]),
+    part(new TorusGeometry(0.30, 0.035, 4, 10, Math.PI), METAL, [0, 0.54, 0], [0, Math.PI / 2, 0], TILE.METAL),
   ]),
 };

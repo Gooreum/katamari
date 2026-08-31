@@ -5,6 +5,7 @@ import {
 import type { ShapeIdLarge } from './generation';
 import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft, lip,
 } from './shapes.kit';
+import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -34,7 +35,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.56, 0]),
     part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, 0.11]),
     part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, -0.11]),
-    part(new SphereGeometry(0.045, 14, 9), [0.9, 0.55, 0.6], [0.64, 0.54, 0]),
+    part(new SphereGeometry(0.045, 14, 9), [0.9, 0.55, 0.6], [0.64, 0.54, 0], undefined, TILE.STRAW),
     // 앞다리 둘
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, 0.12]),
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, -0.12]),
@@ -44,7 +45,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   의자: () => assemble([
     // 등받이 있는 나무 의자. 다리 넷이 보여야 의자다
-    part(soft(0.62, 0.08, 0.58, 0.3), WHITE, [0, 0.52, 0]),
+    part(soft(0.62, 0.08, 0.58, 0.3), WHITE, [0, 0.52, 0], undefined, TILE.WOOD_C),
     part(soft(0.62, 0.60, 0.08, 0.3), WHITE, [0, 0.82, -0.25]),
     part(soft(0.52, 0.08, 0.06, 0.3), WHITE, [0, 0.66, -0.25]),
     part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [0.26, 0.26, 0.24]),
@@ -57,7 +58,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     // 등받이 없는 둥근 걸상. 의자와 실루엣이 달라야 둘 다 두는 의미가 있다
     part(new CylinderGeometry(0.34, 0.34, 0.10, 20), WHITE, [0, 0.55, 0]),
     part(new CylinderGeometry(0.30, 0.30, 0.06, 20), WHITE, [0, 0.62, 0]),
-    part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [0.20, 0.26, 0.20], [0.06, 0, -0.06]),
+    part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [0.20, 0.26, 0.20], [0.06, 0, -0.06], TILE.WOOD_C),
     part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [-0.20, 0.26, 0.20], [0.06, 0, 0.06]),
     part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [0.20, 0.26, -0.20], [-0.06, 0, -0.06]),
     part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [-0.20, 0.26, -0.20], [-0.06, 0, 0.06]),
@@ -73,7 +74,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new BoxGeometry(0.62, 0.48, 0.04), GLASS, [-0.04, 0.44, 0.32]),
     part(new BoxGeometry(0.54, 0.40, 0.03), [0.35, 0.42, 0.48], [-0.04, 0.44, 0.34]),
     // 오른쪽 조작부 — 다이얼 둘
-    part(new CylinderGeometry(0.07, 0.07, 0.05, 8), DARK, [0.34, 0.56, 0.32], LIE_Z),
+    part(new CylinderGeometry(0.07, 0.07, 0.05, 8), DARK, [0.34, 0.56, 0.32], LIE_Z, TILE.PANEL),
     part(new CylinderGeometry(0.07, 0.07, 0.05, 8), DARK, [0.34, 0.36, 0.32], LIE_Z),
     // 안테나
     part(new CylinderGeometry(0.02, 0.015, 0.52, 6), METAL, [0.16, 0.98, -0.16], [0.3, 0, 0.3]),
@@ -84,7 +85,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   서랍장: () => assemble([
     // 3단 나무 서랍장. 손잡이가 서랍을 서랍으로 만든다
-    part(soft(0.82, 0.94, 0.46, 0.1), WHITE, [0, 0.50, 0]),
+    part(soft(0.82, 0.94, 0.46, 0.1), WHITE, [0, 0.50, 0], undefined, TILE.WOOD_C),
     part(soft(0.86, 0.06, 0.50, 0.35), WHITE, [0, 1.00, 0]),
     for3Drawers(0.78),
     for3Drawers(0.50),
@@ -109,7 +110,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new CylinderGeometry(0.23, 0.14, 0.36, 20), WHITE, [0, 0.82, 0]),
     // 갓 안쪽 — 밝게 둬야 불이 켜진 것처럼 보인다
     part(new CylinderGeometry(0.20, 0.12, 0.04, 20), [1, 0.95, 0.75], [0, 0.66, 0]),
-    part(new SphereGeometry(0.09, 14, 9), GLASS, [0, 0.72, 0]),
+    part(new SphereGeometry(0.09, 14, 9), GLASS, [0, 0.72, 0], undefined, TILE.METAL),
     // 갓 위아래 테. **갓의 윤곽을 그리는 건 천이 아니라 이 테다** —
     // 원뿔대 하나만 있으면 옆에서 사다리꼴 색면으로 보인다
     part(new TorusGeometry(0.225, 0.014, 4, 20), PAPER, [0, 0.64, 0], LIE_Z),
@@ -127,7 +128,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new CylinderGeometry(0.06, 0.08, 0.74, 20), WHITE, [0.40, 0.48, 0], [0, 0, -0.7]),
     part(new CylinderGeometry(0.14, 0.06, 0.10, 20), WHITE, [0.66, 0.70, 0], [0, 0, -0.7]),
     // 손잡이 둘
-    part(new TorusGeometry(0.20, 0.04, 4, 10, Math.PI), WHITE, [-0.28, 0.62, 0], [0, Math.PI / 2, 0.4]),
+    part(new TorusGeometry(0.20, 0.04, 4, 10, Math.PI), WHITE, [-0.28, 0.62, 0], [0, Math.PI / 2, 0.4], TILE.METAL),
     part(new TorusGeometry(0.16, 0.04, 4, 10, Math.PI), WHITE, [0, 0.74, 0], [0, Math.PI / 2, 0]),
   ]),
 };

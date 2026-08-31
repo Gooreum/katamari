@@ -6,6 +6,7 @@ import type { ShapeIdTown } from './generation';
 import {
   assemble, DARK, GLASS, METAL, normalize, part, PAPER, soft, WHITE, WOOD,
 } from './shapes.kit';
+import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -37,7 +38,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
 
   자갈: () => normalize(assemble([
     // 각진 돌. 구를 저해상도로 뽑으면 그 자체로 자갈이다
-    part(new SphereGeometry(0.5, 16, 10), WHITE),
+    part(new SphereGeometry(0.5, 16, 10), WHITE, undefined, undefined, TILE.STONE),
   ]).scale(1, 0.72, 0.86)),
 
   병뚜껑: () => assemble([
@@ -49,7 +50,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   도토리: () => assemble([
     part(new SphereGeometry(0.36, 16, 10).scale(1, 1.25, 1), WHITE, [0, 0.30, 0]),
     // 깍정이
-    part(new SphereGeometry(0.38, 10, 7, 0, Math.PI * 2, 0, Math.PI / 2), WOOD, [0, 0.52, 0]),
+    part(new SphereGeometry(0.38, 10, 7, 0, Math.PI * 2, 0, Math.PI / 2), WOOD, [0, 0.52, 0], undefined, TILE.WOOD_C),
     part(new CylinderGeometry(0.05, 0.05, 0.16, 6), WOOD, [0, 0.78, 0]),
   ]),
 
@@ -141,7 +142,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
 
   페트병: () => assemble([
     // 몸통 + 어깨 + 목 + 뚜껑. 원작 동선의 "플라스틱 병"
-    part(new CylinderGeometry(0.30, 0.30, 0.56, 20), GLASS, [0, 0.28, 0]),
+    part(new CylinderGeometry(0.30, 0.30, 0.56, 20), GLASS, [0, 0.28, 0], undefined, TILE.PLASTIC),
     // SEAM-OK: 몸통과 어깨는 «한 장으로 성형된» 면이다. 페트병에는 그 자리에
     // 단이 없고, 병으로 읽히게 하는 건 아래 라벨(0.32)이 만드는 턱이다
     part(new CylinderGeometry(0.14, 0.30, 0.20, 20), GLASS, [0, 0.66, 0]),
@@ -154,7 +155,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   모종삽: () => assemble([
     part(new SphereGeometry(0.30, 16, 10).scale(1, 0.32, 0.7), METAL, [0.28, 0.06, 0]),
     part(new CylinderGeometry(0.05, 0.05, 0.34, 6), METAL, [-0.10, 0.10, 0], LIE_X),
-    part(new CylinderGeometry(0.09, 0.07, 0.30, 7), WHITE, [-0.40, 0.10, 0], LIE_X),
+    part(new CylinderGeometry(0.09, 0.07, 0.30, 7), WHITE, [-0.40, 0.10, 0], LIE_X, TILE.METAL),
   ]),
 
   // ── 버킷 4~5 (16~60cm) ────────────────────────────────────
@@ -162,7 +163,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     // 이 동네의 이름이다. 참새보다 크고 목이 굵다
     part(new SphereGeometry(0.32, 16, 10).scale(1.4, 1, 1), WHITE, [-0.04, 0.36, 0]),
     part(new CylinderGeometry(0.16, 0.20, 0.20, 14), WHITE, [0.24, 0.56, 0]),
-    part(new SphereGeometry(0.20, 12, 8), WHITE, [0.32, 0.70, 0]),
+    part(new SphereGeometry(0.20, 12, 8), WHITE, [0.32, 0.70, 0], undefined, TILE.STRAW),
     part(new ConeGeometry(0.06, 0.18, 5), [0.85, 0.8, 0.75], [0.50, 0.68, 0], [0, 0, -Math.PI / 2]),
     part(new SphereGeometry(0.26, 16, 10).scale(1.3, 0.32, 0.55), [0.55, 0.6, 0.7], [-0.06, 0.42, 0.24]),
     part(new SphereGeometry(0.26, 16, 10).scale(1.3, 0.32, 0.55), [0.55, 0.6, 0.7], [-0.06, 0.42, -0.24]),
@@ -177,19 +178,19 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new ConeGeometry(0.17, 0.14, 4).scale(1, 1, 0.3), METAL, [0, -0.06, 0], [Math.PI, 0, 0]),
     part(new CylinderGeometry(0.045, 0.045, 0.86, 7), WOOD, [0, 0.74, 0]),
     // D자 손잡이
-    part(new TorusGeometry(0.11, 0.03, 4, 8), WOOD, [0, 1.18, 0], LIE_Z),
+    part(new TorusGeometry(0.11, 0.03, 4, 8), WOOD, [0, 1.18, 0], LIE_Z, TILE.METAL),
   ]),
 
   개밥그릇: () => assemble([
     part(new CylinderGeometry(0.5, 0.36, 0.34, 20), WHITE, [0, 0.17, 0]),
     part(new CylinderGeometry(0.44, 0.30, 0.30, 20), DARK, [0, 0.22, 0]),
-    part(new TorusGeometry(0.49, 0.04, 4, 20), WHITE, [0, 0.33, 0], LIE_Z),
+    part(new TorusGeometry(0.49, 0.04, 4, 20), WHITE, [0, 0.33, 0], LIE_Z, TILE.CERAMIC),
   ]),
 
   양동이: () => assemble([
     part(new CylinderGeometry(0.44, 0.34, 0.72, 20), WHITE, [0, 0.36, 0]),
     part(new CylinderGeometry(0.39, 0.30, 0.62, 20), DARK, [0, 0.40, 0]),
-    part(new TorusGeometry(0.44, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z),
+    part(new TorusGeometry(0.44, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z, TILE.METAL),
     // 손잡이 — 반원
     part(new TorusGeometry(0.44, 0.03, 4, 10, Math.PI), METAL, [0, 0.74, 0]),
   ]),
@@ -201,14 +202,14 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
       ([x, z]) => part(new CylinderGeometry(0.13, 0.15, 0.34, 14), WHITE, [x!, 0.60, z!]),
     ),
     ...[[0.34, 0.34], [-0.34, 0.34], [0.34, -0.34], [-0.34, -0.34]].map(
-      ([x, z]) => part(new ConeGeometry(0.16, 0.20, 7), WOOD, [x!, 0.86, z!]),
+      ([x, z]) => part(new ConeGeometry(0.16, 0.20, 7), WOOD, [x!, 0.86, z!], undefined, TILE.DIRT),
     ),
     part(new CylinderGeometry(0.30, 0.30, 0.22, 20), WHITE, [0, 0.62, 0]),
   ]),
 
   삼각콘: () => assemble([
     part(new BoxGeometry(0.72, 0.09, 0.72), WHITE, [0, 0.045, 0]),
-    part(new ConeGeometry(0.28, 0.86, 8), WHITE, [0, 0.52, 0]),
+    part(new ConeGeometry(0.28, 0.86, 8), WHITE, [0, 0.52, 0], undefined, TILE.PLASTIC),
     // 반사 띠 둘 — 이게 있어야 공사장 콘이다
     part(new ConeGeometry(0.20, 0.14, 8), PAPER, [0, 0.60, 0]),
     part(new ConeGeometry(0.13, 0.10, 8), PAPER, [0, 0.78, 0]),
@@ -220,7 +221,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new SphereGeometry(0.30, 20, 13).scale(1.7, 1, 1.05), WHITE, [-0.06, 0.56, 0]),
     part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.70, 0]),
     part(soft(0.22, 0.14, 0.18, 0.45), WHITE, [0.62, 0.62, 0]),
-    part(new SphereGeometry(0.05, 14, 9), DARK, [0.73, 0.64, 0]),
+    part(new SphereGeometry(0.05, 14, 9), DARK, [0.73, 0.64, 0], undefined, TILE.STRAW),
     // 늘어진 귀 둘
     part(new SphereGeometry(0.13, 20, 13).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, 0.20]),
     part(new SphereGeometry(0.13, 20, 13).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, -0.20]),

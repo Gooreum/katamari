@@ -7,6 +7,7 @@ import {
   assemble, DARK, hollow, METAL, PAPER, part, soft, WHITE, WOOD,
   type Part, type RGB,
 } from './shapes.kit';
+import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -106,7 +107,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 통짜면 그냥 낮은 궤짝이다.
    */
   신발장: () => assemble([
-    part(soft(1.00, 0.03, 0.38, 0.35), WOOD, [0, 0.67, 0]),              // 상판
+    part(soft(1.00, 0.03, 0.38, 0.35), WOOD, [0, 0.67, 0], undefined, TILE.WOOD_C),              // 상판
     part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [-0.48, 0.34, 0]),         // 측판
     part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [0.48, 0.34, 0]),
     part(new BoxGeometry(0.96, 0.62, 0.03), PAPER, [0, 0.34, -0.185]),   // 뒷판
@@ -131,7 +132,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     // **통 위로 충분히 나와야 우산이다.** 처음엔 통(0.86)에 우산 1.00 이라
     // 0.14 만 나왔고 화면에서 그냥 «병»으로 보였다. 통 높이의 절반을 넘겨 뺀다
     part(new CylinderGeometry(0.032, 0.032, 1.30, 8), [0.24, 0.28, 0.50],
-      [0.05, 0.67, 0.02], [0.02, 0, 0.02]),
+      [0.05, 0.67, 0.02], [0.02, 0, 0.02], TILE.PLASTIC),
     part(new TorusGeometry(0.05, 0.018, 5, 10, Math.PI), [0.24, 0.28, 0.50],
       [0.10, 1.31, 0.02], [Math.PI / 2, 0, 0]),
     part(new CylinderGeometry(0.028, 0.028, 1.16, 8), [0.72, 0.34, 0.30],
@@ -151,7 +152,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(new TorusGeometry(0.02, 0.012, 4, 6), WOOD, [0, 0.53, 0], LIE_Z),
     // 서랍 — 상판 밑 오른쪽. 손잡이가 서랍을 서랍으로 만든다
     part(soft(0.34, 0.10, 0.50, 0.20), WHITE, [0.30, 0.45, 0]),
-    part(new CylinderGeometry(0.03, 0.03, 0.05, 7), METAL, [0.30, 0.45, 0.27], LIE_Z),
+    part(new CylinderGeometry(0.03, 0.03, 0.05, 7), METAL, [0.30, 0.45, 0.27], LIE_Z, TILE.WOOD_C),
     // 다리 넷
     ...([[0.45, 0.24], [-0.45, 0.24], [0.45, -0.24], [-0.45, -0.24]] as const).map(
       ([x, z]) => part(soft(0.05, 0.51, 0.05, 0.30), WOOD, [x, 0.255, z])),
@@ -177,7 +178,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     // 베개 시접. 세그먼트를 넉넉히 줬다가 이불이 844삼각형으로 상한(800)을 넘었다 —
     // 눌린 구 셋과 이 링이 합쳐서 대부분이었다
     part(new TorusGeometry(0.19, 0.018, 4, 12).scale(0.75, 1, 1), PAPER,
-      [-0.36, 0.06, 0], LIE_Z),
+      [-0.36, 0.06, 0], LIE_Z, TILE.CLOTH),
   ]),
 
   /**
@@ -197,7 +198,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
      */
     part(new BoxGeometry(1.04, 0.05, 0.96), WHITE, [0, 0.655, -0.06], [0.13, 0.10, 0]),
     // 삐져나온 장난감 셋
-    part(new SphereGeometry(0.18, 12, 8), [0.90, 0.35, 0.30], [0.22, 0.66, 0.10]),
+    part(new SphereGeometry(0.18, 12, 8), [0.90, 0.35, 0.30], [0.22, 0.66, 0.10], undefined, TILE.WOOD_C),
     part(new BoxGeometry(0.20, 0.20, 0.20), [0.30, 0.55, 0.85], [-0.20, 0.64, -0.06], [0, 0.5, 0.3]),
     part(new CylinderGeometry(0.09, 0.09, 0.24, 10), [0.95, 0.80, 0.25], [-0.02, 0.66, 0.24], LIE_X),
   ]),
@@ -229,7 +230,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     // 문 둘 + 손잡이 — 몸통 앞면에 선을 그어야 장으로 읽힌다
     part(soft(0.44, 0.38, 0.02, 0.30), WHITE, [0.25, 0.24, 0.175]),
     part(soft(0.44, 0.38, 0.02, 0.30), WHITE, [-0.25, 0.24, 0.175]),
-    part(new CylinderGeometry(0.012, 0.012, 0.12, 6), METAL, [0.05, 0.24, 0.19], LIE_X),
+    part(new CylinderGeometry(0.012, 0.012, 0.12, 6), METAL, [0.05, 0.24, 0.19], LIE_X, TILE.METAL),
     part(new CylinderGeometry(0.012, 0.012, 0.12, 6), METAL, [-0.05, 0.24, 0.19], LIE_X),
     part(soft(0.96, 0.05, 0.30, 0.35), DARK, [0, 0.025, 0]),             // 굽
   ]),
@@ -244,7 +245,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(soft(0.37, 0.26, 0.02, 0.30), [0.92, 0.93, 0.95], [0, 0.855, 0.20]),
     part(soft(0.37, 0.66, 0.02, 0.20), [0.92, 0.93, 0.95], [0, 0.35, 0.20]),
     // 세로 손잡이 둘
-    part(new CylinderGeometry(0.016, 0.016, 0.18, 7), METAL, [0.14, 0.86, 0.225]),
+    part(new CylinderGeometry(0.016, 0.016, 0.18, 7), METAL, [0.14, 0.86, 0.225], undefined, TILE.PANEL),
     part(new CylinderGeometry(0.016, 0.016, 0.44, 7), METAL, [0.14, 0.40, 0.225]),
     // 문틈 — 어두운 띠 하나가 「문이 둘」을 확정한다
     part(new BoxGeometry(0.37, 0.012, 0.02), DARK, [0, 0.70, 0.205]),
@@ -272,7 +273,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(new BoxGeometry(0.28, 0.84, 0.012), [0.70, 0.82, 0.86], [-0.15, 0.53, 0.108]),
     part(new BoxGeometry(0.28, 0.84, 0.012), [0.70, 0.82, 0.86], [0.15, 0.53, 0.108]),
     part(new BoxGeometry(0.015, 0.86, 0.02), WOOD, [0, 0.53, 0.112]),
-    part(new CylinderGeometry(0.014, 0.014, 0.03, 6), METAL, [-0.05, 0.50, 0.125], LIE_Z),
+    part(new CylinderGeometry(0.014, 0.014, 0.03, 6), METAL, [-0.05, 0.50, 0.125], LIE_Z, TILE.WOOD_C),
     part(new CylinderGeometry(0.014, 0.014, 0.03, 6), METAL, [0.05, 0.50, 0.125], LIE_Z),
   ]),
 
@@ -282,7 +283,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    */
   식탁: () => assemble([
     part(soft(1.00, 0.045, 0.58, 0.30), WOOD, [0, 0.545, 0]),            // 상판
-    part(new TorusGeometry(0.03, 0.014, 4, 6), WOOD, [0, 0.545, 0], LIE_Z),
+    part(new TorusGeometry(0.03, 0.014, 4, 6), WOOD, [0, 0.545, 0], LIE_Z, TILE.WOOD_C),
     // 다리 넷 — 상판 안쪽으로 모아야 식탁 다리로 보인다
     ...([[0.44, 0.23], [-0.44, 0.23], [0.44, -0.23], [-0.44, -0.23]] as const).map(
       ([x, z]) => part(soft(0.055, 0.52, 0.055, 0.30), WOOD, [x, 0.26, z])),
@@ -304,7 +305,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
      * 처음에 1.04 × 0.72 짜리 판을 얹었더니 파놓은 통을 통째로 덮어서
      * 화면에서 「뚜껑 덮인 상자」로 나왔다. 띠 넷으로 두른다.
      */
-    part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515, 0.32]),
+    part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515, 0.32], undefined, TILE.CERAMIC),
     part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515, -0.32]),
     part(soft(0.08, 0.045, 0.60, 0.35), [0.30, 0.58, 0.68], [0.48, 0.515, 0]),
     part(soft(0.08, 0.045, 0.60, 0.35), [0.30, 0.58, 0.68], [-0.48, 0.515, 0]),
@@ -323,7 +324,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   변기: () => assemble([
     part(soft(0.44, 0.42, 0.24, 0.16), WHITE, [0, 0.72, -0.29]),         // 물탱크
     part(soft(0.48, 0.05, 0.28, 0.35), WHITE, [0, 0.955, -0.29]),        // 탱크 뚜껑
-    part(new CylinderGeometry(0.026, 0.026, 0.045, 6), METAL, [0.15, 0.86, -0.16], LIE_Z),
+    part(new CylinderGeometry(0.026, 0.026, 0.045, 6), METAL, [0.15, 0.86, -0.16], LIE_Z, TILE.CERAMIC),
     // 몸통 — 위가 넓고 아래로 좁아지는 도기
     part(new CylinderGeometry(0.30, 0.20, 0.44, 16).scale(1, 1, 1.15), WHITE, [0, 0.22, 0.02]),
     // 파인 변기통 — **여기가 없으면 스툴이다**
@@ -350,7 +351,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       .map((p) => part(p.geo, p.rgb, [0, 0.62, 0])),
     part(new TorusGeometry(0.28, 0.022, 5, 16).scale(1, 1, 0.82), WHITE, [0, 0.78, 0], LIE_Z),
     ...tap(0, 0.78, -0.16, 1.0),
-    part(new CylinderGeometry(0.035, 0.035, 0.012, 8), METAL, [0, 0.665, 0]),
+    part(new CylinderGeometry(0.035, 0.035, 0.012, 8), METAL, [0, 0.665, 0], undefined, TILE.CERAMIC),
   ]),
 
   // ─── 뒷마당 ──────────────────────────────────────────────────
@@ -362,7 +363,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   개집: () => assemble([
     part(soft(0.94, 0.56, 0.86, 0.10), WOOD, [0, 0.28, 0]),
     // 박공 지붕 — 두 경사면. **여기가 개집을 개집으로 만든다**
-    part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, 0.24], [0.62, 0, 0]),
+    part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, 0.24], [0.62, 0, 0], TILE.WOOD_C),
     part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, -0.24], [-0.62, 0, 0]),
     // 박공 삼각면 둘 — 지붕 옆을 막는다
     part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [0.46, 0.72, 0], [0, 0, Math.PI / 2]),
@@ -383,7 +384,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(soft(0.89, 1.00, 0.75, 0.06), METAL, [0, 0.50, 0]),
     // 골함석 — 세로 골 다섯. 옆면에 세로선이 그어져야 함석으로 읽힌다
     ...([-0.32, -0.16, 0, 0.16, 0.32] as const).map((x) =>
-      part(new CylinderGeometry(0.022, 0.022, 0.96, 6), [0.86, 0.88, 0.90], [x, 0.50, 0.385])),
+      part(new CylinderGeometry(0.022, 0.022, 0.96, 6), [0.86, 0.88, 0.90], [x, 0.50, 0.385], undefined, TILE.WOOD_C)),
     // 한쪽으로 흐르는 지붕 — 평지붕이면 상자다
     part(new BoxGeometry(0.96, 0.05, 0.82), [0.62, 0.64, 0.66], [0, 1.03, 0], [0.10, 0, 0]),
     // 여닫이문 둘 + 빗장
@@ -400,7 +401,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 이번 작업은 **형상만** 바꾼다.
    */
   나무: () => assemble([
-    part(new CylinderGeometry(0.09, 0.15, 1.10, 20), WOOD, [0, 0.55, 0]),
+    part(new CylinderGeometry(0.09, 0.15, 1.10, 20), WOOD, [0, 0.55, 0], undefined, TILE.WOOD_C),
     // 갈라진 가지 둘 — 줄기 하나면 기둥이다
     part(new CylinderGeometry(0.045, 0.07, 0.50, 14), WOOD, [0.14, 1.20, 0.04], [0, 0, -0.42]),
     part(new CylinderGeometry(0.045, 0.07, 0.46, 14), WOOD, [-0.13, 1.18, -0.05], [0, 0, 0.40]),
@@ -420,7 +421,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   평상: () => assemble([
     // 널 다섯 — 사이 틈이 「평상」을 만든다
     ...([-0.40, -0.20, 0, 0.20, 0.40] as const).map((z) =>
-      part(soft(1.00, 0.05, 0.17, 0.30), WOOD, [0, 0.325, z])),
+      part(soft(1.00, 0.05, 0.17, 0.30), WOOD, [0, 0.325, z], undefined, TILE.WOOD_C)),
     // 테두리 두 줄
     part(soft(1.00, 0.055, 0.04, 0.35), [0.44, 0.33, 0.22], [0, 0.325, 0.48]),
     part(soft(1.00, 0.055, 0.04, 0.35), [0.44, 0.33, 0.22], [0, 0.325, -0.48]),
@@ -438,7 +439,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(new CylinderGeometry(0.035, 0.045, 1.00, 10), METAL, [0, 0.50, 0]),
     // 가로대 + 끝 마개 둘
     part(new CylinderGeometry(0.026, 0.026, 0.34, 10), METAL, [0, 0.97, 0], LIE_X),
-    part(new SphereGeometry(0.034, 10, 7), METAL, [0.17, 0.97, 0]),
+    part(new SphereGeometry(0.034, 10, 7), METAL, [0.17, 0.97, 0], undefined, TILE.METAL),
     part(new SphereGeometry(0.034, 10, 7), METAL, [-0.17, 0.97, 0]),
     // 버팀대 둘 — 기둥이 안 흔들리게
     part(new CylinderGeometry(0.016, 0.016, 0.26, 6), METAL, [0.07, 0.86, 0], [0, 0, -0.62]),
