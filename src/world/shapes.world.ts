@@ -56,16 +56,16 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   소화전: () => assemble([
     part(new CylinderGeometry(0.10, 0.13, 0.14, 14), METAL, [0, -0.43, 0]),
     part(new CylinderGeometry(0.17, 0.19, 0.62, 14), WHITE, [0, -0.05, 0]),
-    part(new SphereGeometry(0.17, 12, 8), WHITE, [0, 0.26, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 0.10, 6), METAL, [0, 0.40, 0]),
+    part(new SphereGeometry(0.17, 14, 9), WHITE, [0, 0.26, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.10, 10), METAL, [0, 0.40, 0]),
     // 양옆 배출구가 소화전을 소화전으로 만든다. 이게 없으면 볼라드와 구별이 안 된다
-    part(new CylinderGeometry(0.08, 0.08, 0.16, 8), METAL, [0.22, 0.02, 0], LIE_X),
-    part(new CylinderGeometry(0.08, 0.08, 0.16, 8), METAL, [-0.22, 0.02, 0], LIE_X),
+    part(new CylinderGeometry(0.08, 0.08, 0.16, 10), METAL, [0.22, 0.02, 0], LIE_X),
+    part(new CylinderGeometry(0.08, 0.08, 0.16, 10), METAL, [-0.22, 0.02, 0], LIE_X),
   ]),
 
   볼라드: () => assemble([
     part(new CylinderGeometry(0.13, 0.15, 0.86, 14), WHITE, [0, -0.05, 0]),
-    part(new SphereGeometry(0.13, 12, 8), WHITE, [0, 0.38, 0]),
+    part(new SphereGeometry(0.13, 14, 9), WHITE, [0, 0.38, 0]),
     // 반사띠 둘 — 이게 없으면 그냥 기둥이다
     part(new CylinderGeometry(0.145, 0.145, 0.09, 14), PAPER, [0, 0.20, 0]),
     part(new CylinderGeometry(0.155, 0.155, 0.09, 14), PAPER, [0, -0.10, 0]),
@@ -89,7 +89,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new BoxGeometry(0.52, 0.30, 0.02), PAPER, [0, 0.068, 0.129], [-0.32, 0, 0]),
     // 경첩은 두 판의 **실제 윗끝**(y≈0.41)에 온다. 예전엔 0.36 이었는데
     // 그 높이에서 두 판이 한참 벌어져 있어 아무것도 잇지 않았다
-    part(new CylinderGeometry(0.02, 0.02, 0.30, 5), WOOD, [0, 0.41, 0], LIE_X),
+    part(new CylinderGeometry(0.02, 0.02, 0.30, 6), WOOD, [0, 0.41, 0], LIE_X),
   ]),
 
   // ── 버킷 5 (1.15~2.14m) ───────────────────────────────────
@@ -102,13 +102,13 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new TorusGeometry(0.26, 0.06, 5, 20), DARK, [-0.44, 0.26, 0]),
     part(new TorusGeometry(0.26, 0.06, 5, 20), DARK, [0.44, 0.26, 0]),
     // 프레임은 **굵어야 남는다** — 0.028은 이 크기에서 사라졌다
-    part(new CylinderGeometry(0.05, 0.05, 0.80, 5), WHITE, [0, 0.42, 0], LIE_X),
-    part(new CylinderGeometry(0.05, 0.05, 0.44, 5), WHITE, [-0.24, 0.32, 0], [0, 0, 0.7]),
-    part(new CylinderGeometry(0.05, 0.05, 0.48, 5), WHITE, [0.26, 0.38, 0], [0, 0, -0.6]),
+    part(new CylinderGeometry(0.05, 0.05, 0.80, 14), WHITE, [0, 0.42, 0], LIE_X),
+    part(new CylinderGeometry(0.05, 0.05, 0.44, 14), WHITE, [-0.24, 0.32, 0], [0, 0, 0.7]),
+    part(new CylinderGeometry(0.05, 0.05, 0.48, 14), WHITE, [0.26, 0.38, 0], [0, 0, -0.6]),
     // 안장 + 핸들
     part(new BoxGeometry(0.22, 0.07, 0.12), DARK, [-0.10, 0.62, 0]),
-    part(new CylinderGeometry(0.035, 0.035, 0.36, 5), METAL, [0.44, 0.64, 0], LIE_Z),
-    part(new CylinderGeometry(0.04, 0.04, 0.24, 5), METAL, [0.44, 0.54, 0]),
+    part(new CylinderGeometry(0.035, 0.035, 0.36, 10), METAL, [0.44, 0.64, 0], LIE_Z),
+    part(new CylinderGeometry(0.04, 0.04, 0.24, 10), METAL, [0.44, 0.54, 0]),
   ]),
 
   오토바이: () => assemble([
@@ -117,24 +117,24 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 자전거보다 몸통이 굵다 — 그게 구분점이다
     part(new BoxGeometry(0.72, 0.26, 0.26), WHITE, [0, 0.40, 0]),
     part(new BoxGeometry(0.30, 0.18, 0.28), WHITE, [-0.26, 0.58, 0]),
-    part(new CylinderGeometry(0.035, 0.035, 0.34, 5), METAL, [0.42, 0.62, 0], LIE_Z),
-    part(new CylinderGeometry(0.06, 0.06, 0.34, 6), METAL, [0.40, 0.44, 0], [0, 0, -0.4]),
-    part(new SphereGeometry(0.12, 12, 8), GLASS, [0.50, 0.50, 0]),
+    part(new CylinderGeometry(0.035, 0.035, 0.34, 10), METAL, [0.42, 0.62, 0], LIE_Z),
+    part(new CylinderGeometry(0.06, 0.06, 0.34, 14), METAL, [0.40, 0.44, 0], [0, 0, -0.4]),
+    part(new SphereGeometry(0.12, 14, 9), GLASS, [0.50, 0.50, 0]),
   ]),
 
   우체통: () => assemble([
     // 기둥 위에 둥근 통. 동네의 그것보다 크고 다리가 보인다
     part(new CylinderGeometry(0.10, 0.12, 0.44, 14), METAL, [0, 0.22, 0]),
     part(new BoxGeometry(0.44, 0.46, 0.34), WHITE, [0, 0.66, 0]),
-    part(new CylinderGeometry(0.22, 0.22, 0.34, 14, 1, false, 0, Math.PI), WHITE, [0, 0.89, 0], LIE_Z),
+    part(new CylinderGeometry(0.22, 0.22, 0.34, 20, 1, false, 0, Math.PI), WHITE, [0, 0.89, 0], LIE_Z),
     // 투입구
     part(new BoxGeometry(0.30, 0.05, 0.36), DARK, [0, 0.80, 0]),
   ]),
 
   표지판: () => assemble([
-    part(new CylinderGeometry(0.045, 0.045, 1.10, 6), METAL, [0, 0.55, 0]),
+    part(new CylinderGeometry(0.045, 0.045, 1.10, 10), METAL, [0, 0.55, 0]),
     part(new CylinderGeometry(0.34, 0.34, 0.06, 20), WHITE, [0, 1.02, 0], LIE_Z),
-    part(new CylinderGeometry(0.24, 0.24, 0.08, 14), PAPER, [0, 1.02, 0], LIE_Z),
+    part(new CylinderGeometry(0.24, 0.24, 0.08, 20), PAPER, [0, 1.02, 0], LIE_Z),
     part(new BoxGeometry(0.30, 0.05, 0.30), METAL, [0, 0.025, 0]),
   ]),
 
@@ -158,13 +158,13 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   그네: () => assemble([
     // **판이 커야 그네로 읽힌다.** 처음엔 A자 프레임만 보이고 판이 안 보여서
     // 뒤집힌 A 두 개처럼 읽혔다 — 판을 키우고 줄을 굵혔다.
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 6), METAL, [-0.46, 0.56, 0.26], [0.42, 0, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 6), METAL, [-0.46, 0.56, -0.26], [-0.42, 0, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 6), METAL, [0.46, 0.56, 0.26], [0.42, 0, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 6), METAL, [0.46, 0.56, -0.26], [-0.42, 0, 0]),
-    part(new CylinderGeometry(0.055, 0.055, 1.05, 6), METAL, [0, 1.08, 0], LIE_Z),
-    part(new CylinderGeometry(0.028, 0.028, 0.58, 4), DARK, [-0.24, 0.78, 0]),
-    part(new CylinderGeometry(0.028, 0.028, 0.58, 4), DARK, [0.24, 0.78, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, 0.26], [0.42, 0, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, -0.26], [-0.42, 0, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [0.46, 0.56, 0.26], [0.42, 0, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [0.46, 0.56, -0.26], [-0.42, 0, 0]),
+    part(new CylinderGeometry(0.055, 0.055, 1.05, 10), METAL, [0, 1.08, 0], LIE_Z),
+    part(new CylinderGeometry(0.028, 0.028, 0.58, 10), DARK, [-0.24, 0.78, 0]),
+    part(new CylinderGeometry(0.028, 0.028, 0.58, 10), DARK, [0.24, 0.78, 0]),
     part(new BoxGeometry(0.66, 0.09, 0.30), WHITE, [0, 0.48, 0]),
   ]),
 
@@ -201,25 +201,25 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 면으로 채우면 그냥 상자가 되어 미끄럼틀과 구별이 안 된다.
     // 원작 어친타운의 선물 위치가 "정글짐 옆"이다.
     ...[[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].map(([x, z]) =>
-      part(new CylinderGeometry(0.035, 0.035, 1.0, 5), WHITE, [x!, 0, z!])),
+      part(new CylinderGeometry(0.035, 0.035, 1.0, 14), WHITE, [x!, 0, z!])),
     ...[0.16, -0.30].flatMap((y) => [
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [0, y, -0.4], LIE_X),
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [0, y, 0.4], LIE_X),
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [-0.4, y, 0], LIE_Z),
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 5), WHITE, [0.4, y, 0], LIE_Z),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0, y, -0.4], LIE_X),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0, y, 0.4], LIE_X),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [-0.4, y, 0], LIE_Z),
+      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0.4, y, 0], LIE_Z),
     ]),
   ]),
 
   사람: () => assemble([
     // 카타마리에서 사람은 배경이 아니라 **물건**이다. 서 있는 자세
-    part(new CylinderGeometry(0.11, 0.11, 0.44, 7), WHITE, [0, 0.22, -0.06]),
-    part(new CylinderGeometry(0.11, 0.11, 0.44, 7), WHITE, [0, 0.22, 0.06]),
+    part(new CylinderGeometry(0.11, 0.11, 0.44, 14), WHITE, [0, 0.22, -0.06]),
+    part(new CylinderGeometry(0.11, 0.11, 0.44, 14), WHITE, [0, 0.22, 0.06]),
     part(new BoxGeometry(0.30, 0.46, 0.20), WHITE, [0, 0.66, 0]),
-    part(new SphereGeometry(0.15, 12, 8), [0.95, 0.8, 0.7], [0, 1.02, 0]),
-    part(new SphereGeometry(0.16, 12, 8).scale(1, 0.6, 1), DARK, [0, 1.10, 0]),
+    part(new SphereGeometry(0.15, 14, 9), [0.95, 0.8, 0.7], [0, 1.02, 0]),
+    part(new SphereGeometry(0.16, 14, 9).scale(1, 0.6, 1), DARK, [0, 1.10, 0]),
     // 팔 둘
-    part(new CylinderGeometry(0.06, 0.06, 0.42, 6), WHITE, [0, 0.64, -0.21], [0.12, 0, 0]),
-    part(new CylinderGeometry(0.06, 0.06, 0.42, 6), WHITE, [0, 0.64, 0.21], [-0.12, 0, 0]),
+    part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, -0.21], [0.12, 0, 0]),
+    part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, 0.21], [-0.12, 0, 0]),
   ]),
 
   승용차: () => assemble([
@@ -228,17 +228,17 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new BoxGeometry(0.66, 0.26, 0.54), GLASS, [-0.06, 0.56, 0]),
     part(new BoxGeometry(0.60, 0.22, 0.56), WHITE, [-0.06, 0.58, 0]),
     ...[[-0.42, 0.31], [-0.42, -0.31], [0.42, 0.31], [0.42, -0.31]].map(
-      ([x, z]) => part(new CylinderGeometry(0.17, 0.17, 0.10, 14), DARK, [x!, 0.17, z!], LIE_Z),
+      ([x, z]) => part(new CylinderGeometry(0.17, 0.17, 0.10, 20), DARK, [x!, 0.17, z!], LIE_Z),
     ),
-    part(new SphereGeometry(0.07, 5, 4), PAPER, [0.64, 0.32, 0.20]),
-    part(new SphereGeometry(0.07, 5, 4), PAPER, [0.64, 0.32, -0.20]),
+    part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, 0.20]),
+    part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, -0.20]),
   ]),
 
   가로수: () => assemble([
-    part(new CylinderGeometry(0.10, 0.14, 0.62, 14), WOOD, [0, 0.31, 0]),
+    part(new CylinderGeometry(0.10, 0.14, 0.62, 20), WOOD, [0, 0.31, 0]),
     // 잎은 덩어리 셋 — 하나면 사탕처럼 보인다
-    part(new SphereGeometry(0.40, 16, 10), WHITE, [0, 0.86, 0]),
-    part(new SphereGeometry(0.28, 16, 10), WHITE, [-0.26, 0.72, 0.10]),
-    part(new SphereGeometry(0.26, 16, 10), WHITE, [0.24, 0.76, -0.12]),
+    part(new SphereGeometry(0.40, 20, 13), WHITE, [0, 0.86, 0]),
+    part(new SphereGeometry(0.28, 20, 13), WHITE, [-0.26, 0.72, 0.10]),
+    part(new SphereGeometry(0.26, 20, 13), WHITE, [0.24, 0.76, -0.12]),
   ]),
 };

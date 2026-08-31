@@ -188,18 +188,18 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    */
   석등: () => assemble([
     // 기단 — 아래가 넓은 8각 받침
-    part(new CylinderGeometry(0.15, 0.19, 0.09, 8), STONE, [0, 0.045, 0]),
+    part(new CylinderGeometry(0.15, 0.19, 0.09, 14), STONE, [0, 0.045, 0]),
     // 0.15 → **0.168**. 기단 위(0.15)와 같은 반지름으로 만나면 돌 두 장이
     // 한 덩어리로 녹는다. 실제 석등은 돌을 «얹는» 것이라 단이 진다
-    part(new CylinderGeometry(0.13, 0.168, 0.04, 8), STONE_DARK, [0, 0.11, 0]),
+    part(new CylinderGeometry(0.13, 0.168, 0.04, 14), STONE_DARK, [0, 0.11, 0]),
     // 간 — 기둥. 가운데가 살짝 잘록해야 «깎은 돌»이다
-    part(new CylinderGeometry(0.062, 0.072, 0.20, 8), STONE, [0, 0.23, 0]),
+    part(new CylinderGeometry(0.062, 0.072, 0.20, 10), STONE, [0, 0.23, 0]),
     part(new TorusGeometry(0.068, 0.014, 4, 8), STONE_DARK, [0, 0.33, 0], LIE_Z),
     // SEAM-OK: 바로 위 `TorusGeometry` 가 이미 단을 만든다 — 간(竿) 가운데의
     // 잘록한 마디가 그것이고, 원기둥 반지름이 같은 건 그 마디를 사이에 둔 것이다
-    part(new CylinderGeometry(0.072, 0.062, 0.16, 8), STONE, [0, 0.41, 0]),
+    part(new CylinderGeometry(0.072, 0.062, 0.16, 10), STONE, [0, 0.41, 0]),
     // 중대 — 화사석 받침. 위로 퍼진다
-    part(new CylinderGeometry(0.125, 0.085, 0.06, 8), STONE, [0, 0.52, 0]),
+    part(new CylinderGeometry(0.125, 0.085, 0.06, 14), STONE, [0, 0.52, 0]),
     // 화사석 — 불집. **네 벽 사이가 뚫려야 «불이 드는 집»이다**
     ...([0, Math.PI / 2] as const).flatMap((a) => [
       part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, 0.080], [0, a, 0]),
@@ -209,17 +209,17 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     part(new BoxGeometry(0.13, 0.16, 0.13).scale(-1, 1, 1), [0.22, 0.20, 0.17],
       [0, 0.635, 0]),
     // 갓 — 8각 처마. 넓어야 석등이다
-    part(new CylinderGeometry(0.145, 0.115, 0.035, 8), STONE, [0, 0.738, 0]),
-    part(new CylinderGeometry(0.055, 0.150, 0.085, 8), STONE, [0, 0.798, 0]),
+    part(new CylinderGeometry(0.145, 0.115, 0.035, 14), STONE, [0, 0.738, 0]),
+    part(new CylinderGeometry(0.055, 0.150, 0.085, 14), STONE, [0, 0.798, 0]),
     // 갓 끝 반전(蕨手) — 여덟 귀퉁이가 살짝 들린다
     ...Array.from({ length: 8 }, (_, i) => {
       const a = (i / 8) * Math.PI * 2;
-      return part(new SphereGeometry(0.024, 5, 4), STONE,
+      return part(new SphereGeometry(0.024, 6, 4), STONE,
         [Math.cos(a) * 0.148, 0.762, Math.sin(a) * 0.148]);
     }),
     // 보주 — 꼭대기 구슬
-    part(new CylinderGeometry(0.030, 0.048, 0.028, 8), STONE_DARK, [0, 0.855, 0]),
-    part(new SphereGeometry(0.042, 8, 6), STONE, [0, 0.905, 0]),
+    part(new CylinderGeometry(0.030, 0.048, 0.028, 10), STONE_DARK, [0, 0.855, 0]),
+    part(new SphereGeometry(0.042, 10, 7), STONE, [0, 0.905, 0]),
   ]),
 
   /**
@@ -233,9 +233,9 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // 그릇 — 위가 뚫린 원통. 안쪽을 어둡게 해야 «파였다»가 읽힌다
     ...hollow(0.24, 0.26, 0.20, 0.045, 0.05, 12, STONE, [0.30, 0.33, 0.30]),
     // 밑에 괸 돌 — 그릇이 흙에 박힌 게 아니라 «놓인» 것으로 보이게
-    part(new CylinderGeometry(0.27, 0.30, 0.05, 10), STONE_DARK, [0, 0.025, 0]),
+    part(new CylinderGeometry(0.27, 0.30, 0.05, 14), STONE_DARK, [0, 0.025, 0]),
     // 앞에 딛는 납작 돌
-    part(new CylinderGeometry(0.15, 0.16, 0.045, 7), STONE, [0.34, 0.022, 0.16]),
+    part(new CylinderGeometry(0.15, 0.16, 0.045, 10), STONE, [0.34, 0.022, 0.16]),
     // 대나무 물대 — 세운 대 + 기울여 뻗은 홈통. 끝이 그릇 위에 와야 한다
     ...culm(-0.30, -0.12, 0.46, 0.032, 0, 2),
     part(new CylinderGeometry(0.028, 0.028, 0.34, 7), BAMBOO,
@@ -254,10 +254,10 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // SEAM-OK-ALL: 높이 5.6cm 짜리 **납작한 돌**이다. 얇은 판 셋을 겹쳐 두께를 낸
     // 것이라 옆에서 보이는 면이 거의 없다 — 여기에 턱을 주면 돌이 아니라 «케이크»가
     // 된다. 이 형상의 이음매는 전부 «일부러» 이어져 있다
-    part(new CylinderGeometry(0.145, 0.155, 0.036, 7), STONE_DARK, [0, 0.018, 0]),
-    part(new CylinderGeometry(0.150, 0.145, 0.016, 7), STONE, [0, 0.044, 0]),
+    part(new CylinderGeometry(0.145, 0.155, 0.036, 10), STONE_DARK, [0, 0.018, 0]),
+    part(new CylinderGeometry(0.150, 0.145, 0.016, 10), STONE, [0, 0.044, 0]),
     // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다
-    part(new CylinderGeometry(0.152, 0.150, 0.006, 7), MOSS, [0, 0.049, 0]),
+    part(new CylinderGeometry(0.152, 0.150, 0.006, 10), MOSS, [0, 0.049, 0]),
     part(new CylinderGeometry(0.112, 0.112, 0.008, 7), STONE, [0.008, 0.052, -0.006]),
   ]),
 
@@ -282,7 +282,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       [-0.14, 0.71, -0.05, 0.14, -1.5], [0.13, 0.63, 0.08, 0.13, 0.8],
       [-0.05, 0.56, -0.11, 0.12, 2.6], [0.09, 0.49, 0.03, 0.10, -2.2],
     ] as const).map(([x, y, z, r, a]) =>
-      part(new SphereGeometry(r, 5, 4).scale(1, 0.34, 1), LEAF, [x, y, z], [0.18, a, 0.22])),
+      part(new SphereGeometry(r, 6, 4).scale(1, 0.34, 1), LEAF, [x, y, z], [0.18, a, 0.22])),
   ]),
 
   /**
@@ -324,7 +324,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       ...tuft(s1.end, -0.19, 0.07, 0.200),
       ...tuft(s2.end, 0.14, 0.04, 0.165),
       // 꼭대기 — 가지 없이 줄기 끝에 바로 얹는다
-      part(new SphereGeometry(0.125, 8, 5).scale(1, 0.46, 1), PINE,
+      part(new SphereGeometry(0.125, 14, 9).scale(1, 0.46, 1), PINE,
         [s3.end[0], s3.end[1] + 0.02, s3.end[2]]),
     ]);
   },
@@ -341,11 +341,11 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     part(new BoxGeometry(0.090, 0.048, 0.020), [0.42, 0.31, 0.21], [0, 0.024, 0.062]),
     part(new BoxGeometry(0.090, 0.048, 0.020), [0.42, 0.31, 0.21], [0, 0.024, -0.055]),
     // 하나오(끈) — 앞코에서 갈라져 양옆으로. 검은 끈이 나막신을 신발로 만든다
-    part(new CylinderGeometry(0.007, 0.007, 0.075, 5), DARK,
+    part(new CylinderGeometry(0.007, 0.007, 0.075, 6), DARK,
       [0.021, 0.078, 0.055], [0.55, 0.55, 0]),
-    part(new CylinderGeometry(0.007, 0.007, 0.075, 5), DARK,
+    part(new CylinderGeometry(0.007, 0.007, 0.075, 6), DARK,
       [-0.021, 0.078, 0.055], [0.55, -0.55, 0]),
-    part(new SphereGeometry(0.011, 5, 4), DARK, [0, 0.072, 0.093]),
+    part(new SphereGeometry(0.011, 6, 4), DARK, [0, 0.072, 0.093]),
   ]),
 
   /**
@@ -358,11 +358,11 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     ...culm(0, 0, 0.74, 0.017, 0, 3),
     // 살 다섯 — 부채꼴. 각도를 벌려 심는다
     ...([-0.42, -0.21, 0, 0.21, 0.42] as const).map((a) =>
-      part(new CylinderGeometry(0.006, 0.008, 0.20, 4), BAMBOO,
+      part(new CylinderGeometry(0.006, 0.008, 0.20, 6), BAMBOO,
         [Math.sin(a) * 0.10, 0.80, 0], [0, 0, a])),
     // 살을 묶는 가로대 둘
-    part(new CylinderGeometry(0.006, 0.006, 0.17, 4), BAMBOO_NODE, [0, 0.755, 0], LIE_X),
-    part(new CylinderGeometry(0.005, 0.005, 0.22, 4), BAMBOO_NODE, [0, 0.845, 0], LIE_X),
+    part(new CylinderGeometry(0.006, 0.006, 0.17, 6), BAMBOO_NODE, [0, 0.755, 0], LIE_X),
+    part(new CylinderGeometry(0.005, 0.005, 0.22, 6), BAMBOO_NODE, [0, 0.845, 0], LIE_X),
     // 자루 끝 손잡이 마개
     part(new SphereGeometry(0.020, 6, 5), BAMBOO_NODE, [0, 0.005, 0]),
   ]),

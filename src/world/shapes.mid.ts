@@ -25,7 +25,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new CylinderGeometry(0.22, 0.22, 0.66, 14), WHITE, [0, 0.22, 0], LIE_X),
     part(new SphereGeometry(0.22, 12, 8), WHITE, [0.33, 0.22, 0]),
     part(new SphereGeometry(0.22, 12, 8), WHITE, [-0.33, 0.22, 0]),
-    part(new CylinderGeometry(0.06, 0.06, 0.10, 5), PAPER, [0.47, 0.22, 0], LIE_X),
+    part(new CylinderGeometry(0.06, 0.06, 0.10, 6), PAPER, [0.47, 0.22, 0], LIE_X),
   ]),
 
   껌: () => assemble([
@@ -41,8 +41,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new TorusGeometry(0.11, 0.09, 4, 9), WHITE, [0.06, 0.32, 0], LIE_Z),
     part(new SphereGeometry(0.14, 12, 8), [0.72, 0.66, 0.5], [-0.28, 0.14, 0]),
     part(soft(0.44, 0.14, 0.20, 0.45), [0.72, 0.66, 0.5], [-0.12, 0.07, 0]),
-    part(new CylinderGeometry(0.02, 0.02, 0.18, 4), [0.72, 0.66, 0.5], [-0.34, 0.26, 0.06], [0, 0, 0.35]),
-    part(new CylinderGeometry(0.02, 0.02, 0.18, 4), [0.72, 0.66, 0.5], [-0.34, 0.26, -0.06], [0, 0, 0.35]),
+    part(new CylinderGeometry(0.02, 0.02, 0.18, 6), [0.72, 0.66, 0.5], [-0.34, 0.26, 0.06], [0, 0, 0.35]),
+    part(new CylinderGeometry(0.02, 0.02, 0.18, 6), [0.72, 0.66, 0.5], [-0.34, 0.26, -0.06], [0, 0, 0.35]),
   ]),
 
   '캐러멜 상자': () => assemble([
@@ -55,7 +55,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   사과: () => assemble([
     part(new SphereGeometry(0.46, 16, 10), WHITE, [0, 0.44, 0]),
     // 꼭지가 파인 자리. 구만 두면 공이지 사과가 아니다
-    part(new CylinderGeometry(0.035, 0.03, 0.22, 5), WOOD, [0, 0.90, 0], [0, 0, 0.16]),
+    part(new CylinderGeometry(0.035, 0.03, 0.22, 6), WOOD, [0, 0.90, 0], [0, 0, 0.16]),
     part(new BoxGeometry(0.22, 0.02, 0.12), [0.35, 0.55, 0.25], [0.14, 0.92, 0], [0, 0.3, 0.2]),
   ]),
 
@@ -124,8 +124,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(soft(0.60, 0.08, 0.44, 0.25), WHITE, [0, 0.29, 0], undefined, TILE.RC),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [-0.16, 0.35, 0]),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [0.16, 0.35, 0]),
-    part(new CylinderGeometry(0.03, 0.02, 0.58, 5), METAL, [0.24, 0.62, -0.12]),
-    part(new SphereGeometry(0.035, 5, 4), [0.9, 0.3, 0.2], [0.24, 0.92, -0.12]),
+    part(new CylinderGeometry(0.03, 0.02, 0.58, 6), METAL, [0.24, 0.62, -0.12]),
+    part(new SphereGeometry(0.035, 6, 4), [0.9, 0.3, 0.2], [0.24, 0.92, -0.12]),
   ]),
 
   접시: () => assemble([
@@ -242,7 +242,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // **파야 흙이 «담긴» 것으로 보인다** — 통짜 위에 얹은 흙은 뚜껑이다
     ...hollow(0.38, 0.28, 0.52, 0.035, 0.06, 20, WHITE, [0.42, 0.30, 0.22]),
     part(new CylinderGeometry(0.33, 0.33, 0.04, 20), [0.28, 0.22, 0.16], [0, 0.40, 0]),
-    part(new CylinderGeometry(0.03, 0.025, 0.44, 5), [0.35, 0.55, 0.25], [0, 0.64, 0]),
+    part(new CylinderGeometry(0.03, 0.025, 0.44, 6), [0.35, 0.55, 0.25], [0, 0.64, 0]),
     part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0]),
   ]),
 
@@ -262,7 +262,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new CylinderGeometry(0.28, 0.34, 0.11, 20), WHITE, [0, 0.55, 0]),
     part(new CylinderGeometry(0.07, 0.07, 0.08, 12), DARK, [0, 0.645, 0]),
     // 주둥이 — 이게 없으면 냄비다
-    part(new CylinderGeometry(0.05, 0.09, 0.34, 8), WHITE, [0.36, 0.40, 0], [0, 0, -0.9]),
+    part(new CylinderGeometry(0.05, 0.09, 0.34, 10), WHITE, [0.36, 0.40, 0], [0, 0, -0.9]),
     // 손잡이
     part(new TorusGeometry(0.30, 0.035, 4, 10, Math.PI), METAL, [0, 0.54, 0], [0, Math.PI / 2, 0]),
   ]),

@@ -32,7 +32,7 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     // 다리는 몸통 양옆 막대 두 개로 뭉갠다. 여섯 개를 따로 세우면 이 크기에서
     // 삼각형만 먹고 화면에는 회색 얼룩으로 나온다
     part(new BoxGeometry(0.44, 0.03, 0.46), DARK, [0.04, 0.08, 0]),
-    part(new CylinderGeometry(0.02, 0.02, 0.20, 4), DARK, [0.44, 0.30, 0], [0, 0, 0.5]),
+    part(new CylinderGeometry(0.02, 0.02, 0.20, 6), DARK, [0.44, 0.30, 0], [0, 0, 0.5]),
   ]),
 
   쌀알: () => assemble([
@@ -53,23 +53,23 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     // 겹친 고리 두 개. 벌어진 쪽이 안 보여도 클립으로 읽힌다
     part(new TorusGeometry(0.34, 0.035, 4, 20), METAL, [0.10, 0.04, 0], [Math.PI / 2, 0, 0]),
     part(new TorusGeometry(0.22, 0.035, 4, 14), METAL, [-0.12, 0.04, 0], [Math.PI / 2, 0, 0]),
-    part(new CylinderGeometry(0.035, 0.035, 0.30, 5), METAL, [-0.02, 0.04, 0.20], LIE_X),
+    part(new CylinderGeometry(0.035, 0.035, 0.30, 6), METAL, [-0.02, 0.04, 0.20], LIE_X),
   ]),
 
   압정: () => assemble([
     // 넓은 머리 + 짧은 침. 원작 압정은 머리가 색색이다
     part(new CylinderGeometry(0.5, 0.46, 0.16, 20), WHITE, [0, 0.42, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 0.34, 5), METAL, [0, 0.17, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.34, 6), METAL, [0, 0.17, 0]),
     part(new ConeGeometry(0.05, 0.10, 5), METAL, [0, 0.05, 0], [Math.PI, 0, 0]),
   ]),
 
   단추: () => assemble([
     part(new CylinderGeometry(0.5, 0.5, 0.10, 20), WHITE, [0, 0.05, 0]),
     // 구멍 넷. 어둡게 파인 원기둥으로 흉내낸다
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [0.16, 0.06, 0.16]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [-0.16, 0.06, 0.16]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [0.16, 0.06, -0.16]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 5), DARK, [-0.16, 0.06, -0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [0.16, 0.06, 0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [-0.16, 0.06, 0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [0.16, 0.06, -0.16]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [-0.16, 0.06, -0.16]),
   ]),
 
   도장: () => assemble([
@@ -101,7 +101,7 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     // 손잡이가 위로 솟은 압핀. 압정과 실루엣이 달라야 둘 다 두는 의미가 있다
     part(new CylinderGeometry(0.26, 0.30, 0.34, 20), WHITE, [0, 0.72, 0]),
     part(new CylinderGeometry(0.34, 0.34, 0.12, 20), WHITE, [0, 0.50, 0]),
-    part(new CylinderGeometry(0.04, 0.04, 0.40, 5), METAL, [0, 0.24, 0]),
+    part(new CylinderGeometry(0.04, 0.04, 0.40, 6), METAL, [0, 0.24, 0]),
     part(new ConeGeometry(0.04, 0.09, 5), METAL, [0, 0.045, 0], [Math.PI, 0, 0]),
   ]),
 

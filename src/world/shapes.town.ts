@@ -32,7 +32,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   꽃잎: () => normalize(assemble([
     // 납작한 타원 한 장. 얇아야 꽃잎으로 읽힌다
     part(new SphereGeometry(0.5, 16, 10), WHITE),
-    part(new CylinderGeometry(0.03, 0.05, 0.22, 4), WOOD, [-0.42, 0, 0], LIE_X),
+    part(new CylinderGeometry(0.03, 0.05, 0.22, 6), WOOD, [-0.42, 0, 0], LIE_X),
   ]).scale(1, 0.16, 0.62)),
 
   자갈: () => normalize(assemble([
@@ -49,8 +49,8 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   도토리: () => assemble([
     part(new SphereGeometry(0.36, 16, 10).scale(1, 1.25, 1), WHITE, [0, 0.30, 0]),
     // 깍정이
-    part(new SphereGeometry(0.38, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), WOOD, [0, 0.52, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 0.16, 5), WOOD, [0, 0.78, 0]),
+    part(new SphereGeometry(0.38, 10, 7, 0, Math.PI * 2, 0, Math.PI / 2), WOOD, [0, 0.52, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.16, 6), WOOD, [0, 0.78, 0]),
   ]),
 
   솔방울: () => assemble([
@@ -61,7 +61,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new TorusGeometry(0.25, 0.05, 4, 20), WOOD, [0, 0.34, 0], LIE_Z),
     part(new TorusGeometry(0.28, 0.05, 4, 20), WOOD, [0, 0.55, 0], LIE_Z),
     part(new TorusGeometry(0.24, 0.05, 4, 14), WOOD, [0, 0.76, 0], LIE_Z),
-    part(new CylinderGeometry(0.05, 0.05, 0.14, 5), WOOD, [0, 0.02, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.14, 6), WOOD, [0, 0.02, 0]),
   ]),
 
   동전: () => assemble([
@@ -72,14 +72,14 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   // ── 버킷 2~3 (4~16cm) ─────────────────────────────────────
   꽃: () => assemble([
     // 원작 MaS3 초반의 그 꽃. 꽃잎 다섯 + 심 + 줄기 + 잎
-    part(new CylinderGeometry(0.035, 0.05, 0.62, 5), [0.35, 0.6, 0.3], [0, -0.19, 0]),
+    part(new CylinderGeometry(0.035, 0.05, 0.62, 6), [0.35, 0.6, 0.3], [0, -0.19, 0]),
     part(new SphereGeometry(0.09, 6, 5), [1, 0.85, 0.3], [0, 0.16, 0]),
     ...[0, 1, 2, 3, 4].map((i) => part(
       new SphereGeometry(0.13, 12, 8).scale(1, 0.4, 1),
       WHITE,
       [Math.cos(i * 1.2566) * 0.17, 0.16, Math.sin(i * 1.2566) * 0.17],
     )),
-    part(new SphereGeometry(0.11, 5, 4).scale(1.6, 0.25, 0.7), [0.35, 0.6, 0.3], [0.13, -0.24, 0]),
+    part(new SphereGeometry(0.11, 6, 4).scale(1.6, 0.25, 0.7), [0.35, 0.6, 0.3], [0.13, -0.24, 0]),
   ]),
 
   '연어 캔': () => assemble([
@@ -98,16 +98,16 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new CylinderGeometry(0.13, 0.13, 0.04, 14), [0.95, 0.7, 0.7], [0.28, 0.44, 0.14], LIE_Z),
     part(new CylinderGeometry(0.13, 0.13, 0.04, 14), [0.95, 0.7, 0.7], [0.28, 0.44, -0.14], LIE_Z),
     // 꼬리
-    part(new CylinderGeometry(0.02, 0.035, 0.42, 5), [0.95, 0.7, 0.7], [-0.42, 0.16, 0], [0, 0, 0.7]),
-    part(new SphereGeometry(0.07, 5, 4), WHITE, [-0.05, 0.06, 0.20]),
-    part(new SphereGeometry(0.07, 5, 4), WHITE, [-0.05, 0.06, -0.20]),
+    part(new CylinderGeometry(0.02, 0.035, 0.42, 6), [0.95, 0.7, 0.7], [-0.42, 0.16, 0], [0, 0, 0.7]),
+    part(new SphereGeometry(0.07, 6, 4), WHITE, [-0.05, 0.06, 0.20]),
+    part(new SphereGeometry(0.07, 6, 4), WHITE, [-0.05, 0.06, -0.20]),
   ]),
 
   골프공: () => assemble([
     part(new SphereGeometry(0.5, 16, 10), WHITE),
     // 딤플 몇 개만 — 전부 찍으면 폴리곤만 늘고 안 보인다
     ...[[0.3, 0.3, 0.25], [-0.3, 0.28, -0.2], [0.05, 0.45, -0.15], [-0.2, 0.1, 0.4]].map(
-      ([x, y, z]) => part(new SphereGeometry(0.07, 4, 3), [0.85, 0.85, 0.85], [x!, y!, z!]),
+      ([x, y, z]) => part(new SphereGeometry(0.07, 6, 4), [0.85, 0.85, 0.85], [x!, y!, z!]),
     ),
   ]),
 
@@ -119,8 +119,8 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new SphereGeometry(0.22, 12, 8).scale(1.2, 0.35, 0.6), WOOD, [-0.05, 0.38, 0.22]),
     part(new SphereGeometry(0.22, 12, 8).scale(1.2, 0.35, 0.6), WOOD, [-0.05, 0.38, -0.22]),
     part(new ConeGeometry(0.13, 0.30, 4).scale(1, 1, 0.4), WOOD, [-0.36, 0.32, 0], [0, 0, Math.PI / 2]),
-    part(new CylinderGeometry(0.025, 0.025, 0.18, 4), [0.9, 0.75, 0.3], [0.02, 0.11, 0.08]),
-    part(new CylinderGeometry(0.025, 0.025, 0.18, 4), [0.9, 0.75, 0.3], [0.02, 0.11, -0.08]),
+    part(new CylinderGeometry(0.025, 0.025, 0.18, 6), [0.9, 0.75, 0.3], [0.02, 0.11, 0.08]),
+    part(new CylinderGeometry(0.025, 0.025, 0.18, 6), [0.9, 0.75, 0.3], [0.02, 0.11, -0.08]),
   ]),
 
   페트병: () => assemble([
@@ -151,8 +151,8 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new SphereGeometry(0.26, 16, 10).scale(1.3, 0.32, 0.55), [0.55, 0.6, 0.7], [-0.06, 0.42, 0.24]),
     part(new SphereGeometry(0.26, 16, 10).scale(1.3, 0.32, 0.55), [0.55, 0.6, 0.7], [-0.06, 0.42, -0.24]),
     part(new ConeGeometry(0.16, 0.34, 4).scale(1, 1, 0.35), [0.55, 0.6, 0.7], [-0.42, 0.34, 0], [0, 0, Math.PI / 2]),
-    part(new CylinderGeometry(0.03, 0.03, 0.20, 5), [0.9, 0.45, 0.4], [0.0, 0.12, 0.09]),
-    part(new CylinderGeometry(0.03, 0.03, 0.20, 5), [0.9, 0.45, 0.4], [0.0, 0.12, -0.09]),
+    part(new CylinderGeometry(0.03, 0.03, 0.20, 6), [0.9, 0.45, 0.4], [0.0, 0.12, 0.09]),
+    part(new CylinderGeometry(0.03, 0.03, 0.20, 6), [0.9, 0.45, 0.4], [0.0, 0.12, -0.09]),
   ]),
 
   삽: () => assemble([
@@ -201,18 +201,18 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   // ── 버킷 6 (60cm~1.2m) ────────────────────────────────────
   개: () => assemble([
     // 원작 MaS3에서 피해 다녀야 하는 그 개. 서 있는 자세
-    part(new SphereGeometry(0.30, 16, 10).scale(1.7, 1, 1.05), WHITE, [-0.06, 0.56, 0]),
-    part(new SphereGeometry(0.22, 12, 8), WHITE, [0.44, 0.70, 0]),
+    part(new SphereGeometry(0.30, 20, 13).scale(1.7, 1, 1.05), WHITE, [-0.06, 0.56, 0]),
+    part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.70, 0]),
     part(soft(0.22, 0.14, 0.18, 0.45), WHITE, [0.62, 0.62, 0]),
-    part(new SphereGeometry(0.05, 5, 4), DARK, [0.73, 0.64, 0]),
+    part(new SphereGeometry(0.05, 14, 9), DARK, [0.73, 0.64, 0]),
     // 늘어진 귀 둘
-    part(new SphereGeometry(0.13, 12, 8).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, 0.20]),
-    part(new SphereGeometry(0.13, 12, 8).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, -0.20]),
+    part(new SphereGeometry(0.13, 20, 13).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, 0.20]),
+    part(new SphereGeometry(0.13, 20, 13).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, -0.20]),
     // 다리 넷
     ...[[0.30, 0.17], [0.30, -0.17], [-0.34, 0.17], [-0.34, -0.17]].map(
-      ([x, z]) => part(new CylinderGeometry(0.075, 0.065, 0.50, 7), WHITE, [x!, 0.25, z!]),
+      ([x, z]) => part(new CylinderGeometry(0.075, 0.065, 0.50, 20), WHITE, [x!, 0.25, z!]),
     ),
     // 치켜든 꼬리
-    part(new CylinderGeometry(0.04, 0.06, 0.34, 6), WOOD, [-0.52, 0.72, 0], [0, 0, 0.9]),
+    part(new CylinderGeometry(0.04, 0.06, 0.34, 14), WOOD, [-0.52, 0.72, 0], [0, 0, 0.9]),
   ]),
 };

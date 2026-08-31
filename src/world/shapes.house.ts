@@ -69,11 +69,11 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   젓가락: () => assemble([
     // **두 짝이어야 한다.** 한 짝만 두면 성냥·연필과 구별이 안 된다
-    part(new CylinderGeometry(0.030, 0.017, 1.0, 5), WHITE, [0, 0.03, 0.055], LIE_X),
-    part(new CylinderGeometry(0.030, 0.017, 1.0, 5), WHITE, [0, 0.03, -0.055], LIE_X),
+    part(new CylinderGeometry(0.030, 0.017, 1.0, 6), WHITE, [0, 0.03, 0.055], LIE_X),
+    part(new CylinderGeometry(0.030, 0.017, 1.0, 6), WHITE, [0, 0.03, -0.055], LIE_X),
     // 굵은 쪽 끝동. 나무젓가락은 여기서 색이 갈린다
-    part(new CylinderGeometry(0.033, 0.033, 0.18, 5), WOOD, [-0.40, 0.03, 0.055], LIE_X),
-    part(new CylinderGeometry(0.033, 0.033, 0.18, 5), WOOD, [-0.40, 0.03, -0.055], LIE_X),
+    part(new CylinderGeometry(0.033, 0.033, 0.18, 6), WOOD, [-0.40, 0.03, 0.055], LIE_X),
+    part(new CylinderGeometry(0.033, 0.033, 0.18, 6), WOOD, [-0.40, 0.03, -0.055], LIE_X),
   ]),
 
   숟가락: () => assemble([
@@ -134,8 +134,8 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new SphereGeometry(0.22, 12, 8), WHITE, [0.26, 0.76, 0]),
     // 부리 — 몸과 다른 색이어야 오리가 된다
     part(new ConeGeometry(0.09, 0.24, 6), [0.95, 0.58, 0.16], [0.48, 0.72, 0], TIP_X),
-    part(new SphereGeometry(0.042, 5, 4), DARK, [0.33, 0.84, 0.12]),
-    part(new SphereGeometry(0.042, 5, 4), DARK, [0.33, 0.84, -0.12]),
+    part(new SphereGeometry(0.042, 6, 4), DARK, [0.33, 0.84, 0.12]),
+    part(new SphereGeometry(0.042, 6, 4), DARK, [0.33, 0.84, -0.12]),
     // 치켜든 꼬리
     part(new ConeGeometry(0.13, 0.26, 5), WHITE, [-0.46, 0.46, 0], [0, 0, 1.0]),
   ]),
@@ -201,9 +201,9 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, -0.19]),
     // 주둥이 + 코 + 눈. 얼굴이 없으면 눈사람이다
     part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), PAPER, [0.22, 0.85, 0]),
-    part(new SphereGeometry(0.05, 5, 4), DARK, [0.33, 0.88, 0]),
-    part(new SphereGeometry(0.038, 4, 3), DARK, [0.19, 0.99, 0.11]),
-    part(new SphereGeometry(0.038, 4, 3), DARK, [0.19, 0.99, -0.11]),
+    part(new SphereGeometry(0.05, 6, 4), DARK, [0.33, 0.88, 0]),
+    part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, 0.11]),
+    part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, -0.11]),
     // 팔 둘 · 다리 둘
     part(new SphereGeometry(0.13, 12, 8), WHITE, [0.02, 0.52, 0.32]),
     part(new SphereGeometry(0.13, 12, 8), WHITE, [0.02, 0.52, -0.32]),

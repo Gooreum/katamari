@@ -102,10 +102,10 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
     part(new SphereGeometry(0.155, 12, 8), METAL, [-0.26, 0.80, 0]),
     part(new SphereGeometry(0.155, 12, 8), METAL, [0.26, 0.80, 0]),
     // 종 자루
-    part(new CylinderGeometry(0.028, 0.028, 0.12, 5), METAL, [-0.26, 0.71, 0]),
-    part(new CylinderGeometry(0.028, 0.028, 0.12, 5), METAL, [0.26, 0.71, 0]),
+    part(new CylinderGeometry(0.028, 0.028, 0.12, 6), METAL, [-0.26, 0.71, 0]),
+    part(new CylinderGeometry(0.028, 0.028, 0.12, 6), METAL, [0.26, 0.71, 0]),
     // 종 사이 망치
-    part(new CylinderGeometry(0.022, 0.022, 0.30, 5), METAL, [0, 0.78, -0.05], LIE_X),
+    part(new CylinderGeometry(0.022, 0.022, 0.30, 6), METAL, [0, 0.78, -0.05], LIE_X),
     // 발 둘. 앞으로 기울어져야 탁상시계로 보인다
     part(new CylinderGeometry(0.035, 0.045, 0.16, 6), METAL, [-0.24, 0.08, 0.10]),
     part(new CylinderGeometry(0.035, 0.045, 0.16, 6), METAL, [0.24, 0.08, 0.10]),

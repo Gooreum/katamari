@@ -142,6 +142,6 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
     part(new TorusGeometry(0.42, 0.024, 4, 20), PAPER, [0, 0.045, 0], LIE_Z),
     part(new TorusGeometry(0.39, 0.022, 4, 20), PAPER, [-0.02, 0.235, -0.02], LIE_Z),
     part(new CylinderGeometry(0.04, 0.04, 0.02, 8), PAPER, [-0.02, 0.29, -0.02]),   // 단추
-    part(new CylinderGeometry(0.012, 0.012, 0.10, 5), PAPER, [0.30, 0.05, 0.30], LIE_X),  // 술
+    part(new CylinderGeometry(0.012, 0.012, 0.10, 6), PAPER, [0.30, 0.05, 0.30], LIE_X),  // 술
   ]),
 };

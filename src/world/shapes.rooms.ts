@@ -114,8 +114,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     ...([0.20, 0.40] as const).map((y) =>
       part(soft(0.92, 0.025, 0.36, 0.30), WOOD, [0, y, 0])),
     // 신발 둘. 아래 칸에 들어가 있다
-    part(new SphereGeometry(0.5, 12, 8).scale(0.22, 0.11, 0.34), DARK, [-0.22, 0.07, 0]),
-    part(new SphereGeometry(0.5, 12, 8).scale(0.22, 0.11, 0.34), DARK, [0.14, 0.07, 0.02]),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), DARK, [-0.22, 0.07, 0]),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), DARK, [0.14, 0.07, 0.02]),
     part(soft(0.60, 0.05, 0.34, 0.35), WOOD, [0, 0.03, 0]),              // 굽
   ]),
 
@@ -168,12 +168,12 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    */
   이불: () => assemble([
     part(soft(1.00, 0.05, 0.68, 0.45), WHITE, [0, 0.025, 0]),            // 요
-    part(new SphereGeometry(0.5, 14, 6).scale(0.94, 0.055, 0.62), PAPER, [0, 0.04, 0]),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.94, 0.055, 0.62), PAPER, [0, 0.04, 0]),
     // 접어서 걷어놓은 이불 — 발치 쪽
     part(soft(0.56, 0.07, 0.62, 0.45), WHITE, [0.20, 0.085, 0.01]),
-    part(new SphereGeometry(0.5, 12, 6).scale(0.52, 0.05, 0.58), PAPER, [0.20, 0.10, 0.01]),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.52, 0.05, 0.58), PAPER, [0.20, 0.10, 0.01]),
     // 베개 — 머리맡
-    part(new SphereGeometry(0.5, 12, 6).scale(0.30, 0.075, 0.40), PAPER, [-0.36, 0.075, 0]),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.30, 0.075, 0.40), PAPER, [-0.36, 0.075, 0]),
     // 베개 시접. 세그먼트를 넉넉히 줬다가 이불이 844삼각형으로 상한(800)을 넘었다 —
     // 눌린 구 셋과 이 링이 합쳐서 대부분이었다
     part(new TorusGeometry(0.19, 0.018, 4, 12).scale(0.75, 1, 1), PAPER,
@@ -199,7 +199,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     // 삐져나온 장난감 셋
     part(new SphereGeometry(0.18, 12, 8), [0.90, 0.35, 0.30], [0.22, 0.66, 0.10]),
     part(new BoxGeometry(0.20, 0.20, 0.20), [0.30, 0.55, 0.85], [-0.20, 0.64, -0.06], [0, 0.5, 0.3]),
-    part(new CylinderGeometry(0.09, 0.09, 0.24, 8), [0.95, 0.80, 0.25], [-0.02, 0.66, 0.24], LIE_X),
+    part(new CylinderGeometry(0.09, 0.09, 0.24, 10), [0.95, 0.80, 0.25], [-0.02, 0.66, 0.24], LIE_X),
   ]),
 
   // ─── 부엌 ────────────────────────────────────────────────────
@@ -344,7 +344,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    */
   세면대: () => assemble([
     // 기둥 — 아래로 갈수록 좁아진다
-    part(new CylinderGeometry(0.15, 0.20, 0.62, 12), WHITE, [0, 0.31, 0]),
+    part(new CylinderGeometry(0.15, 0.20, 0.62, 14), WHITE, [0, 0.31, 0]),
     // 대야 — 파야 세면대다
     ...basin(0.54, 0.44, 0.16, 0.045, [0.78, 0.84, 0.88])
       .map((p) => part(p.geo, p.rgb, [0, 0.62, 0])),
@@ -365,8 +365,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, 0.24], [0.62, 0, 0]),
     part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, -0.24], [-0.62, 0, 0]),
     // 박공 삼각면 둘 — 지붕 옆을 막는다
-    part(new CylinderGeometry(0.34, 0.34, 0.04, 3), WOOD, [0.46, 0.72, 0], [0, 0, Math.PI / 2]),
-    part(new CylinderGeometry(0.34, 0.34, 0.04, 3), WOOD, [-0.46, 0.72, 0], [0, 0, Math.PI / 2]),
+    part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [0.46, 0.72, 0], [0, 0, Math.PI / 2]),
+    part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [-0.46, 0.72, 0], [0, 0, Math.PI / 2]),
     // 뚫린 입구 — 뒤집은 원기둥으로 «안»을 만든다
     part(new CylinderGeometry(0.24, 0.24, 0.30, 14, 1, true).scale(-1, 1, 1),
       [0.30, 0.24, 0.20], [0, 0.30, 0.29], LIE_Z),
@@ -400,17 +400,17 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 이번 작업은 **형상만** 바꾼다.
    */
   나무: () => assemble([
-    part(new CylinderGeometry(0.09, 0.15, 1.10, 9), WOOD, [0, 0.55, 0]),
+    part(new CylinderGeometry(0.09, 0.15, 1.10, 20), WOOD, [0, 0.55, 0]),
     // 갈라진 가지 둘 — 줄기 하나면 기둥이다
-    part(new CylinderGeometry(0.045, 0.07, 0.50, 7), WOOD, [0.14, 1.20, 0.04], [0, 0, -0.42]),
-    part(new CylinderGeometry(0.045, 0.07, 0.46, 7), WOOD, [-0.13, 1.18, -0.05], [0, 0, 0.40]),
+    part(new CylinderGeometry(0.045, 0.07, 0.50, 14), WOOD, [0.14, 1.20, 0.04], [0, 0, -0.42]),
+    part(new CylinderGeometry(0.045, 0.07, 0.46, 14), WOOD, [-0.13, 1.18, -0.05], [0, 0, 0.40]),
     // 잎 덩어리 넷 — 하나면 사탕, 넷이면 나무다
-    part(new SphereGeometry(0.36, 12, 8).scale(1, 0.86, 1), [0.36, 0.62, 0.28], [0, 1.72, 0]),
-    part(new SphereGeometry(0.26, 12, 8).scale(1, 0.86, 1), [0.30, 0.55, 0.24], [0.30, 1.46, 0.08]),
-    part(new SphereGeometry(0.24, 12, 8).scale(1, 0.86, 1), [0.30, 0.55, 0.24], [-0.28, 1.42, -0.10]),
-    part(new SphereGeometry(0.22, 10, 7).scale(1, 0.86, 1), [0.42, 0.70, 0.32], [0.10, 2.00, -0.12]),
+    part(new SphereGeometry(0.36, 20, 13).scale(1, 0.86, 1), [0.36, 0.62, 0.28], [0, 1.72, 0]),
+    part(new SphereGeometry(0.26, 20, 13).scale(1, 0.86, 1), [0.30, 0.55, 0.24], [0.30, 1.46, 0.08]),
+    part(new SphereGeometry(0.24, 20, 13).scale(1, 0.86, 1), [0.30, 0.55, 0.24], [-0.28, 1.42, -0.10]),
+    part(new SphereGeometry(0.22, 20, 13).scale(1, 0.86, 1), [0.42, 0.70, 0.32], [0.10, 2.00, -0.12]),
     // 뿌리목 — 바닥에서 벌어진다
-    part(new CylinderGeometry(0.20, 0.28, 0.10, 9), WOOD, [0, 0.05, 0]),
+    part(new CylinderGeometry(0.20, 0.28, 0.10, 20), WOOD, [0, 0.05, 0]),
   ]),
 
   /**
@@ -435,15 +435,15 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * (줄 자체는 «공중에 뜬 면»이라 못 만든다 — 밥상 상판과 같은 한계다)
    */
   '빨래 기둥': () => assemble([
-    part(new CylinderGeometry(0.035, 0.045, 1.00, 8), METAL, [0, 0.50, 0]),
+    part(new CylinderGeometry(0.035, 0.045, 1.00, 10), METAL, [0, 0.50, 0]),
     // 가로대 + 끝 마개 둘
-    part(new CylinderGeometry(0.026, 0.026, 0.34, 7), METAL, [0, 0.97, 0], LIE_X),
-    part(new SphereGeometry(0.034, 7, 5), METAL, [0.17, 0.97, 0]),
-    part(new SphereGeometry(0.034, 7, 5), METAL, [-0.17, 0.97, 0]),
+    part(new CylinderGeometry(0.026, 0.026, 0.34, 10), METAL, [0, 0.97, 0], LIE_X),
+    part(new SphereGeometry(0.034, 10, 7), METAL, [0.17, 0.97, 0]),
+    part(new SphereGeometry(0.034, 10, 7), METAL, [-0.17, 0.97, 0]),
     // 버팀대 둘 — 기둥이 안 흔들리게
     part(new CylinderGeometry(0.016, 0.016, 0.26, 6), METAL, [0.07, 0.86, 0], [0, 0, -0.62]),
     part(new CylinderGeometry(0.016, 0.016, 0.26, 6), METAL, [-0.07, 0.86, 0], [0, 0, 0.62]),
     // 콘크리트 밑동
-    part(new CylinderGeometry(0.11, 0.14, 0.10, 10), [0.72, 0.72, 0.70], [0, 0.05, 0]),
+    part(new CylinderGeometry(0.11, 0.14, 0.10, 14), [0.72, 0.72, 0.70], [0, 0.05, 0]),
   ]),
 };
