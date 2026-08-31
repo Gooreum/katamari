@@ -339,6 +339,40 @@ export function rugPixel(
   return [((lx + rug.w / 2) / rug.w) * size, (1 - (ly + rug.d / 2) / rug.d) * size];
 }
 
+/**
+ * 벽지. **화면에서 제일 넓은 단색 면이 벽이었다.**
+ *
+ * 바닥은 다다미·마루·이끼가 깔려 있는데 벽은 민무늬 색면이라, 방을 찍으면
+ * 위쪽 절반이 통째로 베이지 평면이었다. `City.ts` 가 압출한 벽의 uv 를
+ * **지우고 있어서**(「도시 전체 2.6MB」) 텍스처가 원리상 불가능했다 —
+ * 그런데 그건 잠실 6,340채 이야기고 별1~8 이 쓰는 판은 벽이 73~152장이다.
+ *
+ * **무늬가 아주 옅어야 한다.** 벽은 면적이 넓어서 무늬가 세면 어지럽고,
+ * 물건이 그 앞에 서면 배경이 물건보다 시끄러워진다. 잔점 격자 + 세로 결만 준다.
+ */
+export function buildWallpaperTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+  cx.fillStyle = '#ffffff';
+  cx.fillRect(0, 0, 128, 128);
+
+  // 잔점 — 엇갈린 격자. 나란히 두면 «모눈종이»가 된다
+  cx.fillStyle = 'rgba(112,104,92,0.13)';
+  for (let y = 0; y < 128; y += 16) {
+    for (let x = (y / 16) % 2 ? 8 : 0; x < 128; x += 16) {
+      cx.beginPath(); cx.arc(x, y, 2.2, 0, Math.PI * 2); cx.fill();
+    }
+  }
+  // 세로 결 — 벽지는 «폭 단위»로 붙이므로 세로선이 있다
+  cx.fillStyle = 'rgba(112,104,92,0.07)';
+  for (let k = 0; k < 128; k += 4) cx.fillRect(k, 0, 1, 128);
+  cx.fillStyle = 'rgba(112,104,92,0.16)';
+  cx.fillRect(0, 0, 1, 128);                 // 이음매 한 줄
+
+  return finish(cv);
+}
+
 /** 방 정의(`StageRoom.floorTex`)가 고르는 이름 → 생성 함수. */
 export const FLOOR_TEX = {
   tatami: buildTatamiTexture,

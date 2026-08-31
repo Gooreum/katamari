@@ -1,3 +1,11 @@
+
+/**
+ * 캔버스 흉내. **메서드가 자기 자신을 돌려준다** —
+ * `createLinearGradient(...).addColorStop(...)` 처럼 반환값에 다시 메서드를 부르는
+ * 자리가 있어서 `() => {}` 만 돌려주면 거기서 죽는다. 손으로 나열하면
+ * `atlas.ts`·`floors.ts` 에 무늬가 하나 늘 때마다 도구가 통째로 죽는다.
+ */
+const stub: unknown = new Proxy({}, { get: () => (): unknown => stub, set: () => true });
 /** 스폰 지점 주변에 실제로 먹을 게 있는지 검사 */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -9,11 +17,7 @@ g.document = {
     height: 0,
     // 아틀라스(atlas.ts)가 쓰는 것까지 받아준다. 스텁은 코드가 쓰는 만큼 자라야 한다 —
     // 없는 메서드를 부르면 도구가 통째로 죽고, 그게 배치 숫자와는 무관한 죽음이라 더 나쁘다.
-    getContext: () => ({
-      fillStyle: '',
-      fillRect() {}, save() {}, restore() {}, translate() {},
-      beginPath() {}, rect() {}, clip() {}, arc() {}, fill() {},
-    }),
+    getContext: () => stub,
   }),
 };
 g.window = {}; g.self = g;

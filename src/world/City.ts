@@ -3,6 +3,7 @@ import {
   Group, Mesh, MeshLambertMaterial, Shape, ShapeGeometry, Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { buildWallpaperTexture } from './floors';
 import { coveredByLandmark, displayHeight, displayKind, extentOf, type BuildingKind, type CityBuilding, type CityData } from './cityData';
 import { buildRoadGeometry, buildRoadTexture } from './Roads';
 
@@ -108,11 +109,38 @@ export interface CityBuildingEntry {
  * 청크당 건물이 십수 채뿐이라 재빌드가 싸다.
  * 색은 vertex color로 넣어서 머티리얼도 하나로 공유한다.
  */
+/** 벽지 한 장이 덮는 실제 크기(m). 바닥의 `TILE_M`(1.8)과 같은 규약 */
+const WALL_TILE_M = 1.2;
+
+/**
+ * 압출된 벽에 **자리에서 uv 를 만든다.**
+ *
+ * 세로(v)는 높이 그대로, 가로(u)는 그 벽이 **x 로 긴지 z 로 긴지**로 고른다.
+ * 법선을 안 보고 «어느 축으로 더 긴가»로 정하는 이유는 이 판의 벽이 전부
+ * 축에 나란해서다 — 비스듬한 벽이 생기면 그때 법선을 봐야 한다.
+ *
+ * 나누는 값이 `WALL_TILE_M` 이라 벽지가 1.2m 마다 **반복**된다. 벽 한 장에
+ * 무늬가 한 번만 늘어나면 5.4m 벽에 점이 여덟 개뿐이라 오히려 이상하다.
+ */
+function planarUv(geo: BufferGeometry, m: number): void {
+  const p = geo.getAttribute('position');
+  geo.computeBoundingBox();
+  const b = geo.boundingBox!;
+  const alongX = (b.max.x - b.min.x) >= (b.max.z - b.min.z);
+  const uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    uv[i * 2] = (alongX ? p.getX(i) : p.getZ(i)) / m;
+    uv[i * 2 + 1] = p.getY(i) / m;
+  }
+  geo.setAttribute('uv', new BufferAttribute(uv, 2));
+}
+
 export class City {
   readonly group = new Group();
   readonly entries: CityBuildingEntry[] = [];
 
-  private chunks = new Map<number, Mesh>();
+  /** 청크 하나가 «메시 둘»(벽·나머지)을 가질 수 있어서 `Group` 이다 */
+  private chunks = new Map<number, Group>();
   private chunkMembers = new Map<number, number[]>();
   private dirty = new Set<number>();
   /**
@@ -140,6 +168,16 @@ export class City {
    */
   private material = new MeshLambertMaterial({
     vertexColors: true, flatShading: true,
+  });
+  /**
+   * **벽 전용.** 벽지가 `RepeatWrapping` 이라 인쇄 아틀라스(한 장에 49칸)를 못 쓴다 —
+   * 반복하면 이웃 칸이 새어 들어온다. 그래서 머티리얼을 하나 더 둔다.
+   *
+   * 드로우콜 +1 «청크당»이지만 **벽이 없는 청크는 메시를 안 만든다** —
+   * 잠실 6,340채에는 `kind: 'wall'` 이 하나도 없어서 거기서는 0이다.
+   */
+  private wallMaterial = new MeshLambertMaterial({
+    vertexColors: true, flatShading: true, map: buildWallpaperTexture(),
   });
   // FrontSide여야 한다. DoubleSide면 공이 작을 때 카메라가 수면 아래로 들어가
   // 물 밑면이 화면을 가득 채운다 — 실제로 그래서 화면이 통째로 회청색이 됐다.
@@ -300,7 +338,7 @@ export class City {
     const old = this.chunks.get(key);
     if (old) {
       this.group.remove(old);
-      old.geometry.dispose();
+      for (const c of old.children) if (c instanceof Mesh) c.geometry.dispose();
       this.chunks.delete(key);
     }
 
@@ -308,6 +346,7 @@ export class City {
     if (!members) return;
 
     const parts: BufferGeometry[] = [];
+    const wallParts: BufferGeometry[] = [];
     for (const i of members) {
       const e = this.entries[i]!;
       if (e.absorbed) continue;
@@ -318,18 +357,30 @@ export class City {
         geo = this.geometryFor(e.building, false);
         this.geometryCache.set(i, geo);
       }
-      parts.push(geo);
+      const k = e.building.kind;
+      (k === 'wall' || k === 'door' ? wallParts : parts).push(geo);
     }
-    if (parts.length === 0) return;
+    if (parts.length === 0 && wallParts.length === 0) return;
 
+    /**
+     * **벽과 나머지를 따로 병합한다.** 벽만 uv 를 갖고 있어서 섞으면
+     * `mergeGeometries` 가 속성 구성 불일치로 `null` 을 돌려준다 —
+     * 그러면 그 청크가 **통째로 안 그려진다**(조용히).
+     */
     // parts는 캐시가 소유한다. 여기서 dispose하면 다음 재빌드가 빈 지오메트리를 병합한다.
-    const merged = mergeGeometries(parts, false);
-    if (!merged) return;
-
-    const mesh = new Mesh(merged, this.material);
-    mesh.name = `chunk_${key}`;
-    this.chunks.set(key, mesh);
-    this.group.add(mesh);
+    const group = new Group();
+    group.name = `chunk_${key}`;
+    if (parts.length > 0) {
+      const merged = mergeGeometries(parts, false);
+      if (merged) group.add(new Mesh(merged, this.material));
+    }
+    if (wallParts.length > 0) {
+      const mergedWall = mergeGeometries(wallParts, false);
+      if (mergedWall) group.add(new Mesh(mergedWall, this.wallMaterial));
+    }
+    if (group.children.length === 0) return;
+    this.chunks.set(key, group);
+    this.group.add(group);
   }
 
   /**
@@ -371,9 +422,17 @@ export class City {
     }
     geo.rotateX(-Math.PI / 2);
     if (centered) geo.translate(0, -h / 2, 0);
-    // uv를 버린다. 창 격자가 사라졌으니 실어 나를 게 없다 —
-    // 예전에는 정점당 8바이트(도시 전체 2.6MB)를 uv에 쓰고 있었다.
-    geo.deleteAttribute('uv');
+    /**
+     * **벽·문만 uv 를 남긴다.**
+     *
+     * 지우는 이유가 「도시 전체 2.6MB」였는데 그건 **잠실 6,340채** 이야기다.
+     * 별1~8 이 쓰는 판은 벽이 73~152장(합쳐 약 5KB)이고, 그 벽이 화면에서
+     * **제일 넓은 단색 면**이었다 — 방을 찍으면 위쪽 절반이 베이지 평면이다.
+     *
+     * 압출 uv 는 옆면·윗면이 뒤섞여 쓸 수 없으므로 **자리에서 다시 만든다**.
+     */
+    if (kind === 'wall' || kind === 'door') planarUv(geo, WALL_TILE_M);
+    else geo.deleteAttribute('uv');
 
     /**
      * 외벽 색. 두 갈래다.
@@ -488,7 +547,9 @@ export class City {
   }
 
   dispose(): void {
-    for (const mesh of this.chunks.values()) mesh.geometry.dispose();
+    for (const g of this.chunks.values()) {
+      for (const c of g.children) if (c instanceof Mesh) c.geometry.dispose();
+    }
     this.roadMesh?.geometry.dispose();
     this.roadMesh = null;
     this.roadMaterial.dispose();
