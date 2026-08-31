@@ -64,8 +64,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new Scene();
 scene.background = new Color(0x87ceeb);
 // Game.ts 와 같은 값. 여기 숫자를 바꾸려면 저기도 같이 바꿔야 한다.
-scene.add(new HemisphereLight(0xffffff, 0x4c6b3c, 0.95));
-const sun = new DirectionalLight(0xfff4e0, 0.55);
+scene.add(new HemisphereLight(0xffffff, 0x3a3524, 0.42));
+const sun = new DirectionalLight(0xfff2d8, 2.35);
 sun.position.set(1, 2.2, 1.4);
 scene.add(sun);
 
