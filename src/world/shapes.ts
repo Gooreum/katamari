@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { SHAPE_IDS, type ShapeId } from './generation';
 import { FURNITURE_BUILDERS } from './shapes.furniture';
+import { GARDEN_BUILDERS } from './shapes.garden';
 import { HOUSE_BUILDERS } from './shapes.house';
 import { LIVING_BUILDERS } from './shapes.living';
 import { ROOM_BUILDERS } from './shapes.rooms';
@@ -38,6 +39,7 @@ const BUILDERS: Record<ShapeId, () => BufferGeometry> = {
   ...FURNITURE_BUILDERS,
   ...LIVING_BUILDERS,
   ...ROOM_BUILDERS,
+  ...GARDEN_BUILDERS,
   ...TOWN_BUILDERS,
   ...WORLD_BUILDERS,
 };

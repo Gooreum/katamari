@@ -121,6 +121,11 @@ export const SHAPE_COLOR: Record<string, readonly number[]> = {
   // **나무도 팔레트를 흰색(0)으로 둔다.** 초록(11)을 주면 줄기의 WOOD 계수까지
   // 초록에 눌려서 «줄기가 초록인 나무»가 나온다 — 찬장·욕조와 같은 실수다
   개집: [7], 창고: [6], 나무: [0], 평상: [7], '빨래 기둥': [6],
+  // ── 일본식 정원 ─────────────────────────────────────────────
+  // **전부 중성색이다.** 돌·대나무 잎·솔잎처럼 한 형상에 재질이 둘 이상이라
+  // 팔레트에 색을 실으면 전부 그 색이 된다(찬장 유리·욕조 안·나무 줄기에서
+  // 세 번 겪었다). 재질은 `shapes.garden.ts` 의 계수가 만든다.
+  석등: [3], 물확: [3], 징검돌: [3], 대나무: [0], 소나무: [0], 게타: [7], 갈퀴: [0],
   // ── 동네 맵 전용 ────────────────────────────────────────────
   꽃잎: [8, 10, 13], 자갈: [3, 4], 병뚜껑: [8, 11], 도토리: [7], 솔방울: [7],
   동전: [6], 꽃: [8, 10, 13, 16], '연어 캔': [6, 11], 쥐: [5], 골프공: [0],
@@ -294,10 +299,21 @@ export const SHAPE_IDS_ROOMS = [
   '개집', '창고', '나무', '평상', '빨래 기둥',
 ] as const;
 
+/**
+ * 일본식 정원 물건. **다섯은 손배치 전용이고 둘만 표에 오른다.**
+ *
+ * 석등·물확·대나무·소나무·징검돌을 방 표에 넣으면 마당에 석등이 스무 개
+ * 흩뿌려진다 — `나무`·`개집`·`창고` 가 이미 손배치 전용인 것과 같은 이유다.
+ * 게타·갈퀴만 뒷마당 표에 오른다.
+ */
+const SHAPE_IDS_GARDEN = [
+  '석등', '물확', '징검돌', '대나무', '소나무', '게타', '갈퀴',
+] as const;
+
 export const SHAPE_IDS = [
   ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_HOUSE,
   ...SHAPE_IDS_FURNITURE, ...SHAPE_IDS_LIVING, ...SHAPE_IDS_ROOMS,
-  ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
+  ...SHAPE_IDS_GARDEN, ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
 ];
 
 export type ShapeIdSmall = (typeof SHAPE_IDS_SMALL)[number];
@@ -307,11 +323,12 @@ export type ShapeIdHouse = (typeof SHAPE_IDS_HOUSE)[number];
 export type ShapeIdFurniture = (typeof SHAPE_IDS_FURNITURE)[number];
 export type ShapeIdLiving = (typeof SHAPE_IDS_LIVING)[number];
 export type ShapeIdRooms = (typeof SHAPE_IDS_ROOMS)[number];
+export type ShapeIdGarden = (typeof SHAPE_IDS_GARDEN)[number];
 export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
 export type ShapeIdWorld = (typeof SHAPE_IDS_WORLD)[number];
 export type ShapeId =
   | ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdHouse | ShapeIdFurniture
-  | ShapeIdLiving | ShapeIdRooms | ShapeIdTown | ShapeIdWorld;
+  | ShapeIdLiving | ShapeIdRooms | ShapeIdGarden | ShapeIdTown | ShapeIdWorld;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;
