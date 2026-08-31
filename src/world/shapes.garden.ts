@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CylinderGeometry, IcosahedronGeometry, SphereGeometry, TorusGeometry,
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdGarden } from './generation';
@@ -40,6 +40,10 @@ const BAMBOO_NODE: RGB = [0.52, 0.56, 0.30];
 const LEAF: RGB = [0.28, 0.46, 0.24];
 /** 솔잎 — 대나무 잎보다 짙고 푸르다 */
 const PINE: RGB = [0.22, 0.40, 0.26];
+/** 정원돌 화강암 — 푸른빛 도는 회색 */
+const GRANITE: RGB = [0.66, 0.66, 0.64];
+/** 같은 화강암인데 볕에 바랜 것. 무리 안에서 돌이 «다 같은 돌»로 안 보이게 */
+const GRANITE_WARM: RGB = [0.74, 0.71, 0.64];
 
 /**
  * 대나무 줄기 한 대 — 마디 링을 `n` 개 두른 원기둥.
@@ -72,6 +76,69 @@ function culm(
 }
 
 /**
+ * 정원 바위(景石) 한 덩이.
+ *
+ * ## 왜 이게 정원의 «첫 번째» 요소인가
+ *
+ * 레퍼런스가 한목소리로 말한다 — **「일본 정원에서 돌이 가장 중요한 요소다」**.
+ * 명인은 돌 하나를 고르는 데 몇 해를 쓴다. 그런데 이 마당에는 **바위가 하나도
+ * 없었다.** 석등·물확·대나무를 아무리 잘 만들어도 그건 정원에 «놓는 물건»이지
+ * 정원의 «뼈대»가 아니다.
+ *
+ * ## 정이십면체를 흔들어 깎는다
+ *
+ * `IcosahedronGeometry(0.5, 0)` 은 면 스물짜리 볼록 다면체다. 꼭짓점을 밀면
+ * **각진 화강암**이 되고, 매끈한 구로는 절대 안 나오는 «깨진 면»이 생긴다.
+ * 이 리포의 다른 형상이 상자·원기둥·구를 «쌓아» 만드는 것과 달리, 돌은
+ * 한 덩이를 **깎아야** 돌이다.
+ *
+ * **밀기 값은 좌표에서 뽑는다.** `toNonIndexed()` 하면 한 꼭짓점이 인접한 면
+ * 수만큼 중복되는데, 인덱스로 난수를 뽑으면 같은 자리의 복제본이 **다른 값**을
+ * 받아 면이 벌어진다. 좌표를 반올림해 키로 쓰면 복제본이 같은 값을 받는다.
+ *
+ * @param flat  y 배율. 크면 엎드린 돌(伏石·고요·물), 작으면 선 돌(立石·힘·산)
+ * @param lean  기울기(rad). 협석(脇石)은 주석 쪽으로 기울어 받친다
+ */
+function rock(seed: number, flat: number, lean: number, rgb: RGB): Part[] {
+  /**
+   * **세분 1(면 80개)이다.** 0(면 20)으로 만들었더니 각이 너무 커서 화강암이
+   * 아니라 «깎은 보석»이었다. 80면이면 면 하나가 손바닥만 해져서 흔들었을 때
+   * 바위의 깨진 결로 읽힌다. 20 → 80 은 리포 평균(371)에 비하면 공짜다.
+   */
+  const geo = new IcosahedronGeometry(0.5, 1);      // 이미 non-indexed 다
+  const pos = geo.getAttribute('position');
+  const cs = Math.cos(lean), sn = Math.sin(lean);
+  const cy = Math.cos(seed), sy = Math.sin(seed);
+  const cut = -0.5 * flat + 0.24 * flat;
+  for (let i = 0; i < pos.count; i++) {
+    const x0 = pos.getX(i), y0 = pos.getY(i), z0 = pos.getZ(i);
+    // 좌표를 키로 — 중복된 꼭짓점이 «같은» 값을 받아야 면이 안 벌어진다
+    const k = Math.round(x0 * 64) * 7919 + Math.round(y0 * 64) * 104729
+      + Math.round(z0 * 64) * 1299709;
+    const j = 0.70 + ((Math.sin(seed * 12.9898 + k * 0.0001) * 43758.5453) % 1 + 1) % 1 * 0.50;
+    const x1 = x0 * j, y1 = y0 * j * flat, z1 = z0 * j;
+    /**
+     * **기울이고 «나서» 자른다.** 그리고 **높이의 24% 를 묻는다.**
+     *
+     * 처음엔 10% 만 잘랐는데, 그러면 «면»이 아니라 아래쪽 꼭짓점 몇 개만 눌려서
+     * 돌이 뾰족한 점 몇 개로 서 있었다 — 바닥 높이 삼각형이 0·0·1개였다.
+     * 24% 면 정이십면체 아래 고리가 통째로 눌려 **진짜 밑면**이 생긴다(5~10면).
+     * 레퍼런스도 「3분의 1 이상을 묻는다」고 한다.
+     *
+     * 처음엔 `part()` 의 `rot` 인자로 기울였는데, 그러면 평평하게 잘라놓은 밑면이
+     * 같이 기울어 **비스듬돌이 한 모서리로 서 있었다.** 실제 정원돌은 기울어도
+     * 밑은 땅에 박혀 있다 — 잘린 면은 늘 수평이어야 한다.
+     * 그래서 회전을 여기서 직접 먹이고 그 «다음»에 y 를 누른다.
+     */
+    const xr = x1 * cs - y1 * sn, yr = x1 * sn + y1 * cs;    // Z축 기울기
+    pos.setXYZ(i, xr * cy - z1 * sy, Math.max(yr, cut), xr * sy + z1 * cy);   // Y축 회전
+  }
+  // 흔든 뒤 다시 계산해야 «깨진 면»이 산다. 안 하면 원래 구의 매끈한 법선이 남는다
+  geo.computeVertexNormals();
+  return [part(geo, rgb)];
+}
+
+/**
  * 이어지는 줄기 한 토막.
  *
  * **끝점을 계산해서 넘겨줘야 한다.** 처음엔 토막마다 중심 좌표를 손으로 적었는데,
@@ -92,6 +159,25 @@ function stem(
 }
 
 export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
+  /**
+   * ── 정원돌 셋 ────────────────────────────────────────────
+   *
+   * 홀수 무리(3·5·7)로 놓는다 — 짝수는 대칭이 생겨 인공적으로 보인다.
+   * **삼존석**(三尊石)은 큰 세로돌 하나에 작은 돌 둘이 붙는 구도이고,
+   * 세 변이 **부등변**이라야 자연이다.
+   *
+   * 종류를 셋 둔 이유: 무리 안의 돌이 다 같으면 「복제한 것」으로 읽힌다.
+   * 세로·가로·비스듬이 각각 산·물·받침이라는 다른 말을 한다.
+   */
+  /** 세로돌(立石) — 삼존석의 주석(主石). 서 있어야 「산」이다 */
+  // `flat` 2.05 — **묻는 24% 를 미리 벌어야 한다.** 1.55 로 뽑았더니 밑을 자른 뒤
+  // 높이/너비가 1.13 까지 내려와서 「선 돌」이 아니라 「좀 큰 돌」이었다
+  세로돌: () => assemble(rock(3.1, 2.05, 0.09, GRANITE)),
+  /** 가로돌(伏石) — 엎드린 돌. 고요·물. 주석보다 낮고 넓다 */
+  가로돌: () => assemble(rock(7.4, 0.40, 0.05, GRANITE_WARM)),
+  /** 비스듬돌(斜石) — 기울어 주석을 받치는 협석(脇石) */
+  비스듬돌: () => assemble(rock(5.8, 0.92, 0.30, GRANITE)),
+
   /**
    * 석등 (115cm) — 카스가도로(春日灯籠).
    *
