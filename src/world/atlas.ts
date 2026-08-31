@@ -30,13 +30,15 @@ import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three';
  */
 
 /**
- * 5 × 5 = 25칸. 4×4(16칸)로 시작했는데 인쇄가 15종이 되면서 꽉 찼다 —
- * 다음에 한 종만 더 늘려도 못 넣는다.
+ * 7 × 7 = 49칸. 5×5(25칸)에 데칼 19칸을 쓰고 있었는데 **재질 칸 16개**를 넣으면 넘친다.
  *
- * 640px 은 2의 거듭제곱이 아니지만 **밉맵도 반복도 안 쓴다**(아래 `generateMipmaps`,
+ * `tileUv()`·`cell()` 이 전부 `GRID` 에서 파생되므로 기존 칸 번호를 그대로 두고
+ * **호출부를 한 줄도 안 고친다** — 칸의 «위치»만 재배치된다.
+ *
+ * 896px 은 2의 거듭제곱이 아니지만 **밉맵도 반복도 안 쓴다**(아래 `generateMipmaps`,
  * `wrapS` 미설정 참고). 그 둘이 NPOT 제약의 전부라 WebGL2 에서 문제가 없다.
  */
-const GRID = 5;
+const GRID = 7;
 const CELL = 128;                        // 한 칸 128px
 const SIZE = GRID * CELL;                // 640px
 
@@ -82,6 +84,59 @@ export const TILE = {
   CLOCK: 17,
   /** 액자 속 사진. 산·해 — 뭐가 됐든 «그림이 들어 있다»가 읽히면 된다 */
   PICTURE: 18,
+
+  /**
+   * ── 면 «재질» — 여러 물건이 나눠 쓴다 ────────────────────
+   *
+   * 위 19칸은 전부 **한 물건 전용 데칼**이다(주사위 눈, 우유팩 소 그림).
+   * 여기부터는 **면 재질**이다 — 나뭇결 하나를 서랍장·책장·상·의자가 나눠 쓴다.
+   *
+   * ## 왜 필요한가
+   *
+   * 물체 146종 중 인쇄를 쓰는 게 18종이었고, 놓이는 크기 20cm 이상 85종 중
+   * **81종의 «제일 큰 부품»이 단색**이었다. 화면을 채우는 건 형상의 제일 큰 면인데
+   * 그게 전부 민무늬라 서랍장은 갈색 판, 벽은 베이지 평면으로 보인다 —
+   * 형태를 세 번 다듬어도 안 바뀐 이유가 이것이다.
+   *
+   * ## 그리는 규약 — **흰 바탕에 어두운 무늬**
+   *
+   * 텍스처는 팔레트 색에 **곱해진다**. 흰 바탕(1.0)은 색을 그대로 통과시키고
+   * 어두운 무늬만 얹힌다. 그래서 나뭇결 칸 하나가 갈색 서랍장에도, 붉은 의자에도
+   * 각자 색을 살린 채 결만 얹는다. 무늬에 «색»을 넣으면 그 물건의 팔레트 색과
+   * 곱해져 탁해진다 — 무늬는 **회갈색 반투명**으로만 그린다.
+   */
+  /** 나뭇결(거친) — 서랍장·책장·상 같은 큰 면 */
+  WOOD_C: 19,
+  /** 나뭇결(고운) — 젓가락·연필처럼 결이 촘촘해야 하는 것 */
+  WOOD_F: 20,
+  /** 천 짜임 — 방석·이불·백팩 */
+  CLOTH: 21,
+  /** 골판지 결 — 상자류 */
+  CARDBOARD: 22,
+  /** 종이 — 신문·전단·공책 */
+  PAPER: 23,
+  /** 브러시 금속 — 냄비·주전자·양동이 */
+  METAL: 24,
+  /** 도기 유약 얼룩 — 찻잔·접시·화분 */
+  CERAMIC: 25,
+  /** 플라스틱 성형 줄 — 페트병·휴지통 */
+  PLASTIC: 26,
+  /** 짚 짜임 — 방석·돗자리 */
+  STRAW: 27,
+  /** 책 표지(재질용) — 띠 두 줄 */
+  COVER: 28,
+  /** 나뭇잎 결 — 잎 덩이 */
+  LEAF: 29,
+  /** 돌 결 — 정원돌·징검돌·석등 */
+  STONE: 30,
+  /** 가전 패널 — 격자 + 버튼 자리 */
+  PANEL: 31,
+  /** 고무 — 타이어·손잡이 */
+  RUBBER: 32,
+  /** 흙·모래 */
+  DIRT: 33,
+  /** 벽지 잔무늬 — 벽·천장 */
+  WALLPAPER: 34,
 } as const;
 
 /**
@@ -399,6 +454,207 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.beginPath(); cx.arc(96, 126, 46, 0, Math.PI * 2); cx.fill();
     cx.fillStyle = '#8a9a72';                     // 들
     cx.fillRect(0, 112, CELL, CELL - 112);
+  });
+
+  /**
+   * ── 면 «재질» 열여섯 ─────────────────────────────────────
+   *
+   * **전부 흰 바탕에 회갈색 반투명 무늬다.** 텍스처는 팔레트 색에 곱해지므로
+   * 흰 바탕이 색을 통과시키고 무늬만 얹힌다 — 나뭇결 한 칸이 갈색 서랍장에도
+   * 붉은 의자에도 각자 색을 살린 채 결만 준다.
+   *
+   * 무늬에 «색»을 넣으면 그 물건 색과 곱해져 탁해진다. 그래서 `rgba(회갈, a)` 만 쓴다.
+   */
+  /** 흰 바탕 — 재질 칸의 공통 시작 */
+  const base = (): void => { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, CELL, CELL); };
+  /** 결정적 의사난수 — 새로고침해도 같은 무늬가 나와야 한다 */
+  const rnd = (i: number, m: number): number => ((i * 9301 + 49297) % 233280) / 233280 * m;
+
+  /**
+   * 나뭇결. **결은 «폭이 다른 줄이 한 방향으로 흐르는 것»이다.**
+   * 균일한 줄만 그으면 골덴이지 나무가 아니라, 줄 폭과 진하기를 흩어야 한다.
+   * 그리고 **옹이가 하나 있어야 나무다** — 결만 있으면 빗살이다.
+   */
+  const grain = (lines: number, knot: boolean): void => {
+    base();
+    for (let i = 0; i < lines; i++) {
+      const y = rnd(i * 7 + 3, CELL);
+      const w = 16 + rnd(i * 13 + 5, 60);
+      cx.fillStyle = i % 5 === 0 ? 'rgba(96,70,44,0.26)' : 'rgba(128,98,64,0.13)';
+      cx.fillRect(rnd(i * 17 + 11, CELL) - w / 2, y, w, 1 + (i % 3));
+    }
+    if (!knot) return;
+    cx.strokeStyle = 'rgba(96,70,44,0.30)';
+    for (let r = 3; r < 16; r += 4) {
+      cx.lineWidth = r < 8 ? 2.4 : 1.6;
+      cx.beginPath(); cx.ellipse(40, 84, r, r * 0.58, 0.42, 0, Math.PI * 2); cx.stroke();
+    }
+  };
+  at(TILE.WOOD_C, () => grain(44, true));
+  at(TILE.WOOD_F, () => grain(78, false));
+
+  /** 천 짜임. 씨실·날실이 «교차»해야 천이다 — 한 방향 줄이면 종이다 */
+  at(TILE.CLOTH, () => {
+    base();
+    cx.fillStyle = 'rgba(110,100,88,0.14)';
+    for (let k = 0; k < CELL; k += 4) { cx.fillRect(k, 0, 2, CELL); cx.fillRect(0, k + 2, CELL, 2); }
+    // 보풀 — 완전히 균일하면 격자무늬 벽지가 된다
+    cx.fillStyle = 'rgba(120,110,96,0.10)';
+    for (let i = 0; i < 260; i++) cx.fillRect(rnd(i * 3 + 1, CELL), rnd(i * 5 + 2, CELL), 2, 2);
+  });
+
+  /** 짚 짜임. 천보다 굵고 한 방향이 도드라진다 */
+  at(TILE.STRAW, () => {
+    base();
+    for (let k = 0; k < CELL; k += 8) {
+      cx.fillStyle = 'rgba(120,104,58,0.16)'; cx.fillRect(0, k, CELL, 5);
+      cx.fillStyle = 'rgba(150,132,80,0.10)'; cx.fillRect(0, k + 5, CELL, 3);
+    }
+    cx.fillStyle = 'rgba(110,96,54,0.12)';
+    for (let k = 0; k < CELL; k += 26) cx.fillRect(k, 0, 2, CELL);
+  });
+
+  /** 골판지. 옆면의 «물결»과 겉면의 결 */
+  at(TILE.CARDBOARD, () => {
+    base();
+    cx.strokeStyle = 'rgba(120,92,58,0.20)'; cx.lineWidth = 2;
+    for (let k = 0; k < CELL; k += 9) {
+      cx.beginPath();
+      for (let x = 0; x <= CELL; x += 4) cx.lineTo(x, k + Math.sin(x * 0.22) * 2.2);
+      cx.stroke();
+    }
+    cx.fillStyle = 'rgba(140,110,72,0.10)';
+    for (let i = 0; i < 180; i++) cx.fillRect(rnd(i * 11 + 7, CELL), rnd(i * 19 + 3, CELL), 3, 1);
+  });
+
+  /** 종이. 아주 옅은 얼룩 + 접힌 자국 하나 — 완전히 매끈하면 플라스틱이다 */
+  at(TILE.PAPER, () => {
+    base();
+    cx.fillStyle = 'rgba(110,106,96,0.055)';
+    for (let i = 0; i < 340; i++) cx.fillRect(rnd(i * 7 + 5, CELL), rnd(i * 13 + 9, CELL), 3, 2);
+    cx.fillStyle = 'rgba(110,106,96,0.13)'; cx.fillRect(0, 62, CELL, 1);
+  });
+
+  /** 브러시 금속. **한 방향** 가는 줄이 금속을 금속으로 만든다 */
+  at(TILE.METAL, () => {
+    base();
+    for (let i = 0; i < 200; i++) {
+      const y = rnd(i * 9 + 1, CELL);
+      cx.fillStyle = i % 3 === 0 ? 'rgba(90,96,104,0.15)' : 'rgba(120,128,138,0.08)';
+      cx.fillRect(0, y, CELL, 1);
+    }
+    // 넓은 하이라이트 띠 — 금속은 한 줄이 밝다
+    const gr = cx.createLinearGradient(0, 0, 0, CELL);
+    gr.addColorStop(0, 'rgba(70,78,88,0.14)');
+    gr.addColorStop(0.42, 'rgba(255,255,255,0)');
+    gr.addColorStop(1, 'rgba(70,78,88,0.16)');
+    cx.fillStyle = gr; cx.fillRect(0, 0, CELL, CELL);
+  });
+
+  /** 도기 유약. 큰 얼룩 몇 개 + 가장자리로 갈수록 짙어지는 굽 */
+  at(TILE.CERAMIC, () => {
+    base();
+    cx.fillStyle = 'rgba(96,104,112,0.07)';
+    for (let i = 0; i < 26; i++) {
+      cx.beginPath();
+      cx.ellipse(rnd(i * 23 + 3, CELL), rnd(i * 31 + 7, CELL),
+        8 + rnd(i * 7, 18), 5 + rnd(i * 11, 12), rnd(i * 5, 3), 0, Math.PI * 2);
+      cx.fill();
+    }
+    cx.strokeStyle = 'rgba(96,104,112,0.13)'; cx.lineWidth = 5;
+    cx.strokeRect(2, 2, CELL - 4, CELL - 4);
+  });
+
+  /** 플라스틱 성형 줄. 일정 간격 «세로» 골 — 사출 자국이다 */
+  at(TILE.PLASTIC, () => {
+    base();
+    for (let k = 6; k < CELL; k += 14) {
+      cx.fillStyle = 'rgba(88,96,104,0.13)'; cx.fillRect(k, 0, 3, CELL);
+      cx.fillStyle = 'rgba(255,255,255,0.0)'; cx.fillRect(k + 3, 0, 2, CELL);
+    }
+    cx.fillStyle = 'rgba(88,96,104,0.09)'; cx.fillRect(0, CELL - 14, CELL, 3);
+  });
+
+  /** 책 표지(재질). 위아래 띠 두 줄 — 제목 자리 */
+  at(TILE.COVER, () => {
+    base();
+    cx.fillStyle = 'rgba(70,64,58,0.22)'; cx.fillRect(0, 16, CELL, 10);
+    cx.fillStyle = 'rgba(70,64,58,0.14)'; cx.fillRect(0, 100, CELL, 5);
+    cx.fillStyle = 'rgba(70,64,58,0.16)';
+    for (let i = 0; i < 4; i++) cx.fillRect(18, 44 + i * 9, 60 - i * 9, 3);
+  });
+
+  /** 나뭇잎. 가운데 주맥 + 갈라지는 잎맥 */
+  at(TILE.LEAF, () => {
+    base();
+    cx.strokeStyle = 'rgba(56,78,44,0.20)'; cx.lineWidth = 3;
+    cx.beginPath(); cx.moveTo(64, 4); cx.lineTo(64, CELL - 4); cx.stroke();
+    cx.lineWidth = 1.6;
+    for (let y = 14; y < CELL - 10; y += 11) {
+      cx.beginPath(); cx.moveTo(64, y); cx.lineTo(14, y + 16); cx.stroke();
+      cx.beginPath(); cx.moveTo(64, y); cx.lineTo(114, y + 16); cx.stroke();
+    }
+  });
+
+  /** 돌 결. 불규칙한 금 + 알갱이 */
+  at(TILE.STONE, () => {
+    base();
+    cx.strokeStyle = 'rgba(84,84,80,0.18)'; cx.lineWidth = 2;
+    for (let i = 0; i < 7; i++) {
+      cx.beginPath();
+      let x = rnd(i * 13 + 1, CELL), y = 0;
+      cx.moveTo(x, y);
+      while (y < CELL) { x += rnd(i * 7 + y, 26) - 13; y += 14; cx.lineTo(x, y); }
+      cx.stroke();
+    }
+    cx.fillStyle = 'rgba(84,84,80,0.10)';
+    for (let i = 0; i < 420; i++) cx.fillRect(rnd(i * 5 + 3, CELL), rnd(i * 17 + 11, CELL), 2, 2);
+  });
+
+  /** 가전 패널. 통풍 격자 + 버튼 자리 — 「기계다」가 읽히는 최소치 */
+  at(TILE.PANEL, () => {
+    base();
+    cx.fillStyle = 'rgba(58,60,66,0.20)';
+    for (let k = 20; k < 84; k += 7) cx.fillRect(14, k, 54, 3);
+    cx.fillStyle = 'rgba(58,60,66,0.26)';
+    for (let i = 0; i < 3; i++) {
+      cx.beginPath(); cx.arc(92, 30 + i * 22, 6, 0, Math.PI * 2); cx.fill();
+    }
+    cx.strokeStyle = 'rgba(58,60,66,0.16)'; cx.lineWidth = 2;
+    cx.strokeRect(8, 100, CELL - 16, 18);
+  });
+
+  /** 고무. 오돌토돌한 돌기 — 미끄럼 방지 무늬 */
+  at(TILE.RUBBER, () => {
+    base();
+    cx.fillStyle = 'rgba(40,40,44,0.16)';
+    for (let y = 0; y < CELL; y += 10) {
+      for (let x = (y / 10) % 2 ? 5 : 0; x < CELL; x += 10) {
+        cx.beginPath(); cx.arc(x, y, 3, 0, Math.PI * 2); cx.fill();
+      }
+    }
+  });
+
+  /** 흙·모래. 알갱이 크기가 섞여야 흙이다 */
+  at(TILE.DIRT, () => {
+    base();
+    for (const [n, sz, a] of [[240, 4, 0.13], [420, 2, 0.09], [700, 1, 0.07]] as const) {
+      cx.fillStyle = `rgba(96,76,52,${a})`;
+      for (let i = 0; i < n; i++) cx.fillRect(rnd(i * 7 + sz, CELL), rnd(i * 11 + sz * 3, CELL), sz, sz);
+    }
+  });
+
+  /** 벽지. 아주 옅은 잔무늬 — 벽은 넓어서 무늬가 세면 어지럽다 */
+  at(TILE.WALLPAPER, () => {
+    base();
+    cx.fillStyle = 'rgba(120,112,100,0.055)';
+    for (let y = 0; y < CELL; y += 16) {
+      for (let x = (y / 16) % 2 ? 8 : 0; x < CELL; x += 16) {
+        cx.beginPath(); cx.arc(x, y, 2.4, 0, Math.PI * 2); cx.fill();
+      }
+    }
+    cx.fillStyle = 'rgba(120,112,100,0.04)';
+    for (let k = 0; k < CELL; k += 3) cx.fillRect(0, k, CELL, 1);
   });
 
   const tex = new CanvasTexture(cv);
