@@ -89,14 +89,21 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new TorusGeometry(0.12, 0.025, 4, 14), METAL, [0.12, 0.24, 0], LIE_Z),
   ]),
 
+  /**
+   * 쥐. 머리 중심(x 0.34)이 몸통 타원체(x 반지름 0.45) **안**에 있었다 —
+   * 중심 거리 0.392 < 표면까지 0.446. 몸통과 머리가 한 덩어리로 녹아
+   * 「귀 달린 감자」였다. 머리를 밖으로 내고 목으로 잇는다.
+   */
   쥐: () => assemble([
     // 원작 동선에 "공을 나르는 쥐"가 나온다
     part(new SphereGeometry(0.30, 16, 10).scale(1.5, 0.9, 1), WHITE, [-0.05, 0.30, 0]),
-    part(new SphereGeometry(0.19, 12, 8), WHITE, [0.34, 0.26, 0]),
-    part(new ConeGeometry(0.08, 0.14, 5), [0.95, 0.7, 0.7], [0.52, 0.22, 0], [0, 0, -Math.PI / 2]),
+    // 목 — 몸통에서 머리로 좁아진다
+    part(new CylinderGeometry(0.15, 0.22, 0.14, 14), WHITE, [0.34, 0.28, 0], [0, 0, -1.45]),
+    part(new SphereGeometry(0.19, 14, 9), WHITE, [0.50, 0.28, 0]),
+    part(new ConeGeometry(0.08, 0.16, 6), [0.95, 0.7, 0.7], [0.68, 0.24, 0], [0, 0, -Math.PI / 2]),
     // 큰 귀 둘 — 쥐는 귀가 실루엣이다
-    part(new CylinderGeometry(0.13, 0.13, 0.04, 14), [0.95, 0.7, 0.7], [0.28, 0.44, 0.14], LIE_Z),
-    part(new CylinderGeometry(0.13, 0.13, 0.04, 14), [0.95, 0.7, 0.7], [0.28, 0.44, -0.14], LIE_Z),
+    part(new CylinderGeometry(0.13, 0.13, 0.04, 14), [0.95, 0.7, 0.7], [0.46, 0.46, 0.14], LIE_Z),
+    part(new CylinderGeometry(0.13, 0.13, 0.04, 14), [0.95, 0.7, 0.7], [0.46, 0.46, -0.14], LIE_Z),
     // 꼬리
     part(new CylinderGeometry(0.02, 0.035, 0.42, 6), [0.95, 0.7, 0.7], [-0.42, 0.16, 0], [0, 0, 0.7]),
     part(new SphereGeometry(0.07, 6, 4), WHITE, [-0.05, 0.06, 0.20]),
@@ -111,10 +118,19 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     ),
   ]),
 
+  /**
+   * 참새. **목이 있어야 새다.**
+   *
+   * 예전엔 머리 중심(x 0.28)이 몸통 타원체(x 반지름 0.39) **안**에 있어서
+   * 두 구가 하나로 녹아 「깃털 달린 감자」였다. 머리를 몸통 밖으로 내고
+   * 그 사이를 좁아지는 목으로 잇는다 — 목에서 굵기가 꺾이는 게 «단»이다.
+   */
   참새: () => assemble([
     part(new SphereGeometry(0.30, 16, 10).scale(1.3, 1, 1), WHITE, [-0.02, 0.34, 0]),
-    part(new SphereGeometry(0.20, 12, 8), WHITE, [0.28, 0.50, 0]),
-    part(new ConeGeometry(0.07, 0.16, 4), [0.9, 0.75, 0.3], [0.46, 0.48, 0], [0, 0, -Math.PI / 2]),
+    // 목 — 몸통(0.30)에서 머리(0.20)로 좁아진다
+    part(new CylinderGeometry(0.16, 0.24, 0.16, 14), WHITE, [0.26, 0.46, 0], [0, 0, -0.55]),
+    part(new SphereGeometry(0.20, 14, 9), WHITE, [0.42, 0.54, 0]),
+    part(new ConeGeometry(0.07, 0.18, 5), [0.9, 0.75, 0.3], [0.60, 0.52, 0], [0, 0, -Math.PI / 2]),
     // 날개 둘 — 몸에 붙여 접은 상태
     part(new SphereGeometry(0.22, 12, 8).scale(1.2, 0.35, 0.6), WOOD, [-0.05, 0.38, 0.22]),
     part(new SphereGeometry(0.22, 12, 8).scale(1.2, 0.35, 0.6), WOOD, [-0.05, 0.38, -0.22]),

@@ -24,11 +24,17 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     // 웅크린 자세. 원작 집 고양이는 대부분 앉아 있다
     part(new SphereGeometry(0.30, 20, 13), WHITE, [-0.10, 0.32, 0]),
     part(soft(0.44, 0.34, 0.34, 0.45), WHITE, [0.12, 0.30, 0]),
+    /**
+     * **목.** 검사는 통과했지만(머리가 몸통 밖에 있다) 화면에서는 몸통과 머리가
+     * 「두 덩이」로 따로 놀았다 — 사이를 잇는 게 아무것도 없어서다.
+     * 몸통(0.22)에서 머리(0.20)로 좁아지는 목이 둘을 한 마리로 묶는다.
+     */
+    part(new CylinderGeometry(0.15, 0.22, 0.18, 20), WHITE, [0.30, 0.44, 0], [0, 0, -0.7]),
     // 머리 + 귀 둘 + 코
-    part(new SphereGeometry(0.22, 20, 13), WHITE, [0.40, 0.52, 0]),
-    part(new ConeGeometry(0.09, 0.16, 4), WHITE, [0.34, 0.72, 0.11]),
-    part(new ConeGeometry(0.09, 0.16, 4), WHITE, [0.34, 0.72, -0.11]),
-    part(new SphereGeometry(0.045, 14, 9), [0.9, 0.55, 0.6], [0.60, 0.50, 0]),
+    part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.56, 0]),
+    part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, 0.11]),
+    part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, -0.11]),
+    part(new SphereGeometry(0.045, 14, 9), [0.9, 0.55, 0.6], [0.64, 0.54, 0]),
     // 앞다리 둘
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, 0.12]),
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, -0.12]),
