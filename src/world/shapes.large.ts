@@ -3,7 +3,8 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft, lip,
+} from './shapes.kit';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
@@ -112,8 +113,10 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
   물뿌리개: () => assemble([
     // 뒷마당 것. 긴 주둥이와 장미꼭지가 실루엣의 전부다
     part(new CylinderGeometry(0.30, 0.34, 0.56, 20), WHITE, [0, 0.30, 0]),
-    part(new CylinderGeometry(0.26, 0.30, 0.10, 20), WHITE, [0, 0.62, 0]),
-    part(new CylinderGeometry(0.11, 0.11, 0.10, 9), DARK, [0, 0.68, 0]),
+    // 말린 테두리 — 양철 물뿌리개는 입이 말려 있다. 없으면 몸통과 어깨가 한 덩어리다
+    part(lip(0.30, 0.030, 20), WHITE, [0, 0.595, 0]),
+    part(new CylinderGeometry(0.24, 0.28, 0.10, 20), WHITE, [0, 0.66, 0]),
+    part(new CylinderGeometry(0.11, 0.11, 0.10, 12), DARK, [0, 0.74, 0]),
     // 주둥이 — 아래에서 위로 뻗는다
     part(new CylinderGeometry(0.06, 0.08, 0.74, 9), WHITE, [0.40, 0.48, 0], [0, 0, -0.7]),
     part(new CylinderGeometry(0.14, 0.06, 0.10, 14), WHITE, [0.66, 0.70, 0], [0, 0, -0.7]),

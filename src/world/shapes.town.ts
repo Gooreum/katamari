@@ -126,6 +126,8 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   페트병: () => assemble([
     // 몸통 + 어깨 + 목 + 뚜껑. 원작 동선의 "플라스틱 병"
     part(new CylinderGeometry(0.30, 0.30, 0.56, 20), GLASS, [0, 0.28, 0]),
+    // SEAM-OK: 몸통과 어깨는 «한 장으로 성형된» 면이다. 페트병에는 그 자리에
+    // 단이 없고, 병으로 읽히게 하는 건 아래 라벨(0.32)이 만드는 턱이다
     part(new CylinderGeometry(0.14, 0.30, 0.20, 20), GLASS, [0, 0.66, 0]),
     part(new CylinderGeometry(0.12, 0.12, 0.14, 14), GLASS, [0, 0.83, 0]),
     part(new CylinderGeometry(0.14, 0.14, 0.10, 14), WHITE, [0, 0.95, 0]),

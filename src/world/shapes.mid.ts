@@ -3,7 +3,8 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdMid } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft, lip,
+} from './shapes.kit';
 import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -245,10 +246,21 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0]),
   ]),
 
+  /**
+   * 주전자. **뚜껑이 몸통보다 넓게 얹혀 턱이 진다.**
+   *
+   * 예전엔 몸통 위 반지름과 뚜껑 아래 반지름이 **똑같이 0.36** 이었다. 20면짜리라
+   * 이미 충분히 둥근데도 화면에서 몸통과 뚜껑이 «하나의 녹은 돔»으로 보인 이유가
+   * 그것이다 — 같은 반지름으로 만나면 기하학적으로 한 연속면이고,
+   * `flatShading` 이 꺼진 이 씬에서는 그 자리에 아무 선도 안 생긴다.
+   * 면 수를 올려도 안 고쳐진다. 필요한 건 **경계**다.
+   */
   주전자: () => assemble([
     part(new CylinderGeometry(0.36, 0.40, 0.44, 20), WHITE, [0, 0.24, 0]),
-    part(new CylinderGeometry(0.30, 0.36, 0.12, 20), WHITE, [0, 0.51, 0]),
-    part(new CylinderGeometry(0.07, 0.07, 0.08, 7), DARK, [0, 0.60, 0]),
+    // 테 — 여기서 그림자가 한 줄 생긴다. 이 한 조각이 「부품이 둘이다」를 말한다
+    part(lip(0.36, 0.035, 20), WHITE, [0, 0.4775, 0]),
+    part(new CylinderGeometry(0.28, 0.34, 0.11, 20), WHITE, [0, 0.55, 0]),
+    part(new CylinderGeometry(0.07, 0.07, 0.08, 12), DARK, [0, 0.645, 0]),
     // 주둥이 — 이게 없으면 냄비다
     part(new CylinderGeometry(0.05, 0.09, 0.34, 8), WHITE, [0.36, 0.40, 0], [0, 0, -0.9]),
     // 손잡이

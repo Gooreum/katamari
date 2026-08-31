@@ -189,10 +189,14 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
   석등: () => assemble([
     // 기단 — 아래가 넓은 8각 받침
     part(new CylinderGeometry(0.15, 0.19, 0.09, 8), STONE, [0, 0.045, 0]),
-    part(new CylinderGeometry(0.13, 0.15, 0.04, 8), STONE_DARK, [0, 0.11, 0]),
+    // 0.15 → **0.168**. 기단 위(0.15)와 같은 반지름으로 만나면 돌 두 장이
+    // 한 덩어리로 녹는다. 실제 석등은 돌을 «얹는» 것이라 단이 진다
+    part(new CylinderGeometry(0.13, 0.168, 0.04, 8), STONE_DARK, [0, 0.11, 0]),
     // 간 — 기둥. 가운데가 살짝 잘록해야 «깎은 돌»이다
     part(new CylinderGeometry(0.062, 0.072, 0.20, 8), STONE, [0, 0.23, 0]),
     part(new TorusGeometry(0.068, 0.014, 4, 8), STONE_DARK, [0, 0.33, 0], LIE_Z),
+    // SEAM-OK: 바로 위 `TorusGeometry` 가 이미 단을 만든다 — 간(竿) 가운데의
+    // 잘록한 마디가 그것이고, 원기둥 반지름이 같은 건 그 마디를 사이에 둔 것이다
     part(new CylinderGeometry(0.072, 0.062, 0.16, 8), STONE, [0, 0.41, 0]),
     // 중대 — 화사석 받침. 위로 퍼진다
     part(new CylinderGeometry(0.125, 0.085, 0.06, 8), STONE, [0, 0.52, 0]),
@@ -247,6 +251,9 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * 「길」로 읽히게 한다 — 이끼가 없으면 그냥 회색 원반이다.
    */
   징검돌: () => assemble([
+    // SEAM-OK-ALL: 높이 5.6cm 짜리 **납작한 돌**이다. 얇은 판 셋을 겹쳐 두께를 낸
+    // 것이라 옆에서 보이는 면이 거의 없다 — 여기에 턱을 주면 돌이 아니라 «케이크»가
+    // 된다. 이 형상의 이음매는 전부 «일부러» 이어져 있다
     part(new CylinderGeometry(0.145, 0.155, 0.036, 7), STONE_DARK, [0, 0.018, 0]),
     part(new CylinderGeometry(0.150, 0.145, 0.016, 7), STONE, [0, 0.044, 0]),
     // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다
