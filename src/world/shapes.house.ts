@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdHouse } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD } from './shapes.kit';
+import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, soft, WHITE, WOOD } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** 눕힌 원기둥. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다 */
@@ -77,7 +77,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   ]),
 
   숟가락: () => assemble([
-    part(new BoxGeometry(0.62, 0.035, 0.09), METAL, [-0.16, 0.05, 0]),
+    part(soft(0.62, 0.035, 0.09, 0.45), METAL, [-0.16, 0.05, 0]),
     // 눌린 구 하나가 숟가락 머리를 만든다. 상자로 하면 주걱이 된다
     part(new SphereGeometry(0.5, 16, 10).scale(0.46, 0.24, 0.36), METAL, [0.30, 0.06, 0]),
     // 자루 끝 — 얇은 판이 허공에서 끊기면 부러진 것으로 보인다
@@ -100,17 +100,17 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new CylinderGeometry(0.44, 0.44, 0.05, 20), METAL, [0.14, 0.47, 0], [0, 0, 0.16]),
     part(new SphereGeometry(0.08, 8, 6), DARK, [0.16, 0.53, 0]),
     // 양쪽 귀. **이게 있어야 컵이 아니라 냄비다**
-    part(new BoxGeometry(0.16, 0.05, 0.11), DARK, [0.49, 0.34, 0]),
-    part(new BoxGeometry(0.16, 0.05, 0.11), DARK, [-0.49, 0.34, 0]),
+    part(soft(0.16, 0.05, 0.11, 0.35), DARK, [0.49, 0.34, 0]),
+    part(soft(0.16, 0.05, 0.11, 0.35), DARK, [-0.49, 0.34, 0]),
   ]),
 
   도마: () => assemble([
     // **두께 0.07 로 시작했더니 화면에서 검은 조각으로 사라졌다** — 옆 칸 방석과
     // 구별이 안 됐다. 실물 비율(34cm × 2cm)은 맞지만 이 크기에서는 안 읽힌다.
     // 두께를 키우고 자루를 넓혀서 「자루 달린 판」이 실루엣에 남게 한다.
-    part(new BoxGeometry(0.96, 0.13, 0.62), WHITE, [-0.02, 0.065, 0]),
+    part(soft(0.96, 0.13, 0.62, 0.14), WHITE, [-0.02, 0.065, 0]),
     // 자루. 자루가 없으면 그냥 판자다
-    part(new BoxGeometry(0.28, 0.11, 0.30), WHITE, [0.60, 0.055, 0]),
+    part(soft(0.28, 0.11, 0.30, 0.25), WHITE, [0.60, 0.055, 0]),
     part(new CylinderGeometry(0.06, 0.06, 0.16, 8), DARK, [0.63, 0.055, 0]),
     // 나뭇결 두 줄 — 판에 결이 없으면 플라스틱으로 보인다
     part(new BoxGeometry(0.88, 0.015, 0.04), WOOD, [-0.03, 0.132, 0.15]),
@@ -141,8 +141,8 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   ]),
 
   칫솔: () => assemble([
-    part(new BoxGeometry(0.70, 0.05, 0.07), WHITE, [-0.13, 0.04, 0]),
-    part(new BoxGeometry(0.26, 0.05, 0.11), WHITE, [0.35, 0.04, 0]),
+    part(soft(0.70, 0.05, 0.07, 0.4), WHITE, [-0.13, 0.04, 0]),
+    part(soft(0.26, 0.05, 0.11, 0.35), WHITE, [0.35, 0.04, 0]),
     // 솔. **흰 솔이 있어야 칫솔이지, 없으면 막대다**
     part(new BoxGeometry(0.23, 0.07, 0.10), PAPER, [0.35, 0.09, 0]),
     part(new SphereGeometry(0.05, 6, 5), WHITE, [-0.46, 0.04, 0]),
@@ -168,7 +168,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   ]),
 
   '장난감 블록': () => assemble([
-    part(new BoxGeometry(0.98, 0.60, 0.98), WHITE, [0, 0.30, 0]),
+    part(soft(0.98, 0.60, 0.98, 0.1), WHITE, [0, 0.30, 0]),
     // 돌기 넷. 이게 없으면 그냥 정육면체다
     part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [0.24, 0.68, 0.24]),
     part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [-0.24, 0.68, 0.24]),
@@ -180,13 +180,13 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     // 종이를 접어 겹친 것. **같은 버킷에 화투가 있다** — 둘 다 납작한 패라
     // 얇게 만들면 화면에서 구별이 안 된다(실제로 안 됐다). 딱지는 여러 겹을
     // 접어 만드는 물건이니 **두껍게** 하고, 그 위에 대각선 결을 얹는다.
-    part(new BoxGeometry(0.94, 0.20, 0.94), WHITE, [0, 0.10, 0], undefined, TILE.CARD),
+    part(soft(0.94, 0.20, 0.94, 0.12), WHITE, [0, 0.10, 0], undefined, TILE.CARD),
     part(new BoxGeometry(0.92, 0.07, 0.34), PAPER, [0, 0.22, 0], [0, 0.79, 0]),
     part(new BoxGeometry(0.92, 0.07, 0.34), PAPER, [0, 0.22, 0], [0, -0.79, 0]),
   ]),
 
   공책: () => assemble([
-    part(new BoxGeometry(0.76, 0.09, 0.98), WHITE, [0, 0.045, 0]),
+    part(soft(0.76, 0.09, 0.98, 0.12), WHITE, [0, 0.045, 0]),
     part(new BoxGeometry(0.70, 0.08, 0.92), PAPER, [0.02, 0.11, 0]),
     part(new BoxGeometry(0.76, 0.04, 0.98), WHITE, [0, 0.17, 0]),
     // 등에 감은 철끈 — 공책과 그냥 종이 뭉치를 가르는 것

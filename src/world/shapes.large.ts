@@ -37,13 +37,13 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   의자: () => assemble([
     // 등받이 있는 나무 의자. 다리 넷이 보여야 의자다
-    part(new BoxGeometry(0.62, 0.08, 0.58), WHITE, [0, 0.52, 0]),
-    part(new BoxGeometry(0.62, 0.60, 0.08), WHITE, [0, 0.82, -0.25]),
-    part(new BoxGeometry(0.52, 0.08, 0.06), WHITE, [0, 0.66, -0.25]),
-    part(new BoxGeometry(0.07, 0.52, 0.07), WOOD, [0.26, 0.26, 0.24]),
-    part(new BoxGeometry(0.07, 0.52, 0.07), WOOD, [-0.26, 0.26, 0.24]),
-    part(new BoxGeometry(0.07, 0.52, 0.07), WOOD, [0.26, 0.26, -0.24]),
-    part(new BoxGeometry(0.07, 0.52, 0.07), WOOD, [-0.26, 0.26, -0.24]),
+    part(soft(0.62, 0.08, 0.58, 0.3), WHITE, [0, 0.52, 0]),
+    part(soft(0.62, 0.60, 0.08, 0.3), WHITE, [0, 0.82, -0.25]),
+    part(soft(0.52, 0.08, 0.06, 0.3), WHITE, [0, 0.66, -0.25]),
+    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [0.26, 0.26, 0.24]),
+    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [-0.26, 0.26, 0.24]),
+    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [0.26, 0.26, -0.24]),
+    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [-0.26, 0.26, -0.24]),
   ]),
 
   스툴: () => assemble([

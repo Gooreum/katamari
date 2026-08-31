@@ -109,8 +109,8 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     // 모서리가 닳은 직육면체 + 종이 띠. 띠가 있어야 지우개로 읽힌다.
     // **그 띠를 인쇄로 바꿨다** — PAPER 계수는 본체 대비 1.2:1 이라
     // 「띠가 있어야 읽힌다」고 적어놓고 실제로는 안 보이고 있었다.
-    part(new BoxGeometry(0.94, 0.36, 0.44), WHITE, [0, 0.18, 0]),
-    part(new BoxGeometry(0.52, 0.38, 0.46), WHITE, [0.04, 0.18, 0], undefined, TILE.ERASER),
+    part(soft(0.94, 0.36, 0.44, 0.2), WHITE, [0, 0.18, 0]),
+    part(soft(0.52, 0.38, 0.46, 0.16), WHITE, [0.04, 0.18, 0], undefined, TILE.ERASER),
     part(new BoxGeometry(0.20, 0.30, 0.40), WHITE, [-0.50, 0.15, 0], [0, 0, 0.22]),
   ]),
 

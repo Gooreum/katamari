@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdTown } from './generation';
 import {
-  assemble, DARK, GLASS, METAL, normalize, part, PAPER, WHITE, WOOD,
+  assemble, DARK, GLASS, METAL, normalize, part, PAPER, soft, WHITE, WOOD,
 } from './shapes.kit';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -201,7 +201,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     // 원작 MaS3에서 피해 다녀야 하는 그 개. 서 있는 자세
     part(new SphereGeometry(0.30, 16, 10).scale(1.7, 1, 1.05), WHITE, [-0.06, 0.56, 0]),
     part(new SphereGeometry(0.22, 12, 8), WHITE, [0.44, 0.70, 0]),
-    part(new BoxGeometry(0.22, 0.14, 0.18), WHITE, [0.62, 0.62, 0]),
+    part(soft(0.22, 0.14, 0.18, 0.45), WHITE, [0.62, 0.62, 0]),
     part(new SphereGeometry(0.05, 5, 4), DARK, [0.73, 0.64, 0]),
     // 늘어진 귀 둘
     part(new SphereGeometry(0.13, 12, 8).scale(0.5, 1.3, 0.8), WOOD, [0.42, 0.72, 0.20]),
