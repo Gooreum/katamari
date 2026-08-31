@@ -684,6 +684,23 @@ export class World {
       add(p.x - hx, p.x + hx, p.z - hz, p.z + hz);
     }
 
+    /**
+     * **비워 두는 깔개.** 자갈 마당은 비어 있어야 «마당»이다.
+     *
+     * 레퍼런스: 「카레산스이는 뺄셈이다 — 빈 공간이 요소다」. 그 말을 기계로
+     * 옮기면 blocked 사각형 하나다. 갈퀴로 그은 자갈 위에 스툴과 양동이가
+     * 널려 있으면 그건 갈퀴질이 아니다.
+     *
+     * 회전한 깔개는 **감싸는 사각형**으로 막는다 — 살짝 과하게 막지만
+     * 「자갈 위에 물건이 있다」보다 「자갈 언저리가 조금 더 비었다」가 낫다.
+     */
+    for (const g of city.rugs ?? []) {
+      if (g.clear !== true) continue;
+      const c = Math.abs(Math.cos(g.rotY)), s = Math.abs(Math.sin(g.rotY));
+      const hx = (c * g.w + s * g.d) / 2, hz = (s * g.w + c * g.d) / 2;
+      add(g.cx - hx, g.cx + hx, g.cz - hz, g.cz + hz);
+    }
+
     return (x: number, z: number): boolean => {
       for (const w of city.water) if (pointInPolygon(x, z, w.outline)) return true;
       const key = (Math.floor(x / BLOCK_CELL) + 2048) * 4096 + (Math.floor(z / BLOCK_CELL) + 2048);
@@ -770,10 +787,22 @@ export class World {
    */
   private buildRug(rug: CityRug): Mesh {
     const tex = FLOOR_TEX[rug.tex]();
-    tex.repeat.set(rug.w / TILE_M, rug.d / TILE_M);
+    // `fit` 이면 그림 한 장이 이 사각형을 통째로 덮는다 — 반복이 없다
+    if (!rug.fit) tex.repeat.set(rug.w / TILE_M, rug.d / TILE_M);
     const mesh = new Mesh(
       new PlaneGeometry(rug.w, rug.d),
-      new MeshLambertMaterial({ map: tex }),
+      /**
+       * **`alphaTest` 로 직사각형을 벗어난다.**
+       *
+       * 깔개는 `PlaneGeometry` 라 늘 직사각형인데, 실제 자갈 마당의 가장자리는
+       * **불규칙하고 돌로 둘러져 있다.** 알파 0 인 픽셀을 버리면 그림 안에
+       * «모양»을 그려 넣을 수 있다.
+       *
+       * 반투명 블렌딩이 아니라 **컷아웃**이라 그리는 순서 문제가 없고,
+       * 알파가 꽉 찬 기존 텍스처(다다미·러그·마루·이끼·자갈)는 전부 1.0 이라
+       * 문턱 0.5 를 통과한다 — **지금까지와 한 픽셀도 다르지 않다.**
+       */
+      new MeshLambertMaterial({ map: tex, alphaTest: 0.5 }),
     );
     mesh.rotation.set(-Math.PI / 2, 0, rug.rotY);
     // `y` 가 있으면 상판·선반이다. 없으면 지금까지처럼 방바닥(0.004) 위 2mm

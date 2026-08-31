@@ -216,6 +216,129 @@ export function buildGravelTexture(): CanvasTexture {
   return finish(cv);
 }
 
+/**
+ * 갈퀴질한 자갈 마당 **한 장**(枯山水). 4.3 × 3.4m 를 512px 로 그린다(≈8mm/px).
+ *
+ * ## 타일이 아니라 «구도»다
+ *
+ * 다른 다섯은 1.8m 짜리 타일을 반복한다. 이건 못 그런다 —
+ * 레퍼런스의 갈퀴 무늬(砂紋)에서 가장 중요한 게 **「돌 둘레의 동심원」**인데
+ * 그건 **위치에 매인 무늬**라 반복하면 아무 데나 파문이 생긴다.
+ * 그래서 `CityRug.fit` 을 만들고 이 자리를 위해 한 장을 그린다.
+ *
+ * ## 레퍼런스가 말하는 셋을 그림 안에 넣는다
+ *
+ *   ① 가장자리가 **불규칙**하고 돌로 둘러져 있다 — 알파 0 으로 잘라낸다
+ *      (`buildRug` 의 `alphaTest` 가 버린다). 직사각형이면 화단이지 마당이 아니다.
+ *   ② 트인 데는 **직선 평행** — 「잔잔한 물·고요한 바다」
+ *   ③ **돌 둘레는 동심원**(파문) — 「돌이 수면을 깨뜨린 자리에서 퍼지는 물결」
+ *
+ * ## 파문 중심은 «실제로 돌이 서는 자리»여야 한다
+ *
+ * `RIPPLE` 두 곳은 `stage.house.ts` 의 삼존석·2석 무리 좌표에서 역산한 픽셀이다.
+ * 어긋나면 **아무것도 없는 데 파문이 있는** 그림이 된다 — 화면에서 제일 먼저
+ * 눈에 띄는 종류의 거짓말이라 `garden.mts` 가 둘의 어긋남을 잰다.
+ */
+export function buildKaresansuiTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 512;
+  const cx = cv.getContext('2d')!;
+  cx.clearRect(0, 0, 512, 512);              // 알파 0 — 그린 데만 남는다
+
+  // ① 불규칙한 마당 모양. 원이면 접시지 마당이 아니라, 주기가 다른 사인 둘을 겹친다
+  const edge = (): void => {
+    cx.beginPath();
+    for (let i = 0; i <= 15; i++) {
+      const a = (i / 15) * Math.PI * 2;
+      // 250 — 224 로 그렸더니 알파 0(마당 밖)이 46% 였다. 깔개 사각형의 절반만
+      // 자갈이면 `clear` 가 막는 넓이에 비해 «보이는 마당»이 너무 작다
+      const r = 250 + Math.sin(i * 2.7 + 0.6) * 24 + Math.sin(i * 5.3) * 14;
+      const x = 256 + Math.cos(a) * r, y = 256 + Math.sin(a) * r * 0.88;
+      if (i === 0) cx.moveTo(x, y); else cx.lineTo(x, y);
+    }
+    cx.closePath();
+  };
+  edge();
+  cx.fillStyle = '#ddd8c8';
+  cx.fill();
+
+  cx.save();
+  cx.clip();                                 // 아래는 전부 마당 «안»에만 그린다
+
+  // 자갈알 — 3px = 실제 2.5cm
+  for (let i = 0; i < 5600; i++) {
+    const v = 196 + ((i * 6151) % 42);
+    cx.fillStyle = `rgb(${v},${v - 4},${v - 18})`;
+    cx.fillRect((i * 97) % 512, (i * 149) % 512, 3, 3);
+  }
+
+  // ② 직선 고랑 — 14px ≈ 12cm. 살짝 기울여야 사각형 테두리와 나란해지지 않는다
+  cx.lineCap = 'round';
+  for (let k = -300; k < 900; k += 14) {
+    cx.strokeStyle = '#b6b0a0'; cx.lineWidth = 3;
+    cx.beginPath(); cx.moveTo(k, -40); cx.lineTo(k + 150, 560); cx.stroke();
+    cx.strokeStyle = '#efeade'; cx.lineWidth = 1.6;
+    cx.beginPath(); cx.moveTo(k + 4, -40); cx.lineTo(k + 154, 560); cx.stroke();
+  }
+
+  /**
+   * ③ 파문 — 돌 둘레 동심원. **직선을 덮어 지운다.**
+   * 실제 갈퀴질도 그렇다: 돌 둘레를 먼저 돌고 남은 데를 직선으로 긋는다.
+   * 안쪽을 자갈로 다시 칠해야 직선이 파문 «안»에 남지 않는다.
+   */
+  for (const [ox, oy, r0, rings] of RIPPLE_CENTERS) {
+    cx.fillStyle = '#ddd8c8';
+    cx.beginPath(); cx.ellipse(ox, oy, r0 * 0.92, r0 * 0.92 * 0.9, 0.25, 0, Math.PI * 2); cx.fill();
+    for (let n = 0; n < rings; n++) {
+      const r = r0 + n * 15;
+      cx.strokeStyle = '#b6b0a0'; cx.lineWidth = 3.2;
+      cx.beginPath(); cx.ellipse(ox, oy, r, r * 0.9, 0.25, 0, Math.PI * 2); cx.stroke();
+      cx.strokeStyle = '#efeade'; cx.lineWidth = 1.6;
+      cx.beginPath(); cx.ellipse(ox, oy, r + 3.4, (r + 3.4) * 0.9, 0.25, 0, Math.PI * 2); cx.stroke();
+    }
+  }
+  cx.restore();
+
+  // 두름돌 — 마당이 «놓인» 것으로 읽히게. 클립 «밖»이라 테두리에 두께가 남는다
+  edge();
+  cx.lineWidth = 11; cx.strokeStyle = '#9a948a'; cx.stroke();
+  cx.lineWidth = 4;  cx.strokeStyle = '#b3ada2'; cx.stroke();
+
+  return finish(cv);
+}
+
+/**
+ * 파문 중심 — `[x, y, 첫 고리 반지름, 고리 수]` (512px 기준).
+ *
+ * **`stage.house.ts` 의 바위 무리 좌표와 같은 자리여야 한다.**
+ * 깔개는 (cx −1.15, cz 6.45) 에 4.3 × 3.4m 로 rotY 0.13 만큼 돌아 깔린다.
+ * 여기 숫자는 삼존석 (−0.55, 6.00) · 2석 무리 (−2.55, 7.30) 을 그 좌표계로
+ * 옮긴 것이다. `garden.mts` 가 어긋남을 다시 잰다.
+ */
+export const RIPPLE_CENTERS: readonly (readonly [number, number, number, number])[] = [
+  [334, 201, 42, 7],   // 삼존석 (−0.55, 6.00)
+  [78, 356, 30, 5],    // 2석 무리 (−2.55, 7.30)
+];
+
+/**
+ * 세계 좌표 → 이 깔개의 캔버스 픽셀. **검사와 그림이 같은 자를 써야 한다.**
+ *
+ * `buildRug` 는 `rotation.set(-π/2, 0, rotY)` 로 눕힌다(three 의 Euler 'XYZ' 라
+ * `Rz` 를 먼저, `Rx` 를 나중에 먹인다). 그래서 깔개 국소좌표 `(lx, ly)` 는
+ *   X = lx·cos − ly·sin ,  Z = −(lx·sin + ly·cos)
+ * 이고, 캔버스는 **v 가 뒤집힌다**(텍스처 v=0 은 아래, 캔버스 y=0 은 위).
+ */
+export function rugPixel(
+  rug: { cx: number; cz: number; w: number; d: number; rotY: number },
+  wx: number, wz: number, size = 512,
+): readonly [number, number] {
+  const c = Math.cos(rug.rotY), s = Math.sin(rug.rotY);
+  const X = wx - rug.cx, Z = wz - rug.cz;
+  const lx = X * c - Z * s;
+  const ly = -X * s - Z * c;
+  return [((lx + rug.w / 2) / rug.w) * size, (1 - (ly + rug.d / 2) / rug.d) * size];
+}
+
 /** 방 정의(`StageRoom.floorTex`)가 고르는 이름 → 생성 함수. */
 export const FLOOR_TEX = {
   tatami: buildTatamiTexture,
@@ -223,6 +346,7 @@ export const FLOOR_TEX = {
   wood: buildWoodTexture,
   moss: buildMossTexture,
   gravel: buildGravelTexture,
+  karesansui: buildKaresansuiTexture,
 } as const;
 
 export type FloorTex = keyof typeof FLOOR_TEX;
