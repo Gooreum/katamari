@@ -139,10 +139,15 @@ type Rect = readonly [number, number, number, number];
  *
  * 크기 범위는 원작 아이템 실측에 맞췄다. 거실이 28cm까지인 건
  * RC 컨트롤러(30.1cm)가 거실 물건이라 그 바로 아래에서 끊은 것이고,
- * 뒷마당은 **0.70m 에서 끊는다.** 1.2m 로 두었더니 `의자` 를 1.04m, `스툴` 을
- * 0.90m 로 뽑아 갈퀴로 그은 자갈 마당 위에 앉혔다 — 정원 한가운데 거대한
- * 갈색 원반 넷이었다. 정원에서 제일 큰 물건은 **손배치가 맡는다**
- * (석등 1.15 · 소나무 1.45 · 대나무 1.90 · 창고 1.80 · 나무 2.60).
+ * 뒷마당은 **0.34m 에서 끊고 마흔 개만 흩뿌린다**(전 0.70m · 아흔 개).
+ *
+ * 레퍼런스: 「보는 자리에 가까운 것이 크고 먼 것이 작다」. 방 흩뿌림은 방 전체에
+ * **균등한 크기**로 뿌려지므로 아흔 개를 그렇게 두면 그 깊이 등급이 아예 안 생긴다.
+ * 개수를 **자리로 옮겨** 자리마다 `sizeMax` 를 달리 준다(전경 0.30 → 원경 0.14).
+ * 방+자리 총합 250 은 안 바뀐다 — 사다리·성장 곡선이 그 숫자를 쓴다.
+ *
+ * 제일 큰 물건은 **손배치가 맡는다**
+ * (석등 1.20 · 소나무 1.45 · 대나무 1.90 · 창고 1.80 · 나무 2.60).
  * **아이 방이 40cm까지인 건 곰인형(35cm) 때문이다** — 34cm로 끊었더니
  * 30~60cm 칸이 좁은 슬라이스뿐이라 곰인형이 한 판에 0개로 나왔다.
  *
@@ -193,7 +198,7 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 48, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
   { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true, ceiling: 2.4 },
   { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true, ceiling: 2.2 },
-  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_MOSS, floorTex: 'moss', sizeMin: 0.030, sizeMax: 0.70, count: 90, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
+  { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_MOSS, floorTex: 'moss', sizeMin: 0.030, sizeMax: 0.34, count: 40, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
 ];
 
 
@@ -383,17 +388,29 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
    *
    * **`align` 을 안 준다** — 바깥은 각도가 제멋대로인 게 맞다(옛 판단 그대로).
    */
-  { id: 'spot-dog', rect: [2.15, 3.60, 3.60, 4.05], sizeMin: 0.03, sizeMax: 0.30, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['개밥그릇', '자갈', '도토리'] },
-  // 평상 앞 — 신발 벗어둔 자리
-  { id: 'spot-deck', rect: [2.45, 9.15, 3.85, 9.36], sizeMin: 0.03, sizeMax: 0.30, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['게타', '찻잔', '화분'], arrange: 'row' },
+  /**
+   * ── 전경 (z < 5.3) — 크게 ──────────────────────────────
+   * 레퍼런스: 「큰 것이 보는 자리에 가깝고 작은 것이 멀다」.
+   * 자리마다 `sizeMax` 를 달리 줘서 그 깊이 등급을 만든다.
+   */
+  { id: 'spot-tsukubai', rect: [0.95, 3.60, 2.05, 4.15], sizeMin: 0.03, sizeMax: 0.30, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['자갈', '꽃잎', '달팽이', '청개구리'] },
+  { id: 'spot-dog', rect: [2.15, 3.60, 3.60, 4.05], sizeMin: 0.03, sizeMax: 0.30, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['개밥그릇', '자갈', '도토리'] },
+  { id: 'spot-lantern', rect: [-3.60, 3.60, -2.55, 4.15], sizeMin: 0.03, sizeMax: 0.28, count: 22, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['꽃', '자갈', '솔방울'] },
+
+  // ── 중경 «가장자리» — 자갈 마당은 `clear` 가 비운다 ────
+  { id: 'spot-east-path', rect: [2.45, 5.20, 3.15, 7.60], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['자갈', '도토리', '게타'], arrange: 'row' },
+  { id: 'spot-west-edge', rect: [-3.88, 5.40, -3.60, 7.90], sizeMin: 0.02, sizeMax: 0.20, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['꽃', '자갈', '꽃잎'], arrange: 'lean' },
+
+  // ── 원경 (z ≥ 7.8) — 작게. 뒤로 갈수록 잘아진다 ────────
   // 창고 앞 — **연장은 여기만.** 양동이가 마당에 흩어져 있던 걸 한 곳으로 모은다
-  { id: 'spot-shed', rect: [-2.10, 8.35, -1.20, 9.25], sizeMin: 0.03, sizeMax: 0.40, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['삽', '모종삽', '갈퀴', '양동이'], arrange: 'lean' },
+  { id: 'spot-shed', rect: [-2.10, 8.48, -1.20, 9.25], sizeMin: 0.02, sizeMax: 0.18, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['삽', '모종삽', '갈퀴', '양동이'], arrange: 'lean' },
   // 나무 밑 — 낙엽
-  { id: 'spot-tree', rect: [0.60, 8.35, 1.80, 9.25], sizeMin: 0.02, sizeMax: 0.12, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['솔방울', '도토리', '꽃잎', '자갈'] },
-  // 물확 둘레 — 손 씻는 자리
-  { id: 'spot-tsukubai', rect: [0.95, 3.60, 2.05, 4.35], sizeMin: 0.02, sizeMax: 0.16, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['자갈', '꽃잎', '달팽이', '청개구리'] },
-  // 대나무 밑 — 서쪽 담장 가
-  { id: 'spot-bamboo', rect: [-3.85, 3.60, -2.90, 4.20], sizeMin: 0.02, sizeMax: 0.20, count: 22, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['꽃', '자갈', '솔방울'] },
+  { id: 'spot-tree', rect: [0.60, 8.48, 1.80, 9.25], sizeMin: 0.02, sizeMax: 0.14, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['솔방울', '도토리', '꽃잎', '자갈'] },
+  // 평상 앞 — 신발 벗어둔 자리
+  { id: 'spot-deck', rect: [2.45, 9.15, 3.85, 9.36], sizeMin: 0.02, sizeMax: 0.16, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['게타', '찻잔', '화분'], arrange: 'row' },
+  // 남쪽 담장 가 — 제일 멀고 제일 잘다.
+  // (−3.80~−3.20, 8.60~9.30 은 **창고 위**였다 — 물건 스물이 묻혔다)
+  { id: 'spot-back', rect: [-1.70, 8.85, -0.80, 9.30], sizeMin: 0.02, sizeMax: 0.14, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['자갈', '솔방울', '꽃잎'] },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
@@ -812,13 +829,37 @@ export const HOUSE_PROPS: readonly StageProp[] = [
    * 자갈 깔개(`buildRugs`)가 x −3.67~0.77 · z 4.47~8.23 을 덮는다.
    * 그 위에 서는 건 석등뿐이고(자갈에 선 석등은 정석이다) 나머지는 이끼 위다.
    */
+  /**
+   * ── 전경 (z 3.45~5.3) ─────────────────────────────────
+   * 레퍼런스: **보는 자리에 가까운 것이 크고 먼 것이 작다.** 툇마루가 z 3.45 다.
+   */
   // 물확(쓰쿠바이)는 **툇마루에서 손이 닿는 자리**가 전통 위치다
-  { label: '물확', x: 1.80, z: 4.50, size: 0.55 },
-  // 석등 — 정원의 초점. 자갈 마당 북동 모서리에 선다
-  { label: '석등', x: -0.40, z: 4.95, size: 1.15 },
-  // 대나무 — 서북 담장 앞. 서쪽 빨래 기둥이 있던 자리다
-  { label: '대나무', x: -3.40, z: 4.55, size: 1.90 },
-  // 소나무(전정목) — 동벽. 동쪽 빨래 기둥이 있던 자리다
+  { label: '물확', x: 1.75, z: 4.35, size: 0.62 },
+  // 석등 — 자갈 마당 서쪽 어귀. 정원의 등불이자 초점
+  { label: '석등', x: -2.30, z: 4.75, size: 1.20 },
+
+  /**
+   * ── 중경 — 삼존석(三尊石)과 2석 무리 ──────────────────
+   *
+   * **레퍼런스가 「정원에서 가장 중요한 요소」라고 하는 것이다.**
+   * 큰 세로돌(主石) 하나에 작은 돌 둘(脇石)이 붙고, 세 변이 **부등변**이라야
+   * 자연이다 — 정삼각이면 사람이 놓은 티가 난다.
+   *
+   * 삼존 셋 + 2석 둘 = **다섯**(홀수). 짝수 무리는 대칭이 생겨 인공적으로 보인다.
+   * 큰 돌이 **뒤·가운데**, 작은 돌이 **앞·옆**이다.
+   *
+   * 자갈 마당의 파문(`RIPPLE_CENTERS`)이 이 두 무리 자리에 그려져 있다.
+   */
+  { label: '세로돌', x: -0.55, z: 6.00, size: 0.88, rotY: 0.7 },   // 主石 — 산
+  { label: '가로돌', x: 0.10, z: 5.60, size: 0.46, rotY: -1.2 },   // 脇石
+  { label: '비스듬돌', x: -1.15, z: 5.42, size: 0.34, rotY: 2.1 }, // 脇石
+  { label: '가로돌', x: -2.55, z: 7.30, size: 0.60, rotY: 0.3 },
+  { label: '비스듬돌', x: -2.02, z: 7.66, size: 0.32, rotY: -0.9 },
+
+  // ── 원경 (z 7.8~9.45) — 뒤로 갈수록 작게 «보인다» ──────
+  // 대나무 — 서벽, 자갈 어귀 밖
+  { label: '대나무', x: -3.42, z: 4.88, size: 1.90 },
+  // 소나무(전정목) — 동벽
   { label: '소나무', x: 3.35, z: 6.35, size: 1.45 },
   /**
    * 징검돌 일곱 — 툇마루(z 3.45)에서 평상까지 **굽어** 간다.
@@ -852,10 +893,13 @@ export const HOUSE_PROPS: readonly StageProp[] = [
   { label: '평상', x: 3.15, z: 8.55, size: 1.10, underPass: 0.28 },
   /**
    * 빨래 기둥 둘. 사이의 빨랫줄은 **공중에 뜬 면**이라 못 만든다(밥상 상판과 같은 한계).
-   * 서쪽 담장 라인으로 밀었다 — 정원 한가운데를 세로로 가르고 있었다.
+   *
+   * **동쪽 담장 라인으로 옮겼다.** 서쪽(−3.52)에 두었더니 자갈 마당과 삼존석이
+   * 들어설 자리를 세로로 가르고 있었다. 살림하는 집이라 안 버리되,
+   * 툇마루에서 보면 화면 오른쪽 끝이라 구도를 안 깬다.
    */
-  { label: '빨래 기둥', x: -3.52, z: 5.60, size: 1.70 },
-  { label: '빨래 기둥', x: -3.52, z: 7.30, size: 1.70 },
+  { label: '빨래 기둥', x: 3.55, z: 5.60, size: 1.70 },
+  { label: '빨래 기둥', x: 3.55, z: 7.40, size: 1.70 },
   /**
    * 마당 강아지 둘. **`roam` 이 있으면 돌아다닌다** — `World.stepWander` 가
    * 매 프레임 `pos` 를 옮기고 가는 쪽을 보게 한다.
@@ -978,10 +1022,20 @@ function buildRugs(area: StageArea): CityRug[] {
    * 깜빡인다. 아래 둘은 x 로 0.6m 떨어져 있다.
    */
   rugs.push(
-    // 마당(48m²) 의 약 27%. 서쪽 절반을 덮고 석등이 그 모서리에 선다
-    { cx: -1.45, cz: 6.35, w: 4.0, d: 3.2, rotY: 0.15, tex: 'gravel' },
+    /**
+     * 갈퀴질한 자갈 마당(枯山水). **한 장 그림**이라 반복하지 않고(`fit`),
+     * 그 위에는 소품을 안 놓는다(`clear`).
+     *
+     * 좌표를 바꾸면 `floors.ts` 의 `RIPPLE_CENTERS` 도 같이 바꿔야 한다 —
+     * 파문은 **돌이 서는 자리**에 그려져 있고, 어긋나면 아무것도 없는 데
+     * 물결이 있는 그림이 된다. `garden.mts` 가 어긋남을 잰다.
+     *
+     * **서쪽·뒤로 치우쳐 있다.** 레퍼런스: 대칭은 인공적으로 보인다.
+     */
+    { cx: -1.15, cz: 6.45, w: 4.3, d: 3.4, rotY: 0.13,
+      tex: 'karesansui', fit: true, clear: true },
     // 물확 앞 물받이. 쓰쿠바이 밑에는 물 빠지라고 자갈을 깐다
-    { cx: 1.80, cz: 4.50, w: 0.9, d: 0.9, rotY: 0.40, tex: 'gravel' },
+    { cx: 1.75, cz: 4.35, w: 0.9, d: 0.9, rotY: 0.40, tex: 'gravel' },
   );
   return rugs;
 }
