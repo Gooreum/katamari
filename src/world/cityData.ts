@@ -129,6 +129,15 @@ export interface StageProp {
    * 측판이 바닥까지 내려오는 가구(TV장·책장·서랍장)에는 주지 않는다.
    */
   readonly underPass?: number;
+  /**
+   * 이 물건이 **돌아다니는 반경**(m). 없으면 지금까지처럼 제자리에 굳어 있다.
+   *
+   * `underPass` 와 같은 급의 「손배치 물건의 성질」이다 — 새 개념이 아니다.
+   * 값을 주면 `World.stepWander` 가 매 프레임 `pos` 를 옮기고, 넓은 판정(공간 해시)은
+   * 처음부터 이 반경까지 넓혀 넣는다. 좁은 판정(구 vs AABB)이 어차피 «지금 `pos`» 를
+   * 읽으므로(`Game.resolveCollisions`) **충돌·흡수 코드는 한 줄도 안 바뀐다.**
+   */
+  readonly roam?: number;
 }
 
 export interface CityBuilding {

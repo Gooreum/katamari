@@ -6,7 +6,7 @@ import {
 import { InstancePool } from './InstancePool';
 import { SpatialHash } from './SpatialHash';
 import {
-  colorOf, generateWorld, geoIndexOf, GENERATION, PALETTE,
+  colorOf, generateWorld, geoIndexOf, GENERATION, mulberry32, PALETTE,
   type BlockedFn, type ObjectSpec,
 } from './generation';
 import { buildShapeGeometries, withWhiteColors } from './shapes';
@@ -23,6 +23,34 @@ export const GROUND_SIZE = 500;
  */
 const CEILING_COLOR = 0xe0d6b8;
 const CELL = 4;
+
+/**
+ * 돌아다니는 물체 하나. 「집」(`hx`, `hz`)에서 반경 `r` 안을 돈다.
+ *
+ * **`stepNudges` 의 흔들림과 같은 급이다** — 렌더 트랜스폼만 다시 쓰고
+ * `half`·`colY` 는 안 건드린다. 다른 건 `pos` 를 실제로 옮긴다는 것뿐인데,
+ * 좁은 충돌 판정이 매 프레임 `pos` 를 새로 읽으므로 그게 곧 물리다.
+ */
+interface Wanderer {
+  readonly index: number;
+  readonly hx: number;
+  readonly hz: number;
+  readonly r: number;
+  /** 지금 가는 방향(rad) */
+  heading: number;
+  /** 가고 싶은 방향 — `heading` 이 «천천히» 따라간다 */
+  target: number;
+  /** m/s */
+  speed: number;
+  /** 방향을 새로 고를 때까지 남은 시간(s) */
+  turnIn: number;
+}
+
+/** 초당 회전 상한(rad). 순간이동하듯 꺾이면 개가 아니라 커서다 */
+const WANDER_TURN = 2.2;
+
+/** 해시에 «넓게» 넣을 때 재사용하는 그릇. `insert` 가 읽기만 하므로 하나면 된다 */
+const WIDE = new Vector3();
 
 /**
  * 건물 막힘 판정용 격자 한 칸(m).
@@ -51,7 +79,17 @@ export interface WorldObject {
    */
   readonly colY: number;
   readonly scale: Vector3;
-  readonly rotY: number;
+  /**
+   * 바라보는 방향(라디안).
+   *
+   * **`readonly` 가 아니다.** 지금까지 물체는 하나도 안 움직여서 읽기 전용이 맞았는데,
+   * `roam` 이 있는 물건(마당 강아지)은 **가는 쪽을 본다** — `stepWander` 가 매 프레임
+   * 다시 쓴다. `picked` 다음으로 이 인터페이스에서 변하는 두 번째 필드다.
+   *
+   * `pos` 는 `readonly` 로 남는다 — 참조는 안 바뀌고 `Vector3` 안의 값만 바뀐다.
+   * 흡수될 때 `promote()` 가 이 값을 읽으므로 **먹히는 순간에도 향하던 쪽을 본다.**
+   */
+  rotY: number;
   /**
    * 기울기(라디안). `arrange: 'lean'` 으로 세운 물건만 0이 아니다.
    *
@@ -150,6 +188,7 @@ function buildProps(
     const [halfX, halfZ] = propFootprint(p, g);
     spec.colHalf = [halfX, (top - lo) / 2, halfZ];
     spec.colOffsetY = (lo + top) / 2 - baseY;
+    if (p.roam !== undefined) spec.roam = p.roam;
     return spec;
   });
 }
@@ -197,12 +236,22 @@ export class World {
    * 인덱스 → 남은 시간(1→0)과 축별 진폭.
    */
   private readonly nudged = new Map<number, { t: number; ax: number; az: number }>();
+  /**
+   * 돌아다니는 물체. **비어 있는 게 보통**이라 `stepWander` 가 즉시 빠진다
+   * (`nudged` 와 같은 규약).
+   */
+  private readonly wanderers: Wanderer[] = [];
+  /** 돌아다니는 물체의 방향을 고르는 난수. 씨앗을 쓰므로 판마다 같은 걸음이다 */
+  private readonly wanderRnd: () => number;
   /** 트랜스폼을 다시 쓸 때 재사용하는 그릇. 프레임마다 new 하지 않는다 */
   private readonly proxy = new Object3D();
   readonly spawn = new Vector3();
 
   constructor(scene: Scene, cityData: CityData | null = null, seed = 1337) {
     this.city = cityData ? new City(cityData) : null;
+    // 물체 배치용 난수(`generateWorld`)와 **다른 흐름**이어야 한다 —
+    // 같은 걸 쓰면 개가 걸을 때마다 배치가 달라진다
+    this.wanderRnd = mulberry32((seed ^ 0x5bf03635) >>> 0);
 
     // **지오메트리를 먼저 만든다.** 예전에는 스펙을 다 뽑은 뒤에 만들었는데,
     // `buildProps` 가 「밑이 뚫린 가구」의 충돌 상자를 자르려면 **형상의 실제 높이**를
@@ -378,7 +427,30 @@ export class World {
         picked: false,
       };
       this.objects.push(obj);
-      this.hash.insert(this.objects.length - 1, obj.pos, obj.half);
+      const index = this.objects.length - 1;
+      if (spec.roam === undefined) {
+        this.hash.insert(index, obj.pos, obj.half);
+      } else {
+        /**
+         * **돌아다니는 물체는 «돌아다닐 범위»로 넣는다.**
+         *
+         * `SpatialHash` 는 넣을 때 한 번 셀을 계산하고 **지우는 수단이 없다.**
+         * 매 프레임 다시 넣는 대신 처음부터 넓게 넣으면, 좁은 판정(구 vs AABB)이
+         * 어차피 «지금 `pos`» 를 읽으므로(`Game.resolveCollisions`) 결과가
+         * **정확히 같다.** 해시도 게임의 충돌 코드도 한 줄을 안 고친다.
+         *
+         * `CELL` 이 4m 라 반경 1m 짜리 개는 많아야 셀 넷을 차지한다.
+         */
+        this.hash.insert(index, obj.pos, WIDE.set(
+          obj.half.x + spec.roam, obj.half.y, obj.half.z + spec.roam));
+        this.wanderers.push({
+          index, hx: spec.x, hz: spec.z, r: spec.roam,
+          heading: this.wanderRnd() * Math.PI * 2,
+          target: this.wanderRnd() * Math.PI * 2,
+          speed: 0.30 + this.wanderRnd() * 0.22,
+          turnIn: this.wanderRnd() * 2,
+        });
+      }
     }
     this.pool.flush();
 
@@ -476,6 +548,47 @@ export class World {
     }
   }
 
+  /**
+   * 돌아다니는 물체를 한 걸음 옮긴다. 매 프레임.
+   *
+   * **`stepNudges` 와 같은 경로다** — `applyTransform` 하나로 인스턴스 행렬만
+   * 다시 쓴다. `half`·`colY` 는 안 건드리므로 **충돌 상자가 몸을 따라온다**
+   * (좁은 판정이 `o.pos`·`o.half` 를 매 프레임 새로 읽는다).
+   *
+   * 길찾기는 없다. 「집에서 멀어지면 집 쪽으로 꺾는다」 한 줄이 담장·가구를
+   * 피하는 전부이고, 그게 되려면 **돌아다니는 원판 안이 비어 있어야 한다** —
+   * 그건 좌표를 고를 때 지키고 검사가 잰다(`wander.mts`).
+   */
+  stepWander(dt: number): void {
+    if (this.wanderers.length === 0) return;      // 보통은 여기서 빠진다
+    for (const w of this.wanderers) {
+      const o = this.objects[w.index]!;
+      if (o.picked) continue;                     // 먹혔으면 그만 — 공에 붙어 간다
+
+      w.turnIn -= dt;
+      if (w.turnIn <= 0) {
+        w.target = this.wanderRnd() * Math.PI * 2;
+        w.turnIn = 1.4 + this.wanderRnd() * 2.4;  // 1.4~3.8초마다 마음을 바꾼다
+      }
+      // 집에서 멀어지면 «집 쪽»으로 꺾는다. 담장에 부딪히는 대신 돌아온다
+      const dx = o.pos.x - w.hx, dz = o.pos.z - w.hz;
+      if (dx * dx + dz * dz > w.r * w.r) w.target = Math.atan2(-dx, -dz);
+
+      /**
+       * **최단 방향으로 따라간다.** 그냥 빼면 ±π 를 넘을 때 «반대로 한 바퀴»
+       * 돌아서, 담장 앞에서 몸을 빙글 돌리고 나서야 되돌아온다.
+       */
+      const diff = w.target - w.heading;
+      const d = Math.atan2(Math.sin(diff), Math.cos(diff));
+      w.heading += Math.max(-WANDER_TURN * dt, Math.min(WANDER_TURN * dt, d));
+
+      o.pos.x += Math.sin(w.heading) * w.speed * dt;
+      o.pos.z += Math.cos(w.heading) * w.speed * dt;
+      o.rotY = w.heading;                         // 가는 쪽을 본다
+      this.applyTransform(o, 0, 0);
+    }
+  }
+
   /** 인스턴스 트랜스폼을 다시 쓴다. 흔들림 각도만 더한다 */
   private applyTransform(o: WorldObject, dx: number, dz: number): void {
     this.proxy.position.copy(o.pos);
@@ -562,6 +675,9 @@ export class World {
      */
     for (const p of city.placement?.props ?? []) {
       if (p.underPass !== undefined) continue;
+      // 돌아다니는 물건은 **「있던 자리」가 없다** — 막으면 마당에 빈 구멍이 남고
+      // 정작 개는 거기 없다
+      if (p.roam !== undefined) continue;
       const geo = this.geometries[geoIndexOf(p.label) ?? -1];
       if (geo === undefined) continue;
       const [hx, hz] = propFootprint(p, geo);

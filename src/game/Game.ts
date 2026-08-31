@@ -255,6 +255,8 @@ export class Game {
     this.debris.step(dt);
     // 부딪혀서 흔들리는 물건을 제자리로 되돌린다. 흔드는 게 없으면 즉시 빠진다
     this.world.stepNudges(dt);
+    // 마당 강아지. 돌아다니는 게 없으면 즉시 빠진다
+    this.world.stepWander(dt);
     this.scene.updateMatrixWorld(true);
     this.resolveCollisions();
     this.resolveCity();
