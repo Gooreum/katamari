@@ -325,8 +325,8 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   { id: 'spot-desk', rect: [-5.05, -6.95, -4.15, -6.35], sizeMin: 0.01, sizeMax: 0.10, count: 34, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['크레용', '지우개', '압핀', '클립'] },
   { id: 'spot-desk-side', rect: [-5.75, -6.90, -5.30, -6.20], sizeMin: 0.02, sizeMax: 0.24, count: 22, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['공책', '연필깎이'], arrange: 'stack' },
   { id: 'spot-shelf-kids', rect: [-5.40, -6.05, -4.95, -5.15], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['공책', '딱지'], arrange: 'row' },
-  { id: 'spot-quilt', rect: [-2.85, -4.40, -2.35, -2.65], sizeMin: 0.02, sizeMax: 0.20, count: 30, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['공책', '찌라시', '슬리퍼'], arrange: 'row' },
-  { id: 'spot-pillow', rect: [-2.90, -2.75, -2.10, -2.40], sizeMin: 0.03, sizeMax: 0.40, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['곰인형'], arrange: 'row' },
+  { id: 'spot-quilt', rect: [-3.25, -4.40, -2.62, -2.90], sizeMin: 0.02, sizeMax: 0.20, count: 30, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['공책', '찌라시', '슬리퍼'], arrange: 'row' },
+  { id: 'spot-pillow', rect: [-3.30, -2.85, -2.62, -2.42], sizeMin: 0.03, sizeMax: 0.40, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['곰인형'], arrange: 'row' },
   { id: 'spot-toybox', rect: [-5.35, -3.35, -4.55, -2.45], sizeMin: 0.03, sizeMax: 0.38, count: 34, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['장난감 블록', '구슬', '딱지', 'RC 컨트롤러'] },
   { id: 'spot-kids-mid', rect: [-4.40, -4.90, -3.30, -3.90], sizeMin: 0.01, sizeMax: 0.08, count: 32, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['구슬', '주사위', '단추', '캐러멜'] },
   { id: 'spot-kids-door', rect: [-1.95, -5.50, -1.35, -4.40], sizeMin: 0.02, sizeMax: 0.16, count: 26, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, align: true, only: ['크레용', '사탕', '껌'], arrange: 'lean' },
@@ -354,12 +354,12 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
 
   // ── 뒷마당 160 (방 90) ──────────────────────────────────
   // **바깥은 좀 흩어져 있는 게 맞다** — 자리 비율을 실내보다 낮게 둔다
-  { id: 'spot-dog', rect: [1.15, 5.30, 2.80, 6.25], sizeMin: 0.03, sizeMax: 0.30, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, align: true, only: ['개밥그릇', '골프공', '연어 캔'] },
-  { id: 'spot-deck', rect: [2.20, 7.10, 3.65, 8.60], sizeMin: 0.03, sizeMax: 0.34, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, align: true, only: ['양동이', '화분', '페트병'], arrange: 'row' },
-  { id: 'spot-shed', rect: [-3.90, 7.10, -2.10, 7.80], sizeMin: 0.03, sizeMax: 0.40, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, align: true, only: ['삽', '모종삽', '양동이'], arrange: 'lean' },
-  { id: 'spot-tree', rect: [-2.00, 7.20, -0.85, 8.85], sizeMin: 0.02, sizeMax: 0.12, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, align: true, only: ['솔방울', '도토리', '꽃', '자갈'] },
-  { id: 'spot-fence-west', rect: [-3.75, 4.10, -3.25, 6.40], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, align: true, only: ['페트병', '병뚜껑', '연어 캔'], arrange: 'lean' },
-  { id: 'spot-yard-flower', rect: [-1.80, 4.20, -0.40, 5.40], sizeMin: 0.02, sizeMax: 0.14, count: 22, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, align: true, only: ['꽃', '청개구리', '달팽이'] },
+  { id: 'spot-dog', rect: [1.15, 5.30, 2.80, 6.25], sizeMin: 0.03, sizeMax: 0.30, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['개밥그릇', '골프공', '연어 캔'] },
+  { id: 'spot-deck', rect: [2.20, 7.10, 3.65, 8.60], sizeMin: 0.03, sizeMax: 0.34, count: 28, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['양동이', '화분', '페트병'], arrange: 'row' },
+  { id: 'spot-shed', rect: [-3.90, 7.10, -2.10, 7.80], sizeMin: 0.03, sizeMax: 0.40, count: 26, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['삽', '모종삽', '양동이'], arrange: 'lean' },
+  { id: 'spot-tree', rect: [-2.00, 7.20, -0.85, 8.85], sizeMin: 0.02, sizeMax: 0.12, count: 30, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['솔방울', '도토리', '꽃', '자갈'] },
+  { id: 'spot-fence-west', rect: [-3.75, 4.10, -3.25, 6.40], sizeMin: 0.02, sizeMax: 0.22, count: 24, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['페트병', '병뚜껑', '연어 캔'], arrange: 'lean' },
+  { id: 'spot-yard-flower', rect: [-1.80, 4.20, -0.40, 5.40], sizeMin: 0.02, sizeMax: 0.14, count: 22, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, only: ['꽃', '청개구리', '달팽이'] },
 ];
 
 // ─── 기하 ────────────────────────────────────────────────────
