@@ -25,7 +25,16 @@ const CEILING_COLOR = 0xe0d6b8;
 const CELL = 4;
 
 /**
- * 돌아다니는 물체 하나. 「집」(`hx`, `hz`)에서 반경 `r` 안을 돈다.
+ * 돌아다니는 물체의 상태. **멈추는 게 절반이다.**
+ *
+ * 등속으로 미끄러지는 것과 「걷다 서서 냄새 맡고 두리번거리다 다시 걷는 것」의
+ * 차이가 «커서»와 «개»의 차이다. 레퍼런스(NPC 애니메이션): 이동 클립보다
+ * **아이들 변주와 그 사이의 전환**이 믿음직함을 훨씬 크게 좌우한다.
+ */
+type WanderState = 'walk' | 'pause' | 'sniff' | 'look';
+
+/**
+ * 돌아다니는 물체 하나. 「집」(`hx`, `hz`) 둘레 타원 안을 돈다.
  *
  * **`stepNudges` 의 흔들림과 같은 급이다** — 렌더 트랜스폼만 다시 쓰고
  * `half`·`colY` 는 안 건드린다. 다른 건 `pos` 를 실제로 옮긴다는 것뿐인데,
@@ -35,19 +44,40 @@ interface Wanderer {
   readonly index: number;
   readonly hx: number;
   readonly hz: number;
-  readonly r: number;
-  /** 지금 가는 방향(rad) */
+  /** 산책 범위 반쪽 */
+  readonly rx: number;
+  readonly rz: number;
+  state: WanderState;
+  /** 이 상태가 끝날 때까지 남은 시간(s) */
+  stateT: number;
+  /** 지금 가는 방향(rad) — «형상이 보는 쪽»이 아니다 */
   heading: number;
-  /** 가고 싶은 방향 — `heading` 이 «천천히» 따라간다 */
   target: number;
-  /** m/s */
+  /** m/s. 목표 속도로 «램프»로 따라간다 — 0 → 0.4 로 튀면 그것도 커서다 */
   speed: number;
-  /** 방향을 새로 고를 때까지 남은 시간(s) */
-  turnIn: number;
+  want: number;
+  /** 목적지. 개는 «각도»가 아니라 «어디»로 간다 */
+  tx: number;
+  tz: number;
+  /** 보행 위상(rad). 한 보폭에 2π */
+  phase: number;
+  /** 코 각도(rad). 냄새 맡을 때 내린다 */
+  nose: number;
 }
 
 /** 초당 회전 상한(rad). 순간이동하듯 꺾이면 개가 아니라 커서다 */
 const WANDER_TURN = 2.2;
+/**
+ * 1m 걷는 동안 도는 보행 위상(rad). **한 보폭이 2π 다.**
+ *
+ * 처음에 5.4(보폭 1.16m)로 두고 「중형견 걸음」이라고 적었는데 **틀렸다** —
+ * 재보니 15초에 위아래 정점이 여덟 번뿐이라 걸음이 아니라 «느린 출렁임»이었다.
+ * 중형견의 걷는 보폭은 0.5~0.6m 다. 11.4 면 보폭 **0.55m**,
+ * 초속 0.4m 에서 초당 0.73 보폭 · 위아래 정점 **초당 1.5회**다.
+ */
+const STRIDE = 11.4;
+/** 속도가 목표를 따라가는 가속(m/s²) */
+const WANDER_ACCEL = 2.2;
 
 /** 해시에 «넓게» 넣을 때 재사용하는 그릇. `insert` 가 읽기만 하므로 하나면 된다 */
 const WIDE = new Vector3();
@@ -441,14 +471,16 @@ export class World {
          *
          * `CELL` 이 4m 라 반경 1m 짜리 개는 많아야 셀 넷을 차지한다.
          */
+        const [rx, rz] = spec.roam;
         this.hash.insert(index, obj.pos, WIDE.set(
-          obj.half.x + spec.roam, obj.half.y, obj.half.z + spec.roam));
+          obj.half.x + rx, obj.half.y, obj.half.z + rz));
+        const h = this.wanderRnd() * Math.PI * 2;
         this.wanderers.push({
-          index, hx: spec.x, hz: spec.z, r: spec.roam,
-          heading: this.wanderRnd() * Math.PI * 2,
-          target: this.wanderRnd() * Math.PI * 2,
-          speed: 0.30 + this.wanderRnd() * 0.22,
-          turnIn: this.wanderRnd() * 2,
+          index, hx: spec.x, hz: spec.z, rx, rz,
+          state: 'pause', stateT: 0.4 + this.wanderRnd() * 1.2,
+          heading: h, target: h, speed: 0, want: 0,
+          tx: spec.x, tz: spec.z,
+          phase: this.wanderRnd() * Math.PI * 2, nose: 0,
         });
       }
     }
@@ -565,14 +597,22 @@ export class World {
       const o = this.objects[w.index]!;
       if (o.picked) continue;                     // 먹혔으면 그만 — 공에 붙어 간다
 
-      w.turnIn -= dt;
-      if (w.turnIn <= 0) {
-        w.target = this.wanderRnd() * Math.PI * 2;
-        w.turnIn = 1.4 + this.wanderRnd() * 2.4;  // 1.4~3.8초마다 마음을 바꾼다
+      w.stateT -= dt;
+      if (w.stateT <= 0) this.nextState(w);
+
+      if (w.state === 'walk') {
+        /**
+         * **개는 «각도»가 아니라 «어디»로 간다.** 예전엔 1.4~3.8초마다 방향을
+         * 무작위로 골랐는데, 그러면 목적 없이 떠도는 것으로 보인다.
+         * 목적지에 닿으면 거기서 멈추고(그게 개가 하는 일이다) 다음 자리를 고른다.
+         */
+        const gx = w.tx - o.pos.x, gz = w.tz - o.pos.z;
+        if (gx * gx + gz * gz < 0.09) this.nextState(w, true);
+        else w.target = Math.atan2(gx, gz);
+      } else if (w.state === 'look') {
+        // 제자리에서 천천히 둘러본다. 목표 각도를 옆으로 흘린다
+        w.target += dt * 1.1;
       }
-      // 집에서 멀어지면 «집 쪽»으로 꺾는다. 담장에 부딪히는 대신 돌아온다
-      const dx = o.pos.x - w.hx, dz = o.pos.z - w.hz;
-      if (dx * dx + dz * dz > w.r * w.r) w.target = Math.atan2(-dx, -dz);
 
       /**
        * **최단 방향으로 따라간다.** 그냥 빼면 ±π 를 넘을 때 «반대로 한 바퀴»
@@ -582,16 +622,78 @@ export class World {
       const d = Math.atan2(Math.sin(diff), Math.cos(diff));
       w.heading += Math.max(-WANDER_TURN * dt, Math.min(WANDER_TURN * dt, d));
 
+      // 속도는 «램프»다. 0 → 0.4 로 튀면 그것도 커서다
+      const dv = w.want - w.speed;
+      w.speed += Math.max(-WANDER_ACCEL * dt, Math.min(WANDER_ACCEL * dt, dv));
+
       o.pos.x += Math.sin(w.heading) * w.speed * dt;
       o.pos.z += Math.cos(w.heading) * w.speed * dt;
-      o.rotY = w.heading;                         // 가는 쪽을 본다
-      this.applyTransform(o, 0, 0);
+
+      /**
+       * ── 걸음 ──────────────────────────────────────────
+       *
+       * 다리를 따로 못 움직인다 — 형상이 한 덩이로 merge 돼 있다. 대신 몸통으로 한다.
+       * 사족보행 보행분석(레퍼런스): 무게중심이 **한 보폭에 두 번** 오르내리고,
+       * 앞·뒷다리가 **위상이 어긋난 두 개의 이족보행**처럼 움직이며,
+       * **뒷다리 쪽이 앞가슴보다 많이 튄다**(뒷다리 근육이 스프링이라서다).
+       *
+       *   bob   `|sin|` 은 주기가 π 라 위상 2π(한 보폭)에 **정점이 둘**이다
+       *   pitch `cos` 는 bob 과 위상이 어긋나 앞이 내려갈 때 뒤가 올라간다
+       *   roll  좌우 흔들림은 보폭당 한 번이라 위상의 «절반»이다
+       */
+      w.phase += w.speed * STRIDE * dt;
+      const gait = Math.min(w.speed / 0.42, 1);
+      const bob = Math.abs(Math.sin(w.phase)) * 0.030 * gait;
+      const pitch = Math.cos(w.phase) * 0.11 * gait;
+      const roll = Math.sin(w.phase * 0.5) * 0.07 * gait;
+
+      /**
+       * **형상이 보는 쪽과 가는 쪽은 다르다.**
+       *
+       * `개` 형상은 머리가 x +0.62, 꼬리가 x −0.52 라 `rotY 0` 에서 **+X** 를 본다.
+       * 그런데 `heading 0` 은 **+Z** 로 간다 — 지금까지 개가 **옆걸음질**을 했다.
+       * three 의 `rotY = θ` 는 +X 를 `(cos θ, −sin θ)` 로 돌리므로, 그게 진행 방향
+       * `(sin h, cos h)` 와 같으려면 **θ = h − π/2** 다.
+       */
+      o.rotY = w.heading - Math.PI / 2;
+      this.applyTransform(o, pitch + w.nose, roll, bob);
     }
   }
 
-  /** 인스턴스 트랜스폼을 다시 쓴다. 흔들림 각도만 더한다 */
-  private applyTransform(o: WorldObject, dx: number, dz: number): void {
-    this.proxy.position.copy(o.pos);
+  /**
+   * 다음 상태를 고른다. `arrived` 면 목적지에 닿아서 멈추는 것이다.
+   *
+   * **걷기가 절반쯤이어야 한다.** 계속 걸으면 커서고, 계속 서 있으면 인형이다.
+   */
+  private nextState(w: Wanderer, arrived = false): void {
+    const r = this.wanderRnd();
+    if (w.state === 'walk' || arrived) {
+      // 걷다 멈춘다 — 냄새 맡기가 제일 개 같은 동작이라 절반을 준다
+      if (r < 0.5) { w.state = 'sniff'; w.stateT = 1.6 + this.wanderRnd() * 1.4; w.nose = 0.30; }
+      else if (r < 0.8) { w.state = 'pause'; w.stateT = 1.0 + this.wanderRnd() * 1.0; w.nose = 0; }
+      else { w.state = 'look'; w.stateT = 1.2 + this.wanderRnd() * 1.0; w.nose = 0; }
+      w.want = 0;
+      return;
+    }
+    // 서 있다 걷는다 — 타원 안의 한 점을 고른다
+    w.state = 'walk';
+    w.stateT = 6;                                  // 못 닿아도 6초면 마음을 바꾼다
+    w.nose = 0;
+    w.want = 0.30 + this.wanderRnd() * 0.22;
+    const a = this.wanderRnd() * Math.PI * 2;
+    const k = 0.35 + this.wanderRnd() * 0.6;       // 늘 가장자리로 가면 담장만 왕복한다
+    w.tx = w.hx + Math.cos(a) * w.rx * k;
+    w.tz = w.hz + Math.sin(a) * w.rz * k;
+  }
+
+  /**
+   * 인스턴스 트랜스폼을 다시 쓴다. 흔들림·걸음을 **렌더에만** 더한다.
+   *
+   * `dx` 는 피치, `dz` 는 롤, `dy` 는 위아래 흔들림이다.
+   * **`colY` 는 안 건드린다** — 개가 걸으며 3cm 튀어도 충돌 상자는 제자리다.
+   */
+  private applyTransform(o: WorldObject, dx: number, dz: number, dy = 0): void {
+    this.proxy.position.set(o.pos.x, o.pos.y + dy, o.pos.z);
     this.proxy.rotation.set(o.rotX + dx, o.rotY, o.rotZ + dz);
     this.proxy.scale.copy(o.scale);
     this.pool.setTransform(o.combo, o.slot, this.proxy);

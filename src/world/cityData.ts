@@ -146,14 +146,18 @@ export interface StageProp {
    */
   readonly underPass?: number;
   /**
-   * 이 물건이 **돌아다니는 반경**(m). 없으면 지금까지처럼 제자리에 굳어 있다.
+   * 이 물건이 **돌아다니는 범위** `[x 반쪽, z 반쪽]`(m). 없으면 제자리에 굳어 있다.
+   *
+   * **원이 아니라 타원이다.** 반경 하나로 두었더니 마당에서 개가 쓸 수 있는
+   * 빈 원이 지름 1.2m 뿐이었다 — 정원과 살림 물건을 다 놓고 나면 남는 게
+   * «길고 좁은 띠»지 원이 아니다. 개는 담장을 따라 왔다 갔다 한다.
    *
    * `underPass` 와 같은 급의 「손배치 물건의 성질」이다 — 새 개념이 아니다.
    * 값을 주면 `World.stepWander` 가 매 프레임 `pos` 를 옮기고, 넓은 판정(공간 해시)은
    * 처음부터 이 반경까지 넓혀 넣는다. 좁은 판정(구 vs AABB)이 어차피 «지금 `pos`» 를
    * 읽으므로(`Game.resolveCollisions`) **충돌·흡수 코드는 한 줄도 안 바뀐다.**
    */
-  readonly roam?: number;
+  readonly roam?: readonly [number, number];
 }
 
 export interface CityBuilding {
