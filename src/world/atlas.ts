@@ -153,6 +153,8 @@ export const TILE = {
    * 그런 물건의 정답은 처음부터 «무늬»다.
    */
   BUTTON: 36,
+  /** 각설탕 — 눌러 굳힌 알갱이 결. 민짜 정육면체는 흰 상자다 */
+  SUGAR: 37,
 } as const;
 
 /**
@@ -720,6 +722,22 @@ export function buildPrintAtlas(): CanvasTexture {
       cx.beginPath();
       cx.arc(c + x * CELL * 0.15, c + z * CELL * 0.15, CELL * 0.075, 0, Math.PI * 2);
       cx.fill();
+    }
+  });
+
+  /** 각설탕 — 굵은 알갱이. 눌러 굳힌 자국이라 알갱이가 «면»으로 보인다 */
+  at(TILE.SUGAR, () => {
+    base();
+    for (let i = 0; i < 150; i++) {
+      const r = 2 + rnd(i * 13, 4);
+      cx.fillStyle = `rgba(122,118,108,${(0.05 + rnd(i * 17, 0.09)).toFixed(3)})`;
+      cx.beginPath();
+      cx.arc(rnd(i * 7 + 3, CELL), rnd(i * 11 + 5, CELL), r, 0, Math.PI * 2);
+      cx.fill();
+    }
+    cx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let i = 0; i < 60; i++) {
+      cx.fillRect(rnd(i * 23 + 9, CELL), rnd(i * 29 + 13, CELL), 2, 2);
     }
   });
 

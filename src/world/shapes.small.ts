@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdSmall } from './generation';
 import {
-  assemble, DARK, GLASS, INK, METAL, PAPER, part, WHITE, WRAP, soft,
+  assemble, GLASS, INK, METAL, part, WHITE, WRAP, soft,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -169,80 +169,152 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
   ]),
 
   각설탕: () => assemble([
-    // 정육면체 하나. 알갱이 결을 살짝만 낸다
-    part(soft(0.86, 0.80, 0.86, 0.16), WHITE, [0, 0.40, 0]),
-    part(soft(0.30, 0.10, 0.30, 0.3), WHITE, [0.18, 0.82, -0.14], [0, 0.4, 0]),
-    part(soft(0.22, 0.10, 0.22, 0.3), WHITE, [-0.22, 0.80, 0.18], [0, 0.9, 0]),
+    /**
+     * **각설탕은 각져야 한다.** 예전 모따기 0.16 은 짧은 변(0.80)의 16% —
+     * 12.8mm 를 깎은 셈이라 화면에서 «둥근 가방»이었다. 6% 로 낮춘다.
+     * 그리고 윗면의 혹 둘이 몸통과 같은 `WHITE` 라 표식이 아니었다 —
+     * 설탕은 «눌러 굳힌 알갱이»니 결을 인쇄로 넣고 모서리 하나만 깬다.
+     */
+    /**
+     * **부품 하나로 끝낸다.** 「부스러진 모서리」로 구를 둘 붙여 봤는데 화면에서
+     * 각설탕에 «공이 박힌» 걸로 보였다 — 각진 것에 둥근 것을 붙이면 그게 먼저 읽힌다.
+     * 알갱이 결은 인쇄가 낸다(길 C).
+     */
+    part(soft(0.86, 0.80, 0.86, 0.055), WHITE, [0, 0.40, 0], undefined, TILE.SUGAR),
   ]),
 
   사탕: () => assemble([
-    // 알맹이 + 양쪽으로 꼬인 포장지. 이 실루엣이 사탕의 전부다
-    part(new SphereGeometry(0.34, 16, 10), WHITE, [0, 0.34, 0]),
-    part(new ConeGeometry(0.30, 0.30, 6), PAPER, [0.44, 0.34, 0], CAP_X),
-    part(new ConeGeometry(0.30, 0.30, 6), PAPER, [-0.44, 0.34, 0], LIE_X),
+    /**
+     * 알맹이 + 양쪽으로 «꼬인» 포장지. 예전엔 포장이 `PAPER`(대비 0.04)라
+     * 알맹이와 한 덩어리였고, 6분할 원뿔이라 각진 혹으로 보였다.
+     * `WRAP` 으로 밝게 갈라내고 꼬임 마디를 하나씩 넣는다.
+     */
+    part(new SphereGeometry(0.32, 12, 8).scale(1, 0.92, 0.92), WHITE, [0, 0.32, 0]),
+    ...([1, -1] as const).flatMap((k) => [
+      part(new ConeGeometry(0.30, 0.26, 10), WRAP, [k * 0.32, 0.32, 0],
+        k > 0 ? CAP_X : LIE_X),
+      // 꼬임 마디 — 이게 있어야 「비틀어 싼」 것이 된다
+      part(new CylinderGeometry(0.075, 0.11, 0.10, 8), WRAP, [k * 0.50, 0.32, 0],
+        k > 0 ? CAP_X : LIE_X),
+      part(new ConeGeometry(0.13, 0.16, 8), WRAP, [k * 0.62, 0.32, 0],
+        k > 0 ? CAP_X : LIE_X),
+    ]),
   ]),
 
   성냥: () => assemble([
     part(soft(0.92, 0.06, 0.06, 0.35), WHITE, [0, 0.03, 0]),
-    // 빨간 머리. 성냥과 이쑤시개를 가르는 유일한 부품이다
-    part(new SphereGeometry(0.075, 6, 4), [0.86, 0.28, 0.22], [0.47, 0.05, 0]),
+    // 빨간 머리. 성냥과 이쑤시개를 가르는 유일한 부품이다 — 넉넉히 키운다
+    part(new SphereGeometry(0.095, 8, 6).scale(1.25, 1, 1), [0.86, 0.28, 0.22],
+      [0.46, 0.045, 0]),
   ]),
 
   // ─── 버킷 2 (4~8cm) ──────────────────────────────────────────
 
   크레용: () => assemble([
-    // 몸통 + 종이 라벨 + 깎인 끝. 원작 크레용은 색이 곧 정체성이라
-    // SHAPE_COLOR 에 6색을 넣어뒀다
+    /**
+     * 몸통 + 종이 라벨 + 깎인 끝. 원작 크레용은 색이 곧 정체성이라
+     * `SHAPE_COLOR` 에 6색을 넣어뒀다 — 그래서 **라벨을 `PAPER` 로 두면 안 된다.**
+     * 여섯 색 중 밝은 것에서는 대비가 0.05 다. `WRAP` 이라야 어느 색에서도 흰 띠가 된다.
+     */
     part(new CylinderGeometry(0.14, 0.14, 0.74, 14), WHITE, [-0.08, 0.14, 0], LIE_X),
-    part(new CylinderGeometry(0.152, 0.152, 0.46, 14), PAPER, [-0.14, 0.14, 0], LIE_X),
-    part(new ConeGeometry(0.14, 0.24, 9), WHITE, [0.41, 0.14, 0], CAP_X),
+    part(new CylinderGeometry(0.158, 0.158, 0.46, 14), WRAP, [-0.14, 0.14, 0], LIE_X,
+      TILE.PAPER),
+    part(new ConeGeometry(0.14, 0.24, 10), WHITE, [0.41, 0.14, 0], CAP_X),
   ]),
 
   캐러멜: () => assemble([
-    // 포장지에 싸인 직육면체. 양끝을 접어 눌렀다
-    part(soft(0.62, 0.34, 0.40, 0.25), WHITE, [0, 0.17, 0]),
-    part(soft(0.18, 0.20, 0.40, 0.25), PAPER, [0.38, 0.11, 0]),
-    part(soft(0.18, 0.20, 0.40, 0.25), PAPER, [-0.38, 0.11, 0]),
+    /**
+     * **사용자가 이름을 짚은 것이다** — 화면에서 「금색 덩어리」였다.
+     *
+     * 원인 둘: ① 접어 누른 양끝이 `PAPER`(대비 0.11)라 알맹이와 안 갈렸고
+     * ② 그 끝이 몸통보다 **아래**(y 0.11 vs 0.17)에 달려서 실루엣이 계단처럼 처졌다.
+     *
+     * 모리나가 캐러멜은 «각진» 직육면체에 종이 띠를 두르고 양끝을 «같은 높이»에서
+     * 납작하게 접은 것이다. 모따기를 0.25 → 0.10 으로 줄이고 띠를 두른다.
+     */
+    part(soft(0.66, 0.36, 0.42, 0.10), WHITE, [0, 0.18, 0]),
+    part(soft(0.30, 0.375, 0.435, 0.06), WRAP, [0, 0.18, 0], undefined, TILE.CARAMEL),
+    ...([0.41, -0.41] as const).map((x) =>
+      part(soft(0.16, 0.13, 0.42, 0.15), WRAP, [x, 0.18, 0])),
   ]),
 
   체온계: () => assemble([
-    // 유리 막대 + 은색 구슬. 원작 집 서랍에 있는 그것
-    part(new CylinderGeometry(0.055, 0.055, 0.80, 7), GLASS, [0.06, 0.06, 0], LIE_X),
-    part(new SphereGeometry(0.085, 7, 5), METAL, [-0.40, 0.06, 0]),
-    part(new BoxGeometry(0.60, 0.02, 0.06), [0.9, 0.2, 0.18], [0.08, 0.10, 0]),
+    /**
+     * 유리 막대 + 은색 구슬 + 붉은 눈금줄. **구슬이 `METAL`(대비 0.08)이라
+     * 막대 끝과 한 덩어리였다** — 수은 구는 유리보다 확실히 짙어야 보인다.
+     * 7분할 곡면도 이 크기(5cm)에서 요구되는 8분할에 못 미쳤다.
+     */
+    part(new CylinderGeometry(0.055, 0.055, 0.78, 8), GLASS, [0.08, 0.06, 0], LIE_X),
+    part(new SphereGeometry(0.10, 8, 6), [0.42, 0.20, 0.18], [-0.40, 0.06, 0]),
+    part(new BoxGeometry(0.58, 0.022, 0.06), [0.88, 0.22, 0.18], [0.10, 0.105, 0]),
+    // 눈금 — 세 줄이면 「재는 것」이 된다
+    ...([0.10, 0.26, 0.42] as const).map((x) =>
+      part(new BoxGeometry(0.018, 0.05, 0.05), INK, [x, 0.095, 0.035])),
   ]),
 
   '간장 팩': () => assemble([
-    // 도시락에 들어 있는 물고기 모양 간장통. 원작에도 있다
-    part(new SphereGeometry(0.24, 12, 8), WHITE, [0, 0.16, 0]),
-    part(new ConeGeometry(0.20, 0.34, 7), WHITE, [0.34, 0.16, 0], CAP_X),
-    part(new ConeGeometry(0.16, 0.22, 5), WHITE, [-0.30, 0.16, 0], LIE_X),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), [0.9, 0.5, 0.2], [0.50, 0.16, 0], LIE_X),
+    /**
+     * 도시락에 들어 있는 **물고기 모양** 간장통. 예전엔 구 + 원뿔 둘이라
+     * 화면에서 갈색 덩어리였다 — 물고기는 **옆으로 납작하고 꼬리지느러미가 선다.**
+     * 눈과 붉은 뚜껑이 물고기를 물고기로 만든다.
+     */
+    part(new SphereGeometry(0.26, 10, 8).scale(1.15, 1, 0.55), WHITE, [-0.02, 0.16, 0]),
+    part(new ConeGeometry(0.19, 0.30, 8).scale(1, 1, 0.55), WHITE, [0.34, 0.16, 0], CAP_X),
+    // 꼬리지느러미 — 세로로 «선다». 이게 실루엣의 전부다
+    part(new ConeGeometry(0.20, 0.24, 4).scale(0.42, 1, 1), WHITE, [-0.36, 0.16, 0],
+      [0, 0, Math.PI / 2]),
+    // 붉은 뚜껑 + 눈
+    part(new CylinderGeometry(0.075, 0.075, 0.13, 8), [0.88, 0.32, 0.20],
+      [0.53, 0.16, 0], LIE_X),
+    ...([1, -1] as const).map((k) =>
+      part(new SphereGeometry(0.045, 6, 5), INK, [0.20, 0.22, k * 0.10])),
   ]),
 
   청개구리: () => assemble([
-    // 몸통 + 눈 둘 + 접힌 뒷다리. 원작 마당에 있는 그 개구리(7.4cm)
-    part(new SphereGeometry(0.34, 16, 10), WHITE, [0, 0.28, 0]),
-    part(new SphereGeometry(0.20, 12, 8), WHITE, [0.24, 0.34, 0]),
-    part(new SphereGeometry(0.09, 6, 4), [0.95, 0.9, 0.3], [0.32, 0.46, 0.13]),
-    part(new SphereGeometry(0.09, 6, 4), [0.95, 0.9, 0.3], [0.32, 0.46, -0.13]),
-    part(new SphereGeometry(0.14, 12, 8), WHITE, [-0.20, 0.16, 0.24]),
-    part(new SphereGeometry(0.14, 12, 8), WHITE, [-0.20, 0.16, -0.24]),
+    /**
+     * **눈두덩이 머리 «위»로 솟아야 개구리다.** 예전 눈(반지름 0.09)은 머리 구(0.20)
+     * 상자 «안»에 들어 있어서 실루엣을 하나도 안 바꿨다 — 화면에서 「혹 달린 라임」이었다.
+     *
+     * 개구리는 넓고 낮다. 몸통을 눌러 납작하게 하고, 접힌 뒷다리를 몸 밖으로 빼고,
+     * 어두운 입선 하나로 얼굴을 만든다.
+     */
+    part(new SphereGeometry(0.34, 12, 8).scale(1.15, 0.72, 1.0), WHITE, [-0.04, 0.22, 0]),
+    part(new SphereGeometry(0.22, 10, 8).scale(1.0, 0.82, 1.05), WHITE, [0.26, 0.26, 0]),
+    ...([1, -1] as const).flatMap((k) => [
+      part(new SphereGeometry(0.15, 8, 6), WHITE, [0.26, 0.48, k * 0.15]),
+      part(new SphereGeometry(0.085, 8, 6), INK, [0.31, 0.55, k * 0.19]),
+      // 접힌 뒷다리 — 몸통 «밖으로». 안에 묻으면 없는 것과 같다
+      part(new SphereGeometry(0.17, 8, 6).scale(1.3, 0.75, 0.85), [0.74, 0.86, 0.58],
+        [-0.24, 0.15, k * 0.30]),
+    ]),
+    // 입선 — 어두운 띠 하나가 「얼굴」을 만든다
+    part(new BoxGeometry(0.11, 0.03, 0.30), [0.52, 0.60, 0.38], [0.42, 0.23, 0]),
   ]),
 
   성냥갑: () => assemble([
-    // 서랍이 살짝 빠진 갑. 빠진 단이 있어야 상자가 아니라 성냥갑이다
-    part(soft(0.86, 0.24, 0.56, 0.16), WHITE, [0, 0.12, 0], undefined, TILE.MATCHBOX),
-    part(soft(0.34, 0.20, 0.52, 0.16), PAPER, [0.52, 0.11, 0]),
+    /**
+     * 서랍이 살짝 빠진 갑. **빠진 서랍이 `PAPER`(대비 0.04)라 갑과 한 덩어리였다** —
+     * 「빠진 단이 있어야 성냥갑」이라고 적어놓고 실제로는 안 보이고 있었다.
+     * `WRAP` 으로 갈라내고, 서랍 안에 성냥 머리가 보이게 한다.
+     */
+    part(soft(0.86, 0.24, 0.56, 0.12), WHITE, [0, 0.12, 0], undefined, TILE.MATCHBOX),
+    part(soft(0.36, 0.19, 0.50, 0.10), WRAP, [0.53, 0.115, 0]),
+    // 빠진 서랍 안의 성냥 머리 — 「안에 뭐가 들었다」가 보여야 갑이다
+    // 서랍 «안»에 가둔다 — 윗면이 서랍 윗면과 같은 평면이면 z-fighting 이다
+    part(new BoxGeometry(0.26, 0.05, 0.42), [0.86, 0.30, 0.24], [0.55, 0.172, 0]),
     // 옆면 마찰지
-    part(new BoxGeometry(0.86, 0.16, 0.02), DARK, [0, 0.12, 0.285]),
+    part(new BoxGeometry(0.86, 0.17, 0.025), INK, [0, 0.12, 0.285]),
   ]),
 
   건전지: () => assemble([
     part(new CylinderGeometry(0.28, 0.28, 0.86, 20), WHITE, [0, 0.43, 0], undefined, TILE.BATTERY),
-    // +극 돌기. 이거 하나로 건전지가 된다
-    part(new CylinderGeometry(0.10, 0.10, 0.08, 7), METAL, [0, 0.89, 0]),
-    part(new CylinderGeometry(0.285, 0.285, 0.10, 20), METAL, [0, 0.06, 0]),
+    /**
+     * +극 돌기 + −극 바닥. **`METAL`(0.72)이 몸통과 대비 0.05** 라 돌기가 안 보였다 —
+     * 「이거 하나로 건전지가 된다」고 적어놓고 실제로는 없는 것과 같았다.
+     */
+    part(new CylinderGeometry(0.11, 0.11, 0.10, 10), WRAP, [0, 0.90, 0]),
+    part(new CylinderGeometry(0.20, 0.20, 0.05, 20), [0.52, 0.54, 0.58], [0, 0.86, 0]),
+    part(new CylinderGeometry(0.285, 0.285, 0.10, 20), [0.52, 0.54, 0.58], [0, 0.06, 0]),
   ]),
 
   화투: () => assemble([
