@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdRooms } from './generation';
 import {
-  assemble, DARK, hollow, METAL, PAPER, part, soft, WHITE, WOOD,
+  assemble, DARK, hollow, INK, invert, METAL, PAPER, part, SEG, soft, WHITE, WOOD,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -13,6 +13,9 @@ import { TILE } from './atlas';
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
 /** 눕힌 원기둥. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다 */
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
+
+/** 욕조 굽 높이. 통을 이만큼 «들어 올려» 밑면이 굽과 같은 평면이 되지 않게 한다 */
+const TUB_LIFT = 0.06;
 
 /**
  * **파인 «사각» 통.** 개수통 · 욕조 · 변기통 · 세면대야가 이걸 쓴다.
@@ -30,9 +33,28 @@ const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
  */
 export function basin(
   w: number, d: number, h: number, wall: number, inner: RGB, rgb: RGB = WHITE,
+  /** 바깥 벽 넷이 물 인쇄 칸. 통은 화면에서 넓은 면이라 재질이 붙어야 한다 */
+  tile: number = TILE.BLANK,
 ): Part[] {
-  const iw = Math.max(w - wall * 2, wall);
-  const id = Math.max(d - wall * 2, wall);
+  /**
+   * **겹면 4mm.** 뒤집은 안쪽 통의 옆면이 바깥 벽의 «안쪽 면»과 **좌표까지 같았다.**
+   *
+   *   세면대 basin(0.54, 0.44, 0.16, 0.045)
+   *     바깥 +X 벽의 안쪽 면    x = (0.54−0.045)/2 − 0.045/2 = 0.225
+   *     안쪽 통(뒤집힘)의 +X 면  x = (0.54 − 0.045·2)/2      = 0.225
+   *
+   * 둘 다 통 «안»을 보므로 후면 컬링이 하나도 안 걸러준다. 깊이값이 같으니
+   * 픽셀마다 어느 쪽이 이길지 갈리고, 화면에서는 **격자무늬로 갈라진 도기**다.
+   * 사용자가 「세면대는 그냥 다 깨져있다」라고 한 것이 이것이고, 욕조·싱크대의
+   * 안쪽 벽에도 같은 무늬가 떠 있었다.
+   *
+   * 안쪽 통을 4mm «안»으로 넣고 바닥판을 4mm «위»로 올린다. 보는 사람은 통 안에
+   * 있으므로 더 가까운 면이 이기고, 바깥 벽의 안쪽 면은 그 뒤에 숨는다.
+   * (`Math.max(_, wall)` 이 남아 있어 얇은 통에서 뒤집힐 일은 없다.)
+   */
+  const SKIN = 0.004;
+  const iw = Math.max(w - wall * 2 - SKIN * 2, wall);
+  const id = Math.max(d - wall * 2 - SKIN * 2, wall);
   /**
    * **캐비티 높이가 `h - wall` 이다.** 처음엔 `h` 로 두고 `wall` 만큼 올려놨는데,
    * 그러면 뒤집은 상자의 «윗면»이 바깥 벽보다 `wall` 만큼 위로 삐져나온다.
@@ -42,26 +64,45 @@ export function basin(
   const cav = Math.max(h - wall, wall);
   return [
     // 바깥 — 위가 뚫려야 하므로 벽 넷으로 두른다
-    part(new BoxGeometry(w, h, wall), rgb, [0, h / 2, (d - wall) / 2]),
-    part(new BoxGeometry(w, h, wall), rgb, [0, h / 2, -(d - wall) / 2]),
-    part(new BoxGeometry(wall, h, d - wall * 2), rgb, [(w - wall) / 2, h / 2, 0]),
-    part(new BoxGeometry(wall, h, d - wall * 2), rgb, [-(w - wall) / 2, h / 2, 0]),
+    part(new BoxGeometry(w, h, wall), rgb, [0, h / 2, (d - wall) / 2], undefined, tile),
+    part(new BoxGeometry(w, h, wall), rgb, [0, h / 2, -(d - wall) / 2], undefined, tile),
+    part(new BoxGeometry(wall, h, d - wall * 2), rgb, [(w - wall) / 2, h / 2, 0], undefined, tile),
+    part(new BoxGeometry(wall, h, d - wall * 2), rgb, [-(w - wall) / 2, h / 2, 0], undefined, tile),
     // **안쪽 — 뒤집은 상자.** 이게 「움푹하다」의 전부다
-    part(new BoxGeometry(iw, cav, id).scale(-1, 1, 1), inner, [0, wall + cav / 2, 0]),
-    // 바닥. 없으면 통을 통해 방바닥이 보인다
-    part(new BoxGeometry(iw, wall, id), inner, [0, wall / 2, 0]),
+    part(invert(new BoxGeometry(iw, cav, id)), inner, [0, wall + cav / 2, 0]),
+    // 바닥. 없으면 통을 통해 방바닥이 보인다. 안쪽 통 바닥(y = wall)보다 SKIN 만큼 위
+    part(new BoxGeometry(iw, wall + SKIN, id), inner, [0, (wall + SKIN) / 2, 0]),
   ];
 }
 
-/** 수도꼭지 — 기둥 + 굽은 주둥이 + 손잡이. 셋이 있어야 꼭지로 읽힌다 */
+/**
+ * 수도꼭지 — 기둥 + 굽은 주둥이 + 손잡이.
+ *
+ * **굵기를 1.5배로 올리고 손잡이를 어둡게 갈랐다.** 반지름 0.018 짜리 기둥에
+ * 5·6면 곡면이라 화면에서는 「막대에 꽂힌 실오라기」였다. 곡면이 5~7면이면
+ * 매끄러운 셰이딩에서 «물결치는 튜브»가 된다 — 이 씬의 오랜 규약이다.
+ * 손잡이가 몸통과 같은 `METAL` 이면 크롬 덩어리 하나로 뭉친다.
+ */
 function tap(x: number, y: number, z: number, s: number): Part[] {
+  /** 손잡이 — 몸통보다 짙게. 크롬 안에서 「돌리는 데」가 보여야 꼭지다 */
+  const GRIP: RGB = [0.42, 0.44, 0.50];
   return [
-    part(new CylinderGeometry(0.018 * s, 0.022 * s, 0.14 * s, 8), METAL, [x, y + 0.07 * s, z]),
-    part(new TorusGeometry(0.05 * s, 0.017 * s, 5, 10, Math.PI / 2), METAL,
-      [x, y + 0.14 * s, z - 0.05 * s], [0, Math.PI / 2, 0]),
-    part(new CylinderGeometry(0.012 * s, 0.012 * s, 0.05 * s, 6), METAL,
-      [x, y + 0.185 * s, z + 0.002 * s]),
-    part(new BoxGeometry(0.07 * s, 0.012 * s, 0.02 * s), METAL, [x, y + 0.20 * s, z]),
+    part(new CylinderGeometry(0.027 * s, 0.034 * s, 0.15 * s, 10), METAL, [x, y + 0.075 * s, z]),
+    part(new TorusGeometry(0.058 * s, 0.026 * s, 8, 14, Math.PI / 2), METAL,
+      [x, y + 0.15 * s, z - 0.058 * s], [0, Math.PI / 2, 0]),
+    // 주둥이 끝 — 물 나오는 데. 끊긴 자리가 있어야 「토출구」로 읽힌다
+    part(new CylinderGeometry(0.024 * s, 0.024 * s, 0.03 * s, 10), GRIP,
+      [x, y + 0.145 * s, z - 0.116 * s]),
+    part(new CylinderGeometry(0.018 * s, 0.018 * s, 0.06 * s, 8), METAL,
+      [x, y + 0.185 * s, z + 0.004 * s]),
+    /**
+     * 손잡이 십자 — 두 막대. 하나면 「막대」고 둘이면 「돌리는 것」이다.
+     * **두 번째 막대를 얇게 한다** — 같은 높이로 두면 겹치는 자리에서 위·아랫면이
+     * 같은 평면을 공유해 z-fighting 이 뜬다(자가 `11×12` 로 잡았다).
+     * 얇으면 겹치는 4mm 구간이 첫 막대 «안»으로 들어가 아예 안 보인다.
+     */
+    part(new BoxGeometry(0.10 * s, 0.018 * s, 0.024 * s), GRIP, [x, y + 0.215 * s, z]),
+    part(new BoxGeometry(0.024 * s, 0.013 * s, 0.10 * s), GRIP, [x, y + 0.215 * s, z]),
   ];
 }
 
@@ -188,7 +229,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   '장난감 상자': () => assemble([
     part(soft(1.00, 0.60, 1.00, 0.12), WHITE, [0, 0.30, 0]),
     // 파인 안쪽 — 뚜껑이 열려 있으니 속이 보인다
-    part(new BoxGeometry(0.88, 0.50, 0.88).scale(-1, 1, 1), [0.42, 0.46, 0.52], [0, 0.36, 0]),
+    part(invert(new BoxGeometry(0.88, 0.50, 0.88)), [0.42, 0.46, 0.52], [0, 0.36, 0]),
     part(new BoxGeometry(0.88, 0.04, 0.88), [0.42, 0.46, 0.52], [0, 0.13, 0]),
     /**
      * **비뚤게 덮인 뚜껑.** 처음엔 뒤로 젖혀 세웠는데, 그러면 뚜껑이 −z 로
@@ -260,7 +301,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(soft(0.62, 1.00, 0.21, 0.08), WOOD, [0, 0.50, 0]),
     part(soft(0.66, 0.03, 0.24, 0.35), WOOD, [0, 1.01, 0]),              // 갓돌림  // NOTE:찬장
     // 파인 안쪽 — 유리문 너머로 보인다
-    part(new BoxGeometry(0.54, 0.86, 0.17).scale(-1, 1, 1), [0.40, 0.34, 0.26], [0, 0.53, 0.01]),
+    part(invert(new BoxGeometry(0.54, 0.86, 0.17)), [0.40, 0.34, 0.26], [0, 0.53, 0.01]),
     // 선반 둘 + 그릇 — 「그릇장」을 만드는 건 이것이다
     ...([0.40, 0.68] as const).map((y) =>
       part(new BoxGeometry(0.54, 0.02, 0.17), WOOD, [0, y, 0])),
@@ -299,22 +340,44 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 통짜 상자에 하늘색을 칠하면 그건 파란 벤치다.
    */
   욕조: () => assemble([
-    ...basin(1.00, 0.68, 0.50, 0.06, [0.62, 0.72, 0.78], [0.34, 0.62, 0.72]),
+    /**
+     * 굽. **바닥에 닿는 건 이것뿐이고 통은 그 «위»에 올라간다.**
+     * 예전엔 굽과 통이 둘 다 y=0 에서 시작해 **밑면 두 장이 같은 평면**이었다 —
+     * 자가 `5×19`·`4×19` 로 잡았다. 통을 굽 높이만큼 들어 올리면 맞닿는 두 면의
+     * 법선이 서로 반대(↑ 와 ↓)가 되어 z-fighting 이 원리상 안 난다.
+     */
+    part(soft(0.92, TUB_LIFT, 0.60, 0.35), [0.26, 0.50, 0.60], [0, TUB_LIFT / 2, 0]),
+    /**
+     * 안쪽을 **거의 흰색으로** 올렸다. 예전 `[0.62,0.72,0.78]` 은 팔레트를 곱하면
+     * 컴컴해서, 파놓은 통이 「물이 든 욕조」가 아니라 **구멍**으로 보였다.
+     */
+    ...basin(1.00, 0.68, 0.50, 0.06, [0.86, 0.94, 1.00], [0.34, 0.62, 0.72], TILE.CERAMIC)
+      .map((p) => part(p.geo, p.rgb, [0, TUB_LIFT, 0], undefined, p.tile)),
+    /**
+     * **수면.** 이게 없으면 「물통인지 궤짝인지」 알 수 없다 — 사용자가 그렇게 말했다.
+     * 턱보다 한 뼘 아래에 깐다. 안쪽 벽에서 6mm 만 띄운다 — 가장자리가 뜨면
+     * 「떠 있는 판때기」가 되고, 딱 붙이면 벽과 겹면이 나서 격자무늬가 뜬다.
+     *
+     * **흰 통에는 물을 «어둡게» 넣어야 보인다.** 팔레트가 거의 흰색이라 1을 넘는
+     * 계수는 전부 흰색으로 포화된다 — 밝게 만들려 할수록 통과 안 갈린다.
+     *
+     * 잔물결은 **부품이 아니라 인쇄**로 넣는다. 처음엔 「뜬 김」 판 둘을 얹었는데
+     * 둘이 같은 평면에서 겹쳐 z-fighting 이 났다(자가 `7×8` 로 잡았다).
+     * 인쇄면 삼각형도 안 늘고 겹칠 데도 없다.
+     */
+    part(new BoxGeometry(0.860, 0.014, 0.540), [0.55, 0.78, 0.95], [0, 0.40 + TUB_LIFT, 0],
+      undefined, TILE.WATER),
     /**
      * 테두리 — 통 위를 «두르는» 턱. **판 한 장으로 두면 안 된다** —
      * 처음에 1.04 × 0.72 짜리 판을 얹었더니 파놓은 통을 통째로 덮어서
      * 화면에서 「뚜껑 덮인 상자」로 나왔다. 띠 넷으로 두른다.
      */
-    part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515, 0.32], undefined, TILE.CERAMIC),
-    part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515, -0.32]),
-    part(soft(0.08, 0.045, 0.60, 0.35), [0.30, 0.58, 0.68], [0.48, 0.515, 0]),
-    part(soft(0.08, 0.045, 0.60, 0.35), [0.30, 0.58, 0.68], [-0.48, 0.515, 0]),
+    part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515 + TUB_LIFT, 0.32], undefined, TILE.CERAMIC),
+    part(soft(1.04, 0.045, 0.08, 0.35), [0.30, 0.58, 0.68], [0, 0.515 + TUB_LIFT, -0.32]),
+    part(soft(0.08, 0.045, 0.58, 0.35), [0.30, 0.58, 0.68], [0.48, 0.515 + TUB_LIFT, 0]),
+    part(soft(0.08, 0.045, 0.58, 0.35), [0.30, 0.58, 0.68], [-0.48, 0.515 + TUB_LIFT, 0]),
     // 꼭지를 작게. 욕조 꼭지는 턱 바로 위에 붙는다
-    ...tap(0, 0.53, -0.28, 0.7),
-    // 배수구
-    part(new CylinderGeometry(0.05, 0.05, 0.012, 10), METAL, [0.36, 0.065, 0]),
-    // 굽 — 바닥에서 살짝 띄운다
-    part(soft(0.92, 0.06, 0.60, 0.35), [0.26, 0.50, 0.60], [0, 0.03, 0]),
+    ...tap(0, 0.53 + TUB_LIFT, -0.28, 0.7),
   ]),
 
   /**
@@ -322,21 +385,34 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 하나만 빠져도 상자거나 의자로 보인다.
    */
   변기: () => assemble([
-    part(soft(0.44, 0.42, 0.24, 0.16), WHITE, [0, 0.72, -0.29]),         // 물탱크
+    part(soft(0.44, 0.42, 0.24, 0.16), WHITE, [0, 0.72, -0.29], undefined, TILE.CERAMIC), // 물탱크
     part(soft(0.48, 0.05, 0.28, 0.35), WHITE, [0, 0.955, -0.29]),        // 탱크 뚜껑
-    part(new CylinderGeometry(0.026, 0.026, 0.045, 6), METAL, [0.15, 0.86, -0.16], LIE_Z, TILE.CERAMIC),
+    /**
+     * 물 내리는 손잡이. **6면 짜리 반지름 0.026 막대를 키우고 색을 갈랐다** —
+     * 화면에서는 탱크에 붙은 점 하나였다.
+     */
+    part(new CylinderGeometry(0.030, 0.030, 0.06, 10), [0.52, 0.54, 0.58],
+      [0.15, 0.86, -0.14], LIE_Z),
+    part(new BoxGeometry(0.11, 0.032, 0.032), [0.52, 0.54, 0.58], [0.15, 0.86, -0.10]),
     // 몸통 — 위가 넓고 아래로 좁아지는 도기
-    part(new CylinderGeometry(0.30, 0.20, 0.44, 16).scale(1, 1, 1.15), WHITE, [0, 0.22, 0.02]),
-    // 파인 변기통 — **여기가 없으면 스툴이다**
-    part(new CylinderGeometry(0.255, 0.17, 0.20, 16).scale(-1, 1, 1.15),
-      [0.80, 0.84, 0.88], [0, 0.35, 0.02]),
-    part(new CylinderGeometry(0.17, 0.17, 0.02, 14).scale(1, 1, 1.15),
-      [0.55, 0.68, 0.74], [0, 0.26, 0.02]),
-    // 좌대 — 타원 링. 이게 변기의 실루엣이다
-    part(new TorusGeometry(0.28, 0.035, 6, 18).scale(1, 1, 1.15), WHITE, [0, 0.46, 0.02], LIE_Z),
-    // 젖혀 세운 뚜껑
-    part(new CylinderGeometry(0.29, 0.26, 0.035, 16).scale(1, 1.15, 1), WHITE,
-      [0, 0.70, -0.19], LIE_Z),
+    part(new CylinderGeometry(0.30, 0.20, 0.44, SEG.MID).scale(1, 1, 1.15), WHITE, [0, 0.22, 0.02]),
+    // 파인 변기통 — **여기가 없으면 스툴이다**. 안쪽은 밝아야 «파였다»가 읽힌다
+    part(invert(new CylinderGeometry(0.255, 0.17, 0.20, SEG.MID), 1, 1.15),
+      [0.74, 0.78, 0.82], [0, 0.35, 0.02]),
+    // 고인 물 — 욕조와 같은 이유다. 안이 비면 그냥 구멍이다
+    part(new CylinderGeometry(0.175, 0.175, 0.012, SEG.SMALL).scale(1, 1, 1.15),
+      [0.60, 0.80, 0.95], [0, 0.28, 0.02], undefined, TILE.WATER),
+    // 좌대 — 타원 링. 이게 변기의 실루엣이다. 굵혀야 「앉는 데」로 읽힌다
+    part(new TorusGeometry(0.28, 0.046, 8, 18).scale(1, 1, 1.15), [0.84, 0.86, 0.88],
+      [0, 0.47, 0.02], LIE_Z),
+    /**
+     * 젖혀 세운 뚜껑. **예전엔 반지름 0.29 짜리 «원반»이라 물탱크보다 커서
+     * 화면에서 「떠 있는 접시」로 보였다.** 좌대와 같은 타원으로 줄이고
+     * 뒤로 기울여 탱크에 기대게 한다. `.scale` 을 y 가 아니라 z 에 걸어야
+     * 두께가 아니라 «타원»이 된다 — 예전 것은 그냥 두꺼운 원반이었다.
+     */
+    part(new CylinderGeometry(0.265, 0.245, 0.032, SEG.MID).scale(1, 1, 1.15),
+      [0.84, 0.86, 0.88], [0, 0.68, -0.165], [Math.PI / 2 - 0.16, 0, 0]),
   ]),
 
   /**
@@ -344,14 +420,27 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 상자를 벽에 붙이면 그건 선반이다.
    */
   세면대: () => assemble([
-    // 기둥 — 아래로 갈수록 좁아진다
-    part(new CylinderGeometry(0.15, 0.20, 0.62, 14), WHITE, [0, 0.31, 0]),
-    // 대야 — 파야 세면대다
-    ...basin(0.54, 0.44, 0.16, 0.045, [0.78, 0.84, 0.88])
-      .map((p) => part(p.geo, p.rgb, [0, 0.62, 0])),
-    part(new TorusGeometry(0.28, 0.022, 5, 16).scale(1, 1, 0.82), WHITE, [0, 0.78, 0], LIE_Z),
-    ...tap(0, 0.78, -0.16, 1.0),
-    part(new CylinderGeometry(0.035, 0.035, 0.012, 8), METAL, [0, 0.665, 0], undefined, TILE.CERAMIC),
+    // 기둥 — 아래로 갈수록 넓어지는 도기 페디스털
+    part(new CylinderGeometry(0.15, 0.21, 0.58, SEG.MID), WHITE, [0, 0.29, 0], undefined, TILE.CERAMIC),
+    /**
+     * 대야. **「깨져 보인다」의 나머지 절반이 여기였다.**
+     *
+     * 예전엔 네모 `basin(0.54, 0.44, …)` 위에 `TorusGeometry(0.28, 0.022)` 를 얹었는데,
+     * 링 바깥 반지름이 **0.302** 이고 통 반쪽은 **0.270** 이라 좌우·앞뒤로 3.2cm 씩
+     * 삐져나왔다. 네모 통을 꿰뚫고 나온 타원 링 — 그게 화면에서 깨진 그릇이었다.
+     *
+     * `hollow()` 은 바깥벽·안쪽벽·**테두리**가 전부 같은 `rTop` 에서 파생된다.
+     * 어긋날 데가 원리상 없다. 그리고 **`p.tile` 을 그대로 넘긴다** —
+     * 예전 `.map()` 은 인쇄 칸을 통째로 버리고 있었다.
+     */
+    ...hollow(0.31, 0.23, 0.19, 0.032, 0.05, SEG.MID, WHITE, [0.74, 0.79, 0.84], TILE.CERAMIC)
+      .map((p) => part(p.geo, p.rgb, [0, 0.56, 0], undefined, p.tile)),
+    // 뒤쪽 선반 — 꼭지가 서는 자리. 없으면 꼭지가 허공에 꽂힌 막대다
+    part(soft(0.40, 0.075, 0.14, 0.30), WHITE, [0, 0.785, -0.24]),
+    ...tap(0, 0.82, -0.235, 1.0),
+    // 배수구 + 넘침 구멍 — 도기에 «구멍 둘»이 있어야 세면대다
+    part(new CylinderGeometry(0.030, 0.030, 0.010, 10), METAL, [0, 0.620, 0]),
+    part(new CylinderGeometry(0.026, 0.026, 0.014, 10), INK, [0, 0.705, 0.252], LIE_Z),
   ]),
 
   // ─── 뒷마당 ──────────────────────────────────────────────────
@@ -369,7 +458,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [0.46, 0.72, 0], [0, 0, Math.PI / 2]),
     part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [-0.46, 0.72, 0], [0, 0, Math.PI / 2]),
     // 뚫린 입구 — 뒤집은 원기둥으로 «안»을 만든다
-    part(new CylinderGeometry(0.24, 0.24, 0.30, 14, 1, true).scale(-1, 1, 1),
+    part(invert(new CylinderGeometry(0.24, 0.24, 0.30, 14, 1, true)),
       [0.30, 0.24, 0.20], [0, 0.30, 0.29], LIE_Z),
     part(new CylinderGeometry(0.24, 0.24, 0.02, 14), [0.22, 0.18, 0.15], [0, 0.30, 0.16], LIE_Z),
     // 마루 — 바닥에서 살짝 띄운다

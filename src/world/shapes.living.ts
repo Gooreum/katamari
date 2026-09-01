@@ -3,7 +3,9 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLiving } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
+import {
+  assemble, hollow, invert, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft,
+} from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
@@ -208,7 +210,7 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
      */
     part(new CylinderGeometry(0.042, 0.042, 0.010, 18, 1, true), WHITE, [0, 0.06, 0.017], LIE_Z),
     // 안쪽벽 — 뒤집어야 «안»이 보인다. FrontSide 라 안 뒤집으면 통째로 컬링된다
-    part(new CylinderGeometry(0.036, 0.036, 0.010, 18, 1, true).scale(-1, 1, 1),
+    part(invert(new CylinderGeometry(0.036, 0.036, 0.010, 18, 1, true)),
       [0.58, 0.58, 0.58], [0, 0.06, 0.017], LIE_Z),
     // 고리 앞면 — 바깥벽과 안쪽벽을 잇는다. 없으면 테가 종이처럼 얇아 보인다.
     // **토러스는 이미 XY 평면(축이 Z)이라 돌리면 안 된다** — LIE_Z 를 먹였다가

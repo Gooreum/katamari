@@ -137,6 +137,14 @@ export const TILE = {
   DIRT: 33,
   /** 벽지 잔무늬 — 벽·천장 */
   WALLPAPER: 34,
+  /**
+   * 잔물결 — 욕조·변기·물확에 담긴 물.
+   *
+   * 물을 부품 «두 장»(수면 + 뜬 김)으로 만들었더니 둘이 같은 평면에서 겹쳐
+   * z-fighting 이 났다. **무늬는 부품이 아니라 인쇄로 넣는 게 맞다** —
+   * 삼각형도 줄고 겹칠 데도 없다.
+   */
+  WATER: 35,
 } as const;
 
 /**
@@ -552,17 +560,29 @@ export function buildPrintAtlas(): CanvasTexture {
   });
 
   /** 도기 유약. 큰 얼룩 몇 개 + 가장자리로 갈수록 짙어지는 굽 */
+  /**
+   * 도기 유약. **얼룩을 3분의 1로 줄이고 옅게 했다.**
+   *
+   * 예전 값(반지름 8~26px · 알파 0.123 · 26개)은 128px 칸을 큰 타원으로 뒤덮어서,
+   * 그 무늬가 1m 짜리 욕조 한 면에 그대로 늘어나면 **위장무늬**로 보였다.
+   * 화면에서 욕조가 얼룩덜룩한 군용 상자였다. 유약은 «가까이서만 보이는» 것이라
+   * 작고 옅어야 맞다.
+   */
   at(TILE.CERAMIC, () => {
     base();
-    cx.fillStyle = 'rgba(96,104,112,0.123)';
-    for (let i = 0; i < 26; i++) {
+    cx.fillStyle = 'rgba(96,104,112,0.055)';
+    for (let i = 0; i < 34; i++) {
       cx.beginPath();
       cx.ellipse(rnd(i * 23 + 3, CELL), rnd(i * 31 + 7, CELL),
-        8 + rnd(i * 7, 18), 5 + rnd(i * 11, 12), rnd(i * 5, 3), 0, Math.PI * 2);
+        3 + rnd(i * 7, 7), 2 + rnd(i * 11, 5), rnd(i * 5, 3), 0, Math.PI * 2);
       cx.fill();
     }
-    cx.strokeStyle = 'rgba(96,104,112,0.228)'; cx.lineWidth = 5;
-    cx.strokeRect(2, 2, CELL - 4, CELL - 4);
+    // 아주 옅은 세로 광택 — 도기는 곡면이라 세로로 빛이 흐른다
+    cx.fillStyle = 'rgba(255,255,255,0.30)';
+    cx.fillRect(CELL * 0.16, 0, 5, CELL);
+    cx.fillStyle = 'rgba(96,104,112,0.10)';
+    cx.strokeStyle = 'rgba(96,104,112,0.10)'; cx.lineWidth = 2;
+    cx.strokeRect(1, 1, CELL - 2, CELL - 2);
   });
 
   /** 플라스틱 성형 줄. 일정 간격 «세로» 골 — 사출 자국이다 */
@@ -655,6 +675,28 @@ export function buildPrintAtlas(): CanvasTexture {
     }
     cx.fillStyle = 'rgba(120,112,100,0.070)';
     for (let k = 0; k < CELL; k += 3) cx.fillRect(0, k, CELL, 1);
+  });
+
+  /**
+   * 물. **동심원이 아니라 «중심이 셋인» 잔물결**이다 — 동심원 한 벌은
+   * 과녁으로 읽힌다. 여기에 흰 반사 줄 몇 개를 얹어야 수면이 «빛난다».
+   */
+  at(TILE.WATER, () => {
+    base();
+    cx.lineWidth = 1.5;
+    for (const [cxp, cyp, n] of [[38, 44, 6], [92, 30, 4], [70, 96, 5]] as const) {
+      for (let k = 1; k <= n; k++) {
+        cx.strokeStyle = `rgba(58,96,128,${0.16 - k * 0.015})`;
+        cx.beginPath();
+        cx.ellipse(cxp, cyp, k * 9, k * 6.5, 0.3, 0, Math.PI * 2);
+        cx.stroke();
+      }
+    }
+    // 반사 — 흰 줄. 곱셈 텍스처라 흰색은 「그 자리를 밝게 두라」는 뜻이다
+    cx.fillStyle = 'rgba(255,255,255,0.55)';
+    for (const [x, y, w] of [[18, 22, 34], [64, 58, 26], [30, 100, 40]] as const) {
+      cx.fillRect(x, y, w, 2);
+    }
   });
 
   const tex = new CanvasTexture(cv);

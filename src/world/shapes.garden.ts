@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdGarden } from './generation';
 import {
-  assemble, DARK, hollow, part, soft, WHITE, WOOD,
+  assemble, DARK, hollow, invert, part, soft, WHITE, WOOD,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -207,7 +207,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, -0.080], [0, a, 0]),
     ]),
     // 안쪽 어둠 — 뒤집은 상자. 없으면 구멍 너머로 하늘이 보여서 «집»이 안 된다
-    part(new BoxGeometry(0.13, 0.16, 0.13).scale(-1, 1, 1), [0.22, 0.20, 0.17],
+    part(invert(new BoxGeometry(0.13, 0.16, 0.13)), [0.22, 0.20, 0.17],
       [0, 0.635, 0]),
     // 갓 — 8각 처마. 넓어야 석등이다
     part(new CylinderGeometry(0.145, 0.115, 0.035, 14), STONE, [0, 0.738, 0]),

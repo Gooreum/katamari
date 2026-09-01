@@ -64,6 +64,43 @@ export const WRAP: RGB = [1.55, 1.52, 1.42];
  */
 export const INK: RGB = [0.22, 0.20, 0.18];
 
+/**
+ * **안쪽을 보게 뒤집는다** — 감기«와» 법선을 함께 뒤집는다.
+ *
+ * ## 왜 `.scale(-1, 1, 1)` 만으로는 안 되나
+ *
+ * 여태 파인 통(욕조·세면대·싱크대·밥공기·찻잔·화분·개집…)이 전부
+ * `new BoxGeometry(...).scale(-1, 1, 1)` 이었다. 그러면 **보이기는 한다** —
+ * 거울 변환이 삼각형 감기를 뒤집어서 `FrontSide` 컬링이 안쪽 면을 남긴다.
+ *
+ * 그런데 **법선은 X 성분 하나만 뒤집힌다.** three 의 `applyMatrix4` 가 법선에
+ * 「역전치 행렬」을 곱하는데, `diag(-1,1,1)` 의 역전치는 자기 자신이라
+ * `(nx,ny,nz) → (−nx, ny, nz)` 다. 그래서
+ *
+ *   원래 −Y 면(0,−1,0)  →  그대로 (0,−1,0)   ← 통 «바닥»인데 법선이 아래를 본다
+ *
+ * 통 바닥·옆벽이 **바깥을 향한 법선으로 칠해졌다.** 위에서 내리쬐는 해와
+ * 하늘광을 하나도 못 받고 땅색(0x3a3524)만 받아서 **거의 검정**이 된다.
+ * 화면에서 욕조 안이 새까맸던 게 이것이고, 사용자가 「욕조에 물이 있는건지
+ * 뭔지도 모르겠다」고 한 것의 절반이 여기다.
+ *
+ * 뒤집은 뒤 법선 **셋 다** 부호를 바꾸면 정확히 안쪽을 본다:
+ *
+ *   원래 +X(1,0,0) → 스케일 후 (−1,0,0) → 부호 반전 (1,0,0)
+ *     그 면은 이제 x = −w/2 에 있으므로 +X 는 «통 안»이다 ✓
+ *
+ * @param sy·sz  x 말고 다른 축도 눌러야 할 때(타원 변기통 등). 부호는 양수로 준다
+ */
+export function invert(geo: BufferGeometry, sy = 1, sz = 1): BufferGeometry {
+  geo.scale(-1, sy, sz);
+  const n = geo.getAttribute('normal') as BufferAttribute | undefined;
+  if (n) {
+    for (let i = 0; i < n.count; i++) n.setXYZ(i, -n.getX(i), -n.getY(i), -n.getZ(i));
+    n.needsUpdate = true;
+  }
+  return geo;
+}
+
 export interface Part { geo: BufferGeometry; rgb: RGB; tile: number }
 
 /**
@@ -399,7 +436,7 @@ export function hollow(
     // 바깥벽 — 위아래가 뚫린 띠. 뚜껑을 안 덮어야 테두리가 두께를 갖는다
     part(new CylinderGeometry(rTop, rBot, h, seg, 1, true), rgb, [0, h / 2, 0], undefined, tile),
     // **안쪽벽.** 이게 「움푹하다」의 전부다
-    part(new CylinderGeometry(iTop, iBot, cavity, seg, 1, true).scale(-1, 1, 1),
+    part(invert(new CylinderGeometry(iTop, iBot, cavity, seg, 1, true)),
       inner, [0, floorT + cavity / 2, 0]),
     // 안쪽 바닥 — 없으면 그릇을 통해 방바닥이 보인다
     part(new CylinderGeometry(iBot, iBot, 0.008, seg), inner, [0, floorT, 0]),
