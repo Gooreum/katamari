@@ -31,10 +31,16 @@ const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const STONE: RGB = [0.78, 0.77, 0.73];
 /** 그늘진 돌 — 파인 자리·아랫면. 같은 회색이라도 어두워야 «깊이»가 생긴다 */
 const STONE_DARK: RGB = [0.52, 0.52, 0.50];
-/** 이끼 낀 돌 — 징검돌 윗면. 바닥색(`F_MOSS`)과 같은 결이다 */
-const MOSS: RGB = [0.42, 0.55, 0.28];
+/**
+ * 이끼 낀 돌 — 징검돌 가장자리.
+ * **`[0.42,0.55,0.28]` 이었다** — 화강암(STONE)과 대비가 0.02 라 화면에서 이끼가
+ * 아예 없었다. 이끼는 돌보다 확실히 어둡고 푸르다.
+ */
+const MOSS: RGB = [0.22, 0.40, 0.16];
 /** 대나무 줄기 — 마른 연둣빛 */
 const BAMBOO: RGB = [0.70, 0.74, 0.42];
+/** 물확 물대용 — 화강암(회색) 위에서 갈리려면 이만큼 밝아야 한다 */
+const BAMBOO_LIT: RGB = [1.25, 1.30, 0.68];
 /** 대나무 마디 — 줄기보다 짙어야 «마디»로 읽힌다 */
 const BAMBOO_NODE: RGB = [0.52, 0.56, 0.30];
 /** 잎 — 대나무·소나무 공통 */
@@ -60,9 +66,11 @@ function culm(
    * 링이 가로로 줄을 맞춰서 「사다리 가로대」로 읽힌다. 화면이 잡은 결함이다.
    */
   phase = 0,
+  /** 대 색. 물확은 화강암 위에 서므로 기본값(`BAMBOO`)으로는 대비가 0.05 다 */
+  rgb: RGB = BAMBOO,
 ): Part[] {
   const p: Part[] = [
-    part(new CylinderGeometry(r * 0.82, r, h, 7), BAMBOO, [x, h / 2, z], [0, 0, tilt]),
+    part(new CylinderGeometry(r * 0.82, r, h, 7), rgb, [x, h / 2, z], [0, 0, tilt]),
   ];
   for (let i = 1; i <= nodes; i++) {
     const y = (h * (i - 1 + phase + 0.6)) / (nodes + 1);
@@ -100,6 +108,9 @@ function culm(
  * @param flat  y 배율. 크면 엎드린 돌(伏石·고요·물), 작으면 선 돌(立石·힘·산)
  * @param lean  기울기(rad). 협석(脇石)은 주석 쪽으로 기울어 받친다
  */
+/** 솔가지 껍질 — 잎(몸통)과 갈려야 「가지가 덩이를 받친다」가 보인다(WOOD 는 대비 0.07) */
+const PINE_BARK: RGB = [0.26, 0.18, 0.12];
+
 function rock(seed: number, flat: number, lean: number, rgb: RGB): Part[] {
   /**
    * **세분 1(면 80개)이다.** 0(면 20)으로 만들었더니 각이 너무 커서 화강암이
@@ -136,7 +147,9 @@ function rock(seed: number, flat: number, lean: number, rgb: RGB): Part[] {
   }
   // 흔든 뒤 다시 계산해야 «깨진 면»이 산다. 안 하면 원래 구의 매끈한 법선이 남는다
   geo.computeVertexNormals();
-  return [part(geo, rgb)];
+  // **돌 결 인쇄를 문다.** 부품이 하나뿐이라 표식을 붙일 데가 없다 —
+  // 민짜 다면체는 「깎은 보석」이지 화강암이 아니다
+  return [part(geo, rgb, undefined, undefined, TILE.STONE)];
 }
 
 /**
@@ -153,7 +166,8 @@ function stem(
 ): { part: Part; end: readonly [number, number, number] } {
   const dx = -Math.sin(a) * h, dy = Math.cos(a) * h;
   return {
-    part: part(new CylinderGeometry(rTop, rBot, h, 7), WOOD,
+    // 껍질 — 잎 덩이(몸통)와 갈려야 「줄기가 굽었다」가 보인다(`WOOD` 는 대비 0.07)
+    part: part(new CylinderGeometry(rTop, rBot, h, 8), PINE_BARK,
       [from[0] + dx / 2, from[1] + dy / 2, from[2]], [0, 0, a]),
     end: [from[0] + dx, from[1] + dy, from[2]],
   };
@@ -202,12 +216,23 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // 중대 — 화사석 받침. 위로 퍼진다
     part(new CylinderGeometry(0.125, 0.085, 0.06, 14), STONE, [0, 0.52, 0]),
     // 화사석 — 불집. **네 벽 사이가 뚫려야 «불이 드는 집»이다**
-    ...([0, Math.PI / 2] as const).flatMap((a) => [
-      part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, 0.080], [0, a, 0]),
-      part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, -0.080], [0, a, 0]),
-    ]),
+    /**
+      * 화사석 네 벽. **축을 손으로 지정한다.**
+      *
+      * 예전엔 `[0, 0.635, ±0.080]` 을 π/2 씩 돌려 네 장을 만들었는데,
+      * `part()` 은 **회전을 먼저, 이동을 나중에** 먹인다 — 돌려도 이동은 여전히
+      * z 축이라 옆벽 둘이 앞뒤 벽 «사이»로 들어가 서로 뚫고 있었다.
+      * 자가 `6×8 7×9 8×9` 로 잡은 게 이것이다. 옆벽은 두께만큼 짧아야 맞물린다.
+      */
+    part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, 0.080]),
+    part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, -0.080]),
+    part(new BoxGeometry(0.13, 0.17, 0.030), STONE, [0.080, 0.635, 0], [0, Math.PI / 2, 0]),
+    part(new BoxGeometry(0.13, 0.17, 0.030), STONE, [-0.080, 0.635, 0], [0, Math.PI / 2, 0]),
     // 안쪽 어둠 — 뒤집은 상자. 없으면 구멍 너머로 하늘이 보여서 «집»이 안 된다
-    part(invert(new BoxGeometry(0.13, 0.16, 0.13)), [0.22, 0.20, 0.17],
+    // 0.13 → **0.126**. 벽 네 장의 안쪽 면(±0.065)과 «같은 평면»이면
+    // z-fighting 이다 — `basin()` 에서 겪은 것과 같은 결함이다
+    // 0.124 — 벽 안쪽 면(±0.065)보다 3mm 안쪽. 딱 맞추면 같은 평면이 된다
+    part(invert(new BoxGeometry(0.124, 0.16, 0.124)), [0.10, 0.09, 0.08],
       [0, 0.635, 0]),
     // 갓 — 8각 처마. 넓어야 석등이다
     part(new CylinderGeometry(0.145, 0.115, 0.035, 14), STONE, [0, 0.738, 0]),
@@ -232,16 +257,28 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    */
   물확: () => assemble([
     // 그릇 — 위가 뚫린 원통. 안쪽을 어둡게 해야 «파였다»가 읽힌다
-    ...hollow(0.24, 0.26, 0.20, 0.045, 0.05, 12, STONE, [0.30, 0.33, 0.30]),
+    // **그릇을 괸 돌 «위»에 올린다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다.
+    // 안쪽도 더 짙게 — 물확은 물이 고여 어둡다
+    ...hollow(0.24, 0.26, 0.20, 0.045, 0.05, 12, STONE, [0.16, 0.19, 0.18], TILE.STONE)
+      .map((q) => part(q.geo, q.rgb, [0, 0.05, 0], undefined, q.tile)),
     // 밑에 괸 돌 — 그릇이 흙에 박힌 게 아니라 «놓인» 것으로 보이게
     part(new CylinderGeometry(0.27, 0.30, 0.05, 14), STONE_DARK, [0, 0.025, 0]),
+    // 고인 물 — 「파였다」를 확정하는 건 결국 물이다
+    part(new CylinderGeometry(0.185, 0.185, 0.012, 12), [1.05, 1.25, 1.35],
+      [0, 0.175, 0], undefined, TILE.WATER),
     // 앞에 딛는 납작 돌
     part(new CylinderGeometry(0.15, 0.16, 0.045, 10), STONE, [0.34, 0.022, 0.16]),
     // 대나무 물대 — 세운 대 + 기울여 뻗은 홈통. 끝이 그릇 위에 와야 한다
-    ...culm(-0.30, -0.12, 0.46, 0.032, 0, 2),
-    part(new CylinderGeometry(0.028, 0.028, 0.34, 7), BAMBOO,
-      [-0.17, 0.455, -0.06], [0.32, 0.42, 0.30], TILE.STONE),
-    part(new TorusGeometry(0.032, 0.010, 4, 7), BAMBOO_NODE, [-0.30, 0.46, -0.12], LIE_Z),
+    /**
+      * 대나무 물대. **`BAMBOO`(0.70,0.74,0.42)는 화강암과 대비가 0.05** 라
+      * 화면에서 돌에 파묻혔다 — 마른 대는 돌보다 확실히 «밝고 노랗다».
+      */
+    // 대를 2cm 띄운다 — 괸 돌과 밑면이 같은 평면이면 z-fighting 이다(자가 `5×8`)
+    ...culm(-0.30, -0.12, 0.44, 0.032, 0, 2, 0, BAMBOO_LIT)
+      .map((q) => part(q.geo, q.rgb, [0, 0.02, 0], undefined, q.tile)),
+    part(new CylinderGeometry(0.028, 0.028, 0.34, 8), BAMBOO_LIT,
+      [-0.17, 0.455, -0.06], [0.32, 0.42, 0.30], TILE.WOOD_F),
+    part(new TorusGeometry(0.032, 0.010, 5, 8), BAMBOO_NODE, [-0.30, 0.46, -0.12], LIE_Z),
   ]),
 
   /**
@@ -256,10 +293,13 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // 것이라 옆에서 보이는 면이 거의 없다 — 여기에 턱을 주면 돌이 아니라 «케이크»가
     // 된다. 이 형상의 이음매는 전부 «일부러» 이어져 있다
     part(new CylinderGeometry(0.145, 0.155, 0.036, 10), STONE_DARK, [0, 0.018, 0]),
-    part(new CylinderGeometry(0.150, 0.145, 0.016, 10), STONE, [0, 0.044, 0]),
-    // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다
-    part(new CylinderGeometry(0.152, 0.150, 0.006, 10), MOSS, [0, 0.049, 0]),
-    part(new CylinderGeometry(0.112, 0.112, 0.008, 7), STONE, [0.008, 0.052, -0.006], undefined, TILE.STONE),
+    part(new CylinderGeometry(0.150, 0.145, 0.016, 10), STONE, [0, 0.044, 0], undefined, TILE.STONE),
+    // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다.
+    // `MOSS` 는 돌과 대비가 0.02 였다 — 이끼는 확실히 «어둡고 푸르다»
+    part(new CylinderGeometry(0.153, 0.150, 0.007, 10), MOSS, [0, 0.0495, 0]),
+    // 밟아 닳은 가운데 — 이끼보다 «밝다». 두께를 이끼와 다르게 해서 같은 평면을 피한다
+    part(new CylinderGeometry(0.112, 0.112, 0.010, 8), [1.15, 1.12, 1.05],
+      [0.008, 0.0525, -0.006], undefined, TILE.STONE),
   ]),
 
   /**
@@ -312,7 +352,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       at: readonly [number, number, number], dx: number, dz: number, r: number,
     ): Part[] => [
       // 가지 — 잎 덩이가 «공중에» 뜨지 않게 줄기에서 뻗어 받친다
-      part(new CylinderGeometry(0.016, 0.022, Math.hypot(dx, dz) * 1.9, 6), WOOD,
+      part(new CylinderGeometry(0.016, 0.022, Math.hypot(dx, dz) * 1.9, 6), PINE_BARK,
         [at[0] + dx * 0.5, at[1] - 0.02, at[2] + dz * 0.5],
         [0, Math.atan2(dx, dz), Math.PI / 2 - 0.25]),
       part(new SphereGeometry(r, 8, 5).scale(1, 0.44, 1), PINE,
@@ -339,8 +379,10 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
   게타: () => assemble([
     part(soft(0.098, 0.020, 0.235, 0.24), WOOD, [0, 0.058, 0]),
     // 이(歯) 둘 — 앞뒤로 떨어져야 «띄운» 것으로 보인다
-    part(new BoxGeometry(0.090, 0.048, 0.020), [0.42, 0.31, 0.21], [0, 0.024, 0.062]),
-    part(new BoxGeometry(0.090, 0.048, 0.020), [0.42, 0.31, 0.21], [0, 0.024, -0.055]),
+    // 이(歯) 둘 — `[0.42,0.31,0.21]` 은 바닥판(WOOD)과 대비가 0.03 이었다.
+    // 굽은 닳아서 «짙다»
+    part(new BoxGeometry(0.090, 0.048, 0.020), [0.20, 0.14, 0.09], [0, 0.024, 0.062]),
+    part(new BoxGeometry(0.090, 0.048, 0.020), [0.20, 0.14, 0.09], [0, 0.024, -0.055]),
     // 하나오(끈) — 앞코에서 갈라져 양옆으로. 검은 끈이 나막신을 신발로 만든다
     part(new CylinderGeometry(0.007, 0.007, 0.075, 6), DARK,
       [0.021, 0.078, 0.055], [0.55, 0.55, 0]),

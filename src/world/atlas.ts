@@ -163,6 +163,8 @@ export const TILE = {
   GLASSY: 40,
   /** 브라운관 화면 — 주사선. 검은 판만으로는 「꺼진 상자」다 */
   SCREEN: 41,
+  /** 골프공 딤플 — 구 넷을 박아도 대비가 0.05 라 안 보였다. 인쇄면 온 면에 찍힌다 */
+  GOLF: 42,
 } as const;
 
 /**
@@ -804,6 +806,21 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillStyle = 'rgba(20,20,24,0.30)';
     for (const [x, y, w, h] of [[0, 0, CELL, 6], [0, CELL - 6, CELL, 6],
       [0, 0, 6, CELL], [CELL - 6, 0, 6, CELL]] as const) cx.fillRect(x, y, w, h);
+  });
+
+  /** 골프공 — 육각 딤플. 가장자리에 그늘이 한 줄 있어야 «파인» 것으로 보인다 */
+  at(TILE.GOLF, () => {
+    base();
+    const R = 9;
+    for (let r = 0; r < CELL / R + 1; r++) {
+      for (let c = 0; c < CELL / R + 1; c++) {
+        const x = c * R + (r % 2 ? R / 2 : 0), y = r * R;
+        cx.fillStyle = 'rgba(112,112,118,0.16)';
+        cx.beginPath(); cx.arc(x, y, 3.4, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.beginPath(); cx.arc(x, y - 1.2, 2.2, 0, Math.PI * 2); cx.fill();
+      }
+    }
   });
 
   const tex = new CanvasTexture(cv);

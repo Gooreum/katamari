@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdWorld } from './generation';
-import { assemble, DARK, GLASS, METAL, part, PAPER, WHITE, WOOD } from './shapes.kit';
+import { assemble, DARK, GLASS, METAL, part, WHITE, WOOD, WRAP } from './shapes.kit';
 import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -68,8 +68,9 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new CylinderGeometry(0.13, 0.15, 0.86, 14), WHITE, [0, -0.05, 0]),
     part(new SphereGeometry(0.13, 14, 9), WHITE, [0, 0.38, 0], undefined, TILE.METAL),
     // 반사띠 둘 — 이게 없으면 그냥 기둥이다
-    part(new CylinderGeometry(0.145, 0.145, 0.09, 14), PAPER, [0, 0.20, 0]),
-    part(new CylinderGeometry(0.155, 0.155, 0.09, 14), PAPER, [0, -0.10, 0]),
+    // 반사띠 둘 — `PAPER`(대비 0.09)로는 기둥과 안 갈린다. 반사띠는 «흰색»이다
+    part(new CylinderGeometry(0.148, 0.148, 0.09, 14), WRAP, [0, 0.20, 0]),
+    part(new CylinderGeometry(0.158, 0.158, 0.09, 14), WRAP, [0, -0.10, 0]),
   ]),
 
   입간판: () => assemble([
@@ -83,11 +84,13 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // **깊이/높이가 0.65** 다. 조립·정규화까지 마친 지오메트리로 재서 고른 값이다.
     // 판 하나만 재면 0.38 이 맞아 보이는데, 그건 판 두께가 깊이에 더해지는 걸
     // 빼먹은 계산이다 (0.38 로는 0.76 이 나왔다).
+    // 판 둘. **폭을 다르게 한다** — 같으면 옆면 두 장이 같은 평면이라 z-fighting 이다
     part(new BoxGeometry(0.66, 0.86, 0.05), WHITE, [0, 0, 0.115], [-0.32, 0, 0]),
-    part(new BoxGeometry(0.66, 0.86, 0.05), WHITE, [0, 0, -0.115], [0.32, 0, 0]),
+    part(new BoxGeometry(0.63, 0.86, 0.05), WHITE, [0, 0, -0.115], [0.32, 0, 0]),
     // 종이는 판의 **바깥면 법선**을 따라 0.035 띄운다 — 판 두께 절반이 0.025라
     // 그보다 작으면 면 안에 파묻혀 안 보인다
-    part(new BoxGeometry(0.52, 0.30, 0.02), PAPER, [0, 0.068, 0.129], [-0.32, 0, 0]),
+    // 붙인 종이 — `PAPER`(대비 0.04)로는 판과 안 갈린다. 종이는 판보다 «희다»
+    part(new BoxGeometry(0.52, 0.30, 0.02), WRAP, [0, 0.068, 0.129], [-0.32, 0, 0]),
     // 경첩은 두 판의 **실제 윗끝**(y≈0.41)에 온다. 예전엔 0.36 이었는데
     // 그 높이에서 두 판이 한참 벌어져 있어 아무것도 잇지 않았다
     part(new CylinderGeometry(0.02, 0.02, 0.30, 6), WOOD, [0, 0.41, 0], LIE_X, TILE.METAL),
@@ -126,21 +129,27 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   우체통: () => assemble([
     // 기둥 위에 둥근 통. 동네의 그것보다 크고 다리가 보인다
     part(new CylinderGeometry(0.10, 0.12, 0.44, 14), METAL, [0, 0.22, 0]),
+    // 통 + 둥근 뚜껑. **폭이 같으면 옆면 두 장이 같은 평면이다** — 뚜껑을 살짝 좁힌다
     part(new BoxGeometry(0.44, 0.46, 0.34), WHITE, [0, 0.66, 0]),
-    part(new CylinderGeometry(0.22, 0.22, 0.34, 20, 1, false, 0, Math.PI), WHITE, [0, 0.89, 0], LIE_Z, TILE.WOOD_C),
+    part(new CylinderGeometry(0.22, 0.22, 0.325, 20, 1, false, 0, Math.PI), WHITE,
+      [0, 0.89, 0], LIE_Z, TILE.WOOD_C),
     // 투입구
     part(new BoxGeometry(0.30, 0.05, 0.36), DARK, [0, 0.80, 0]),
   ]),
 
   표지판: () => assemble([
-    part(new CylinderGeometry(0.045, 0.045, 1.10, 10), METAL, [0, 0.55, 0], undefined, TILE.METAL),
+    // 기둥 — **밑판 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(new CylinderGeometry(0.045, 0.045, 1.06, 10), METAL, [0, 0.58, 0], undefined, TILE.METAL),
+    // 표지 판 + 안쪽 원. **두께가 같으면 옆면이 같은 평면이다** — 안쪽을 얇게
+    // 앞으로 내고, `PAPER`(대비 0.04) 대신 확실히 갈리는 색으로 간다
     part(new CylinderGeometry(0.34, 0.34, 0.06, 20), WHITE, [0, 1.02, 0], LIE_Z),
-    part(new CylinderGeometry(0.24, 0.24, 0.08, 20), PAPER, [0, 1.02, 0], LIE_Z),
+    part(new CylinderGeometry(0.24, 0.24, 0.05, 20), [0.86, 0.28, 0.22], [0, 1.02, 0.022], LIE_Z),
     part(new BoxGeometry(0.30, 0.05, 0.30), METAL, [0, 0.025, 0]),
   ]),
 
   드럼통: () => assemble([
-    part(new CylinderGeometry(0.40, 0.40, 1.00, 20), WHITE, [0, 0.50, 0]),
+    // 몸통에 «금속» 인쇄를 문다 — 민짜 원통은 그냥 통이고, 테 둘은 얇아서 표식이 못 된다
+    part(new CylinderGeometry(0.40, 0.40, 1.00, 20), WHITE, [0, 0.50, 0], undefined, TILE.METAL),
     // 테 둘 — 이게 있어야 드럼통이다
     part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.28, 0], LIE_Z, TILE.METAL),
     part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z),
@@ -148,8 +157,9 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   ]),
 
   벤치: () => assemble([
+    // 앉는 판 + 등받이. **길이가 같으면 끝면 두 장이 같은 평면이다**
     part(new BoxGeometry(1.20, 0.08, 0.40), WOOD, [0, 0.44, 0], undefined, TILE.WOOD_C),
-    part(new BoxGeometry(1.20, 0.34, 0.07), WOOD, [0, 0.64, -0.17]),
+    part(new BoxGeometry(1.14, 0.34, 0.07), WOOD, [0, 0.64, -0.17], undefined, TILE.WOOD_C),
     // 다리 넷 — 주철 느낌으로 어둡게
     ...[[-0.50, 0.15], [-0.50, -0.15], [0.50, 0.15], [0.50, -0.15]].map(
       ([x, z]) => part(new BoxGeometry(0.08, 0.44, 0.08), DARK, [x!, 0.22, z!]),
@@ -184,9 +194,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   미끄럼틀: () => assemble([
     // 원작 MaS3 선물이 미끄럼틀 위에 있었다. 여기선 먹는 물건이다
+    // 기둥 둘 + 발판. **기둥 꼭대기(1.00)와 발판 밑면이 같은 평면**이면 z-fighting 이다
     part(new BoxGeometry(0.10, 1.00, 0.10), METAL, [-0.44, 0.50, 0.22]),
     part(new BoxGeometry(0.10, 1.00, 0.10), METAL, [-0.44, 0.50, -0.22]),
-    part(new BoxGeometry(0.40, 0.06, 0.54), WHITE, [-0.44, 1.00, 0]),
+    part(new BoxGeometry(0.40, 0.06, 0.54), WHITE, [-0.44, 1.05, 0]),
     // 경사판 + 난간
     part(new BoxGeometry(1.10, 0.06, 0.50), WHITE, [0.16, 0.56, 0], [0, 0, -0.52], TILE.METAL),
     part(new BoxGeometry(1.10, 0.14, 0.05), METAL, [0.16, 0.66, 0.25], [0, 0, -0.52]),
@@ -213,11 +224,20 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   사람: () => assemble([
     // 카타마리에서 사람은 배경이 아니라 **물건**이다. 서 있는 자세
-    part(new CylinderGeometry(0.11, 0.11, 0.44, 14), WHITE, [0, 0.22, -0.06]),
-    part(new CylinderGeometry(0.11, 0.11, 0.44, 14), WHITE, [0, 0.22, 0.06]),
+    // 다리 둘. **굵기를 다르게** — 같으면 옆면 두 장이 같은 평면이고 z 로 겹친다
+    // 다리 둘. **z 로도 안 겹치게 벌린다** — 밑면 두 장이 같은 평면(y=0)인데
+    // 발판이 겹치면 z-fighting 이다
+    part(new CylinderGeometry(0.095, 0.095, 0.44, 14), WHITE, [0, 0.22, -0.105]),
+    part(new CylinderGeometry(0.095, 0.095, 0.44, 14), WHITE, [0, 0.22, 0.105]),
     part(new BoxGeometry(0.30, 0.46, 0.20), WHITE, [0, 0.66, 0]),
-    part(new SphereGeometry(0.15, 14, 9), [0.95, 0.8, 0.7], [0, 1.02, 0], undefined, TILE.CLOTH),
-    part(new SphereGeometry(0.16, 14, 9).scale(1, 0.6, 1), DARK, [0, 1.10, 0]),
+    // 얼굴 — 옷(WHITE)과 대비가 0.08 이었다. 살빛은 옷보다 확실히 짙거나 밝아야 한다
+    // 얼굴 — 인쇄를 뺀다. `TILE.CLOTH`(천 짜임)를 물려놨더니 얼굴에 격자가 찍혔다
+    part(new SphereGeometry(0.15, 14, 9), [0.74, 0.56, 0.44], [0, 1.02, 0]),
+    // 머리 — 얼굴을 다 덮으면 안 된다. 위 절반만 얹는다
+    part(new SphereGeometry(0.155, 14, 9).scale(1, 0.52, 1), DARK, [0, 1.10, 0]),
+    // 눈 둘 — 이게 있어야 이쪽이 «앞»이다
+    ...([1, -1] as const).map((k) =>
+      part(new SphereGeometry(0.022, 6, 5), DARK, [0.135, 1.03, k * 0.055])),
     // 팔 둘
     part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, -0.21], [0.12, 0, 0]),
     part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, 0.21], [-0.12, 0, 0]),
@@ -225,14 +245,31 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   승용차: () => assemble([
     // 낮은 물체라 위쪽을 비운다 (shapes.kit 규약 2번)
-    part(new BoxGeometry(1.30, 0.30, 0.60), WHITE, [0, 0.30, 0]),
-    part(new BoxGeometry(0.66, 0.26, 0.54), GLASS, [-0.06, 0.56, 0]),
-    part(new BoxGeometry(0.60, 0.22, 0.56), WHITE, [-0.06, 0.58, 0]),
+    /**
+     * 몸통 + 유리 + 지붕. **화면에서 「창도 앞유리도 없는 베이지 상자」였다** —
+     * 유리 띠(`GLASS`)가 몸통보다 «넓어야» 창으로 보이는데 0.54 로 몸통(0.60)보다
+     * 좁았고, 지붕이 그 위를 0.56 으로 덮어서 유리가 4mm 만 보였다.
+     * 유리를 몸통 폭까지 넓히고 지붕을 좁혀 «창 띠»가 한 바퀴 돌게 한다.
+     */
+    part(new BoxGeometry(1.30, 0.30, 0.60), WHITE, [0, 0.30, 0], undefined, TILE.METAL),
+    part(new BoxGeometry(0.70, 0.24, 0.605), [0.26, 0.30, 0.36], [-0.06, 0.57, 0]),
+    // 지붕 — 유리보다 «좁아야» 창이 한 바퀴 도는 걸로 보인다
+    part(new BoxGeometry(0.60, 0.09, 0.545), WHITE, [-0.06, 0.665, 0]),
+    // 앞유리 — 비스듬히 눕는다. 상자 셋을 쌓으면 트럭이고, 이 경사 하나가 «승용차»다
+    part(new BoxGeometry(0.24, 0.05, 0.575), [0.26, 0.30, 0.36], [0.34, 0.58, 0], [0, 0, -0.62]),
     ...[[-0.42, 0.31], [-0.42, -0.31], [0.42, 0.31], [0.42, -0.31]].map(
       ([x, z]) => part(new CylinderGeometry(0.17, 0.17, 0.10, 20), DARK, [x!, 0.17, z!], LIE_Z),
     ),
-    part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, 0.20], undefined, TILE.PAPER),
-    part(new SphereGeometry(0.07, 14, 9), PAPER, [0.64, 0.32, -0.20]),
+    // 헤드라이트 둘 — `PAPER`(대비 0.04)로는 차체와 안 갈린다. 등은 «빛난다»
+    // 헤드라이트 — 차체 팔레트가 밝은 쪽이라 `WRAP` 도 대비가 0.06 이다.
+    // 등은 «테두리가 짙어야» 등으로 읽힌다
+    part(new SphereGeometry(0.085, 14, 9), [0.34, 0.36, 0.40], [0.635, 0.32, 0.20]),
+    part(new SphereGeometry(0.085, 14, 9), [0.34, 0.36, 0.40], [0.635, 0.32, -0.20]),
+    part(new SphereGeometry(0.058, 12, 8), WRAP, [0.665, 0.32, 0.20], undefined, TILE.GLASSY),
+    part(new SphereGeometry(0.058, 12, 8), WRAP, [0.665, 0.32, -0.20]),
+    // 범퍼 — 앞뒤에 짙은 띠 하나면 「차 앞」이 어디인지 읽힌다
+    // 범퍼 — 차체 밑면(y 0.15)보다 위에서 시작해야 밑면이 같은 평면이 안 된다
+    part(new BoxGeometry(0.06, 0.10, 0.50), [0.34, 0.35, 0.38], [0.65, 0.23, 0]),
   ]),
 
   가로수: () => assemble([
