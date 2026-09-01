@@ -195,8 +195,8 @@ export const HOUSE_ROOMS: readonly StageRoom[] = [
   { id: 'living', name: '거실', rect: R_LIVING, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.022, sizeMax: 0.28, count: 40, openAt: 0, labels: ROOM_TABLES['living']!, edge: 0.68, align: true, ceiling: 2.4 },
   { id: 'hall', name: '복도', rect: R_HALL, floor: F_WOOD, floorTex: 'wood', sizeMin: 0.010, sizeMax: 0.22, count: 42, openAt: OPEN_HALL, labels: ROOM_TABLES['hall']!, edge: 0.76, align: true, ceiling: 2.4 },
   { id: 'kids', name: '아이 방', rect: R_KIDS, floor: F_TATAMI, floorTex: 'tatami', sizeMin: 0.010, sizeMax: 0.40, count: 70, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kids']!, edge: 0.7, align: true, ceiling: 2.4 },
-  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, sizeMin: 0.020, sizeMax: 0.40, count: 48, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
-  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, sizeMin: 0.010, sizeMax: 0.24, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true, ceiling: 2.4 },
+  { id: 'kitchen', name: '부엌', rect: R_KITCHEN, floor: F_TILE, floorTex: 'tile', sizeMin: 0.020, sizeMax: 0.40, count: 48, openAt: OPEN_ROOMS, labels: ROOM_TABLES['kitchen']!, edge: 0.66, align: true, ceiling: 2.4 },
+  { id: 'bath', name: '화장실', rect: R_BATH, floor: F_BATH, floorTex: 'tile', sizeMin: 0.010, sizeMax: 0.24, count: 18, openAt: OPEN_ROOMS, labels: ROOM_TABLES['bath']!, edge: 0.72, align: true, ceiling: 2.4 },
   { id: 'porch', name: '툇마루', rect: R_PORCH, floor: F_PORCH, floorTex: 'wood', sizeMin: 0.020, sizeMax: 0.45, count: 20, openAt: OPEN_YARD, labels: ROOM_TABLES['porch']!, edge: 0.82, align: true, ceiling: 2.2 },
   { id: 'yard', name: '뒷마당', rect: R_YARD, floor: F_MOSS, floorTex: 'moss', sizeMin: 0.030, sizeMax: 0.34, count: 40, openAt: OPEN_YARD, labels: ROOM_TABLES['yard']!, edge: 0.74 },
 ];
@@ -720,7 +720,9 @@ export const LIVING_PROPS: readonly StageProp[] = [
 
   // ── 서벽 ────────────────────────────────────────────────
   // **TV를 TV장 위에 얹는다**(`y`). 예전엔 상자 둘을 앞뒤로 놓은 계단이었다
-  { label: 'TV장', x: -2.35, z: -0.85, size: 1.00, rotY: Math.PI / 2 },
+  // **다리 사이가 18cm 비어 있다.** 형상에서 측판·뒷판이 선반 밑면에서 끊기므로
+  // 그 아래에 있는 건 얇은 다리 넷뿐이다 — 밥상(0.24) 과 같은 규약이다
+  { label: 'TV장', x: -2.35, z: -0.85, size: 1.00, rotY: Math.PI / 2, underPass: 0.18 },
   { label: '텔레비전', x: -2.33, z: -0.85, size: 0.55, rotY: Math.PI / 2, y: 0.42 },
   // 서랍장. 서벽 콘센트(z=0.7)를 안 가리게 z 1.35 에 둔다
   { label: '서랍장', x: -2.38, z: 1.35, size: 1.00, rotY: Math.PI / 2 },
@@ -737,7 +739,9 @@ export const LIVING_PROPS: readonly StageProp[] = [
    */
   { label: '스탠드', x: 2.35, z: -0.90, size: 1.20 },
   // 다리 셋짜리 스탠드. 아래 선반(y 0.26)까지는 비어 있다
-  { label: '화분대', x: 2.38, z: 1.10, size: 0.55, underPass: 0.44 },
+  // 0.44 는 거짓말이었다 — 실측하니 가운데가 막히는 높이가 14cm 다(아래 선반 다리).
+  // 형상을 다시 만드는 Phase 5 에서 이 값을 다시 잰다
+  { label: '화분대', x: 2.38, z: 1.10, size: 0.55, underPass: 0.14 },
   { label: '방석더미', x: 2.38, z: 1.75, size: 0.50 },
 
   // ── 벽에 걸린 것 ────────────────────────────────────────
@@ -790,7 +794,7 @@ export const HOUSE_PROPS: readonly StageProp[] = [
    * **방 한가운데가 비고** 물건이 그 둘레에 모인다.
    */
   { label: '책상', x: -4.60, z: -7.28, size: 1.00, underPass: 0.42 },   // 북벽
-  { label: '의자', x: -4.60, z: -6.85, size: 0.45 },                     // 책상 앞
+  { label: '의자', x: -4.60, z: -6.85, size: 0.45, underPass: 0.19 },    // 책상 앞
   { label: '책장', x: -5.64, z: -5.60, size: 1.05, rotY: Math.PI / 2 },  // 서벽
   // 이불은 동벽에 붙이되 **문 앞(z −5.40~−4.50)을 피해 남쪽**에 깐다
   { label: '이불', x: -1.83, z: -3.50, size: 1.90, rotY: Math.PI / 2 },
@@ -804,8 +808,8 @@ export const HOUSE_PROPS: readonly StageProp[] = [
   { label: '찬장', x: -5.63, z: -10.60, size: 1.45, rotY: Math.PI / 2 },  // 서벽
   { label: '식탁', x: -3.60, z: -8.60, size: 1.20, underPass: 0.55 },
   // **의자 둘.** 식탁만 있으면 「다리 넷 달린 판」이고, 의자가 붙어야 식탁으로 읽힌다
-  { label: '의자', x: -4.55, z: -8.60, size: 0.45, rotY: Math.PI / 2 },
-  { label: '의자', x: -2.65, z: -8.60, size: 0.45, rotY: -Math.PI / 2 },
+  { label: '의자', x: -4.55, z: -8.60, size: 0.45, rotY: Math.PI / 2, underPass: 0.19 },
+  { label: '의자', x: -2.65, z: -8.60, size: 0.45, rotY: -Math.PI / 2, underPass: 0.19 },
 
   // ── 화장실 (2.4 × 3.0m) ─────────────────────────────────
   // 셋을 세 벽에 하나씩 — 서로 안 겹치고 문 앞(x 1.17~1.72)이 비어야 들어간다
@@ -816,7 +820,7 @@ export const HOUSE_PROPS: readonly StageProp[] = [
   // ── 툇마루 ──────────────────────────────────────────────
   // 폭 1.2m 짜리 **통로**다. 한 점만 둔다 — 두 점이면 뒷마당 가는 길이 막힌다.
   // 거실 화분대와 **같은 형상을 나눠 쓴다**
-  { label: '화분대', x: -2.25, z: 2.65, size: 0.42, underPass: 0.34 },
+  { label: '화분대', x: -2.25, z: 2.65, size: 0.42, underPass: 0.11 },   // 위와 같은 이유
 
   /**
    * ── 뒷마당 — 일본식 정원 ────────────────────────────────
@@ -923,14 +927,14 @@ export const HOUSE_PROPS: readonly StageProp[] = [
    * 동쪽 살림 쪽 0.9 × 2.7m 띠를 줬다 — 정원 쪽은 조용하고 개는 자기 쪽에서 논다.
    */
   // rz 1.15 — 1.35 로 두었더니 산책 타원이 **쉬는 개를 물었다**(개가 개를 통과한다)
-  { label: '개', x: 2.15, z: 6.60, size: 0.60, roam: [0.45, 1.15] },
+  { label: '개', x: 2.15, z: 6.60, size: 0.60, roam: [0.45, 1.15], underPass: 0.10 },
   /**
    * 쉬는 개. `roam` 이 없으면 지금까지처럼 제자리다.
    *
    * 개집 옆(2.95, 5.40)에 두었더니 **걷는 개의 산책 타원이 이 개를 물었다** —
    * 길찾기가 없으니 개가 개를 통과한다. 정원 어귀로 옮겨 앉혔다.
    */
-  { label: '개', x: -1.20, z: 4.00, size: 0.55, rotY: 1.9 },
+  { label: '개', x: -1.20, z: 4.00, size: 0.55, rotY: 1.9, underPass: 0.10 },
 ];
 
 /**

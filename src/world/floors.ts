@@ -373,6 +373,48 @@ export function buildWallpaperTexture(): CanvasTexture {
   return finish(cv);
 }
 
+/**
+ * 타일 바닥 — 부엌·화장실.
+ *
+ * **일곱 방 중 이 둘만 `floorTex` 가 없었다.** 다다미·마루·이끼가 깔린 다른 방과
+ * 나란히 놓으면 이 둘만 「덜 만든 방」으로 보인다. 사용자가 「화장실은 그냥 개판」
+ * 이라고 한 것의 한 몫이다.
+ *
+ * `TILE_M` 이 1.8m 이므로 6×6 으로 나누면 **한 칸이 30cm** — 쇼와 시대
+ * 부엌·욕실 타일 크기다. 줄눈이 무늬의 전부고, 타일 면에는 아주 옅은
+ * 명도 흔들림만 준다(전부 똑같으면 인쇄한 종이로 보인다).
+ */
+export function buildTileTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+  cx.fillStyle = '#ffffff';
+  cx.fillRect(0, 0, 128, 128);
+
+  const N = 6;
+  const step = 128 / N;
+  // 칸마다 옅은 명도 흔들림. 결정적 수열이라 새로고침해도 같은 그림이다
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const k = (r * N + c) * 37 % 11;
+      cx.fillStyle = `rgba(104,102,96,${(k * 0.006).toFixed(3)})`;
+      cx.fillRect(c * step, r * step, step, step);
+    }
+  }
+  // 줄눈 — 이게 타일의 정체다. 두 겹으로 그려 «파인» 느낌을 낸다
+  cx.fillStyle = 'rgba(96,92,84,0.30)';
+  for (let k = 0; k <= N; k++) {
+    cx.fillRect(Math.round(k * step) - 1, 0, 2, 128);
+    cx.fillRect(0, Math.round(k * step) - 1, 128, 2);
+  }
+  cx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let k = 0; k <= N; k++) {
+    cx.fillRect(Math.round(k * step) + 1, 0, 1, 128);
+    cx.fillRect(0, Math.round(k * step) + 1, 128, 1);
+  }
+  return finish(cv);
+}
+
 /** 방 정의(`StageRoom.floorTex`)가 고르는 이름 → 생성 함수. */
 export const FLOOR_TEX = {
   tatami: buildTatamiTexture,
@@ -381,6 +423,7 @@ export const FLOOR_TEX = {
   moss: buildMossTexture,
   gravel: buildGravelTexture,
   karesansui: buildKaresansuiTexture,
+  tile: buildTileTexture,
 } as const;
 
 export type FloorTex = keyof typeof FLOOR_TEX;
