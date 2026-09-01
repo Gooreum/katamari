@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft, lip,
+import { assemble, DARK, INK, METAL, part, SHINE, WHITE, WOOD, WRAP, soft, lip,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
@@ -35,7 +35,19 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.56, 0]),
     part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, 0.11]),
     part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, -0.11]),
-    part(new SphereGeometry(0.045, 14, 9), [0.9, 0.55, 0.6], [0.64, 0.54, 0], undefined, TILE.STRAW),
+    /**
+      * 얼굴. **코 하나로는 얼굴이 안 된다** — 화면에서 「귀 달린 베이지 덩어리」였다.
+      * 눈 둘 + 코 + 주둥이 넷이 있어야 이쪽이 «앞»인 걸 안다.
+      */
+    // 주둥이 — 고양이 팔레트는 살구·검정·흰색 셋이다. `WRAP` 은 밝은 둘에서 포화되고
+    // 짙은 쪽은 검정에서 안 갈린다. **과반(살구·흰색)에서 도는 중간 톤**으로 간다
+    part(new SphereGeometry(0.10, 10, 8).scale(1, 0.8, 1.25), [0.55, 0.46, 0.42], [0.60, 0.50, 0]),
+    part(new SphereGeometry(0.05, 8, 6), [0.92, 0.48, 0.55], [0.66, 0.53, 0]),
+    ...([1, -1] as const).map((k) =>
+      part(new SphereGeometry(0.055, 8, 6), INK, [0.58, 0.62, k * 0.10])),
+    // 귀 «안». 짙어야 귀가 두 겹으로 읽힌다
+    ...([1, -1] as const).map((k) =>
+      part(new ConeGeometry(0.05, 0.11, 5), [0.86, 0.52, 0.52], [0.40, 0.755, k * 0.11])),
     // 앞다리 둘
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, 0.12]),
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, -0.12]),
@@ -69,16 +81,26 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   텔레비전: () => assemble([
     // 브라운관 TV. 원작 거실의 그것 — 다리가 짧고 몸통이 두껍다
-    part(soft(0.86, 0.66, 0.62, 0.14), WHITE, [0, 0.42, 0]),
-    // 화면 — 살짝 볼록한 유리
-    part(new BoxGeometry(0.62, 0.48, 0.04), GLASS, [-0.04, 0.44, 0.32]),
-    part(new BoxGeometry(0.54, 0.40, 0.03), [0.35, 0.42, 0.48], [-0.04, 0.44, 0.34]),
-    // 오른쪽 조작부 — 다이얼 둘
-    part(new CylinderGeometry(0.07, 0.07, 0.05, 8), DARK, [0.34, 0.56, 0.32], LIE_Z, TILE.PANEL),
-    part(new CylinderGeometry(0.07, 0.07, 0.05, 8), DARK, [0.34, 0.36, 0.32], LIE_Z),
+    // 캐비닛 — 나뭇결. 브라운관 TV 는 나무 상자다
+    part(soft(0.86, 0.66, 0.62, 0.14), WHITE, [0, 0.42, 0], undefined, TILE.WOOD_C),
+    /**
+     * 화면. **`GLASS`(0.55~0.78)는 캐비닛과 대비가 0.06** 이라 화면이 안 보였다 —
+     * 화면에서 「안테나 달린 검은 상자」였던 게 이것이다. 브라운관은 캐비닛보다
+     * 확실히 짙고, 그 위에 밝은 반사가 한 줄 있다.
+     */
+    part(new BoxGeometry(0.66, 0.52, 0.035), [0.30, 0.31, 0.34], [-0.04, 0.44, 0.315]),
+    part(new BoxGeometry(0.56, 0.42, 0.03), [0.16, 0.17, 0.20], [-0.04, 0.44, 0.335],
+      undefined, TILE.SCREEN),
+    // 오른쪽 조작부 — 다이얼 둘. 캐비닛보다 짙어야 「누르는 데」로 읽힌다
+    part(new CylinderGeometry(0.085, 0.085, 0.06, 10), INK, [0.34, 0.56, 0.325], LIE_Z, TILE.PANEL),
+    part(new CylinderGeometry(0.085, 0.085, 0.06, 10), INK, [0.34, 0.36, 0.325], LIE_Z),
+    // 스피커 구멍 — 다이얼 밑. 이게 있어야 조작부가 «패널»이 된다
+    part(new BoxGeometry(0.13, 0.16, 0.02), INK, [0.34, 0.17, 0.325], undefined, TILE.PANEL),
     // 안테나
-    part(new CylinderGeometry(0.02, 0.015, 0.52, 6), METAL, [0.16, 0.98, -0.16], [0.3, 0, 0.3]),
-    part(new CylinderGeometry(0.02, 0.015, 0.52, 6), METAL, [-0.16, 0.98, -0.16], [0.3, 0, -0.3]),
+    // 안테나 — TV 팔레트가 «검정»이라 `METAL`(0.72)은 캐비닛과 대비가 0.05 다.
+    // 검은 물건 위의 금속은 «밝은» 쪽이어야 보인다
+    part(new CylinderGeometry(0.022, 0.016, 0.52, 6), SHINE, [0.16, 0.98, -0.16], [0.3, 0, 0.3]),
+    part(new CylinderGeometry(0.022, 0.016, 0.52, 6), SHINE, [-0.16, 0.98, -0.16], [0.3, 0, -0.3]),
     part(soft(0.10, 0.14, 0.10, 0.3), WHITE, [0.30, 0.05, 0.20]),
     part(soft(0.10, 0.14, 0.10, 0.3), WHITE, [-0.30, 0.05, 0.20]),
   ]),
@@ -109,12 +131,16 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new CylinderGeometry(0.035, 0.035, 0.62, 10), METAL, [0, 0.35, 0]),
     part(new CylinderGeometry(0.23, 0.14, 0.36, 20), WHITE, [0, 0.82, 0]),
     // 갓 안쪽 — 밝게 둬야 불이 켜진 것처럼 보인다
-    part(new CylinderGeometry(0.20, 0.12, 0.04, 20), [1, 0.95, 0.75], [0, 0.66, 0]),
-    part(new SphereGeometry(0.09, 14, 9), GLASS, [0, 0.72, 0], undefined, TILE.METAL),
+    // 갓 «안». 불이 켜져 있으니 바깥보다 훨씬 밝아야 한다 — `[1,0.95,0.75]` 는
+    // 갓 천과 대비가 0.04 라 그냥 같은 색이었다
+    // 갓 «안» — 바닥면이 갓 아래 테와 같은 평면이면 z-fighting 이다. 살짝 위로
+    part(new CylinderGeometry(0.20, 0.12, 0.04, 20), WRAP, [0, 0.685, 0]),
+    part(new SphereGeometry(0.09, 14, 9), WRAP, [0, 0.72, 0], undefined, TILE.METAL),
     // 갓 위아래 테. **갓의 윤곽을 그리는 건 천이 아니라 이 테다** —
-    // 원뿔대 하나만 있으면 옆에서 사다리꼴 색면으로 보인다
-    part(new TorusGeometry(0.225, 0.014, 4, 20), PAPER, [0, 0.64, 0], LIE_Z),
-    part(new TorusGeometry(0.135, 0.012, 4, 14), PAPER, [0, 1.00, 0], LIE_Z),
+    // 원뿔대 하나만 있으면 옆에서 사다리꼴 색면으로 보인다.
+    // `PAPER`(대비 0.05)를 짙은 쪽으로 바꿔야 그 윤곽이 실제로 그려진다
+    part(new TorusGeometry(0.228, 0.018, 6, 20), [0.52, 0.48, 0.42], [0, 0.64, 0], LIE_Z),
+    part(new TorusGeometry(0.138, 0.016, 6, 14), [0.52, 0.48, 0.42], [0, 1.00, 0], LIE_Z),
   ]),
 
   물뿌리개: () => assemble([

@@ -161,6 +161,8 @@ export const TILE = {
   EGG: 39,
   /** 유리 — 안이 비치는 결. 구슬·유리병처럼 «붙일 데가 없는» 것들이 쓴다 */
   GLASSY: 40,
+  /** 브라운관 화면 — 주사선. 검은 판만으로는 「꺼진 상자」다 */
+  SCREEN: 41,
 } as const;
 
 /**
@@ -784,6 +786,24 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillStyle = 'rgba(60,78,96,0.12)';
     cx.fillRect(58, -CELL, 20, CELL * 3);
     cx.restore();
+  });
+
+  /** 브라운관 — 가로 주사선 + 모서리 비네팅. 곱셈이라 흰 줄이 「켜진 화면」이 된다 */
+  at(TILE.SCREEN, () => {
+    base();
+    for (let y = 0; y < CELL; y += 3) {
+      cx.fillStyle = 'rgba(255,255,255,0.55)';
+      cx.fillRect(0, y, CELL, 1);
+    }
+    // 왼쪽 위 반사 — 유리는 늘 뭔가를 비춘다
+    cx.fillStyle = 'rgba(255,255,255,0.42)';
+    cx.beginPath();
+    cx.moveTo(10, 10); cx.lineTo(52, 10); cx.lineTo(20, 58); cx.lineTo(10, 58);
+    cx.closePath(); cx.fill();
+    // 모서리는 어둡다
+    cx.fillStyle = 'rgba(20,20,24,0.30)';
+    for (const [x, y, w, h] of [[0, 0, CELL, 6], [0, CELL - 6, CELL, 6],
+      [0, 0, 6, CELL], [CELL - 6, 0, 6, CELL]] as const) cx.fillRect(x, y, w, h);
   });
 
   const tex = new CanvasTexture(cv);

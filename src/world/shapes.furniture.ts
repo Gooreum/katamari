@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdFurniture } from './generation';
-import { assemble, DARK, PAPER, part, WHITE, WOOD, soft } from './shapes.kit';
+import { assemble, DARK, INK, part, WHITE, WOOD, soft } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
@@ -84,14 +84,25 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 여태 거실 책장은 압출 조각 넷이라 세로선만 있었다.
    */
   책장: () => assemble([
-    part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [-0.34, 0.50, 0], undefined, TILE.WOOD_C),    // 측판
-    part(soft(0.05, 1.00, 0.32, 0.3), WHITE, [0.34, 0.50, 0]),
-    part(soft(0.73, 0.04, 0.32, 0.3), WHITE, [0, 0.98, 0]),        // 위 마감
-    part(new BoxGeometry(0.68, 0.98, 0.03), PAPER, [0, 0.50, -0.155]),   // 뒷판
-    // 선반 셋 — 이게 책장의 정체다
+    // 측판 — **굽 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(soft(0.05, 0.94, 0.32, 0.3), WHITE, [-0.34, 0.535, 0], undefined, TILE.WOOD_C),
+    part(soft(0.05, 0.94, 0.32, 0.3), WHITE, [0.34, 0.535, 0], undefined, TILE.WOOD_C),
+    // 위 마감 — 측판보다 «살짝 넓게». 폭이 같으면 옆면이 같은 평면이라 z-fighting 이다
+    // 위 마감 — 측판보다 «넓고», 밑면이 측판 윗면(1.005)과 겹치지 않게 살짝 물린다
+    part(soft(0.78, 0.05, 0.35, 0.3), WHITE, [0, 0.985, 0], undefined, TILE.WOOD_C),
+    // 뒷판 — 안쪽은 그늘이다. `PAPER`(대비 0.04)로는 측판과 한 덩어리
+    // 뒷판은 «칸 안의 그늘»이다. 선반(WOOD)·측판(WHITE) 둘 다와 갈려야 칸이 보인다
+    /**
+     * 뒷판은 «칸 안의 그늘»이다. 선반·측판 둘 다와 갈려야 칸이 보인다.
+     * **책장 팔레트가 나무색(밝기 0.46)이라 계수 차이가 0.46배로 눌린다** —
+     * 문턱 0.15 를 넘기려면 계수 차이가 0.33 이상이어야 한다. 그늘답게 깊게 간다.
+     */
+    part(new BoxGeometry(0.66, 0.90, 0.03), [0.14, 0.12, 0.10], [0, 0.535, -0.157],
+      undefined, TILE.WOOD_F),
+    // 선반 셋 — 이게 책장의 정체다. 깊이를 측판보다 얕게 해서 «칸»이 보이게
     ...([0.30, 0.56, 0.82] as const).map((y) =>
-      part(soft(0.68, 0.032, 0.30, 0.3), WOOD, [0, y, 0])),
-    part(soft(0.73, 0.06, 0.32, 0.3), WOOD, [0, 0.03, 0]),         // 굽
+      part(soft(0.68, 0.034, 0.29, 0.3), [0.88, 0.82, 0.74], [0, y, 0.008])),
+    part(soft(0.76, 0.065, 0.34, 0.3), WOOD, [0, 0.0325, 0]),      // 굽
   ]),
 
   /**
@@ -120,9 +131,10 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    */
   신문더미: () => assemble([
     part(new BoxGeometry(1.00, 0.09, 0.66), WHITE, [0, 0.045, 0], [0, 0.04, 0], TILE.NEWSPAPER),
-    part(new BoxGeometry(0.96, 0.08, 0.64), PAPER, [0.02, 0.13, 0.02], [0, -0.06, 0]),
+    // 층 — 신문지는 팔레트가 흰색이라 «짙은» 쪽으로 갈라야 겹이 보인다(PAPER 는 0.09)
+    part(new BoxGeometry(0.96, 0.08, 0.64), [0.74, 0.73, 0.70], [0.02, 0.13, 0.02], [0, -0.06, 0]),
     part(new BoxGeometry(0.98, 0.08, 0.62), WHITE, [-0.02, 0.21, -0.01], [0, 0.09, 0], TILE.FLYER),
-    part(new BoxGeometry(0.92, 0.07, 0.60), PAPER, [0.03, 0.28, 0.01], [0, -0.03, 0]),
+    part(new BoxGeometry(0.92, 0.07, 0.60), [0.78, 0.77, 0.74], [0.03, 0.28, 0.01], [0, -0.03, 0]),
     // 묶은 끈 둘. 더미를 묶어야 더미다
     part(new BoxGeometry(0.05, 0.34, 0.70), [0.55, 0.42, 0.30], [-0.24, 0.16, 0]),
     part(new BoxGeometry(0.05, 0.34, 0.70), [0.55, 0.42, 0.30], [0.24, 0.16, 0]),
@@ -150,12 +162,15 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    */
   방석더미: () => assemble([
     part(new SphereGeometry(0.5, 16, 10).scale(1, 0.20, 1), WHITE, [0, 0.05, 0]),
-    part(new SphereGeometry(0.48, 16, 10).scale(1, 0.20, 1), PAPER, [0.03, 0.14, 0.02], [0, 0.22, 0]),
+    // 가운데 방석 — 위아래와 밝기가 달라야 «더미»가 된다(PAPER 는 대비 0.09)
+    part(new SphereGeometry(0.48, 16, 10).scale(1, 0.20, 1), [0.76, 0.74, 0.70],
+      [0.03, 0.14, 0.02], [0, 0.22, 0], TILE.CLOTH),
     part(new SphereGeometry(0.46, 16, 10).scale(1, 0.20, 1), WHITE, [-0.02, 0.23, -0.02], [0, -0.16, 0]),
     // 가장자리 시접 — 방석을 방석으로 만드는 테두리
-    part(new TorusGeometry(0.42, 0.024, 4, 20), PAPER, [0, 0.045, 0], LIE_Z),
-    part(new TorusGeometry(0.39, 0.022, 4, 20), PAPER, [-0.02, 0.235, -0.02], LIE_Z),
-    part(new CylinderGeometry(0.04, 0.04, 0.02, 8), PAPER, [-0.02, 0.29, -0.02], undefined, TILE.CLOTH),   // 단추
-    part(new CylinderGeometry(0.012, 0.012, 0.10, 6), PAPER, [0.30, 0.05, 0.30], LIE_X),  // 술
+    // 시접·단추·술 — 꿰맨 자국은 «짙다». PAPER 는 천에 파묻힌다
+    part(new TorusGeometry(0.42, 0.026, 6, 20), INK, [0, 0.045, 0], LIE_Z),
+    part(new TorusGeometry(0.39, 0.024, 6, 20), INK, [-0.02, 0.235, -0.02], LIE_Z),
+    part(new CylinderGeometry(0.05, 0.05, 0.025, 8), INK, [-0.02, 0.292, -0.02], undefined, TILE.CLOTH),
+    part(new CylinderGeometry(0.014, 0.014, 0.10, 6), INK, [0.30, 0.05, 0.30], LIE_X),
   ]),
 };
