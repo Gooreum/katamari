@@ -1,9 +1,10 @@
 import {
-  BoxGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CylinderGeometry, RingGeometry, SphereGeometry, TorusGeometry,
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdMid } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft, lip,
+import {
+  assemble, hollow, invert, DARK, GLASS, INK, METAL, part, WHITE, WOOD, WRAP, soft, lip,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
@@ -25,30 +26,51 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new CylinderGeometry(0.22, 0.22, 0.66, 14), WHITE, [0, 0.22, 0], LIE_X),
     part(new SphereGeometry(0.22, 12, 8), WHITE, [0.33, 0.22, 0]),
     part(new SphereGeometry(0.22, 12, 8), WHITE, [-0.33, 0.22, 0]),
-    part(new CylinderGeometry(0.06, 0.06, 0.10, 6), PAPER, [0.47, 0.22, 0], LIE_X),
+    // 묶은 끈 — `PAPER`(대비 0.07)로는 몸통과 안 갈린다. 끈은 늘 몸통보다 밝다
+    part(new CylinderGeometry(0.065, 0.065, 0.11, 8), WRAP, [0.47, 0.22, 0], LIE_X),
   ]),
 
   껌: () => assemble([
     // 은박에 싸인 판형 껌 (8.5cm)
-    part(soft(0.90, 0.10, 0.32, 0.3), WHITE, [0, 0.05, 0]),
-    part(soft(0.62, 0.11, 0.33, 0.3), WHITE, [0.10, 0.05, 0], undefined, TILE.GUM),
-    part(soft(0.10, 0.09, 0.30, 0.3), PAPER, [-0.44, 0.05, 0]),
+    // 은박 — **`TILE.METAL` 을 문다.** 몸통에 무늬가 없으면 그냥 흰 판이다
+    part(soft(0.90, 0.10, 0.32, 0.3), WHITE, [0, 0.05, 0], undefined, TILE.METAL),
+    // 겉 라벨 — 은박보다 «밝아야» 두 겹으로 읽힌다. 같은 WHITE 면 대비가 0 이다
+    part(soft(0.62, 0.11, 0.33, 0.3), WRAP, [0.10, 0.05, 0], undefined, TILE.GUM),
+    part(soft(0.10, 0.09, 0.30, 0.3), WRAP, [-0.44, 0.05, 0]),
   ]),
 
   달팽이: () => assemble([
-    // 껍데기(토러스 두 겹) + 몸통 + 더듬이. 원작 마당의 9.8cm
-    part(new TorusGeometry(0.24, 0.13, 5, 14), WHITE, [0.06, 0.32, 0], LIE_Z),
-    part(new TorusGeometry(0.11, 0.09, 4, 9), WHITE, [0.06, 0.32, 0], LIE_Z),
-    part(new SphereGeometry(0.14, 12, 8), [0.72, 0.66, 0.5], [-0.28, 0.14, 0]),
-    part(soft(0.44, 0.14, 0.20, 0.45), [0.72, 0.66, 0.5], [-0.12, 0.07, 0]),
-    part(new CylinderGeometry(0.02, 0.02, 0.18, 6), [0.72, 0.66, 0.5], [-0.34, 0.26, 0.06], [0, 0, 0.35]),
-    part(new CylinderGeometry(0.02, 0.02, 0.18, 6), [0.72, 0.66, 0.5], [-0.34, 0.26, -0.06], [0, 0, 0.35]),
+    /**
+     * **사용자가 이름을 짚은 것이다.** 자는 통과했는데 화면에서는 여전히 덩어리였다 —
+     * 규약 2(실루엣)는 자가 못 잡고 화면만 답한다는 게 이 형상에서 드러났다.
+     *
+     * 원인: 껍데기가 **같은 중심의 토러스 두 겹**이라 소용돌이가 아니라 «도넛»이었고,
+     * 발이 껍데기 상자 밖으로 최장축의 3% 만 나와서 「덩어리 둘」로 뭉쳤다.
+     *
+     * 소용돌이는 **중심이 옮겨가야** 생긴다. 반지름이 줄면서 중심도 함께 밀린다.
+     * 그리고 발을 껍데기보다 «길게» 빼야 달팽이의 옆모습이 된다.
+     */
+    part(new TorusGeometry(0.26, 0.115, 8, 18), [0.62, 0.48, 0.30], [0.14, 0.36, 0], LIE_Z),
+    part(new TorusGeometry(0.155, 0.095, 6, 14), [0.80, 0.64, 0.42], [0.21, 0.30, 0], LIE_Z),
+    part(new TorusGeometry(0.075, 0.068, 6, 10), [0.96, 0.80, 0.56], [0.26, 0.27, 0], LIE_Z),
+    // 발 — 껍데기보다 «앞으로» 길게. 최장축이 발이라야 「기어간다」가 된다
+    part(soft(0.66, 0.13, 0.24, 0.45), [1.24, 1.18, 1.02], [-0.22, 0.065, 0]),
+    part(new SphereGeometry(0.15, 10, 8).scale(1.0, 0.85, 0.95), [1.24, 1.18, 1.02],
+      [-0.46, 0.125, 0]),
+    // 더듬이 — 끝에 눈알. 막대만 있으면 안 보인다
+    ...([0.07, -0.07] as const).flatMap((z) => [
+      part(new CylinderGeometry(0.024, 0.018, 0.26, 6), [1.24, 1.18, 1.02],
+        [-0.54, 0.27, z], [0, 0, 0.45]),
+      part(new SphereGeometry(0.05, 6, 5), INK, [-0.61, 0.39, z]),
+    ]),
   ]),
 
   '캐러멜 상자': () => assemble([
     // 세워둔 갑 (11.3cm). 뚜껑 단이 있어야 상자가 아니라 캐러멜 갑이다
     part(soft(0.44, 0.90, 0.24, 0.16), WHITE, [0, 0.45, 0], undefined, TILE.CARAMEL),
-    part(soft(0.46, 0.16, 0.26, 0.2), PAPER, [0, 0.82, 0]),
+    // 뚜껑 단 — 몸통 «위»로 올린다. y 0.82(윗면 0.90)면 몸통 윗면과 같은 평면이라
+    // z-fighting 이 났다. 그리고 `PAPER`(대비 0.07)로는 단이 안 보인다
+    part(soft(0.46, 0.15, 0.26, 0.2), WRAP, [0, 0.865, 0]),
     part(new BoxGeometry(0.40, 0.34, 0.02), [0.85, 0.45, 0.15], [0, 0.42, 0.13]),
   ]),
 
@@ -69,20 +91,31 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    */
   찻잔: () => assemble([
     // 유노미 몸통. **세로가 길어야 컵이다** — 받침과 폭이 같으면 챙 넓은 모자가 된다
-    ...hollow(0.26, 0.19, 0.72, 0.03, 0.055, 20, WHITE, [0.88, 0.86, 0.80], TILE.TEACUP),
+    // **컵을 받침 «위»에 올린다.** 둘 다 y=0 에서 시작하면 밑면 두 장이 같은 평면이다
+    ...hollow(0.26, 0.19, 0.72, 0.03, 0.055, 20, WHITE, [0.88, 0.86, 0.80], TILE.TEACUP)
+      .map((q) => part(q.geo, q.rgb, [0, 0.030, 0], undefined, q.tile)),
     // 담긴 차. **안이 보여야 판 게 보인다** — 캐비티 바닥보다 위, 테두리보다 아래
-    part(new CylinderGeometry(0.222, 0.222, 0.01, 20), [0.40, 0.30, 0.15], [0, 0.52, 0]),
+    part(new CylinderGeometry(0.222, 0.222, 0.01, 20), [0.40, 0.30, 0.15], [0, 0.55, 0],
+      undefined, TILE.WATER),
     // 받침 — 얕게 파서 접시로 읽히게. 컵보다 넓지만 아주 얇다
     part(new CylinderGeometry(0.33, 0.31, 0.028, 20), WHITE, [0, 0.014, 0]),
     part(new TorusGeometry(0.315, 0.016, 5, 20), WHITE, [0, 0.028, 0], LIE_Z),
   ]),
 
   전구: () => assemble([
-    part(new SphereGeometry(0.36, 16, 10), GLASS, [0, 0.52, 0]),
-    // 목 + 나사 소켓. 소켓이 없으면 그냥 유리공이다
-    part(new CylinderGeometry(0.16, 0.24, 0.16, 14), GLASS, [0, 0.20, 0]),
-    part(new CylinderGeometry(0.15, 0.15, 0.22, 14), METAL, [0, 0.11, 0]),
-    part(new SphereGeometry(0.06, 6, 4), DARK, [0, 0.02, 0]),
+    part(new SphereGeometry(0.36, 16, 10), GLASS, [0, 0.56, 0]),
+    /**
+     * 목 + 나사 소켓. **소켓이 작아서 화면에서 「막대에 꽂힌 풍선」이었다** —
+     * 실제 백열구는 소켓 지름이 유리구의 절반을 넘는다. 키우고 목을 짧게 한다.
+     */
+    part(new CylinderGeometry(0.17, 0.26, 0.14, 14), GLASS, [0, 0.27, 0]),
+    // 나사 소켓 — **`METAL`(0.72)은 유리(0.55~0.78)와 대비가 0.08** 이라
+    // 「소켓이 없으면 유리공」이라고 적어놓고 실제로는 없는 것과 같았다.
+    // 골지 셋을 넣어 «나사산»까지 보이게 한다
+    part(new CylinderGeometry(0.21, 0.21, 0.30, 14), [0.50, 0.48, 0.44], [0, 0.16, 0]),
+    ...([0.07, 0.15, 0.23] as const).map((y) =>
+      part(new TorusGeometry(0.215, 0.030, 6, 14), [0.30, 0.28, 0.25], [0, y, 0], LIE_Z)),
+    part(new SphereGeometry(0.085, 8, 5), INK, [0, 0.02, 0]),
   ]),
 
   // ─── 버킷 4 (15~30cm) ────────────────────────────────────────
@@ -99,23 +132,27 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   신문: () => assemble([
     // 접어서 쌓아둔 신문 (21.5cm). 층이 보여야 한 장이 아니라 신문이다
     part(new BoxGeometry(0.92, 0.10, 0.62), WHITE, [0, 0.05, 0]),
-    part(new BoxGeometry(0.88, 0.08, 0.58), PAPER, [0.02, 0.13, 0.01], [0, 0.05, 0]),
+    // 가운데 층 — 위아래와 «밝기»가 달라야 겹이 보인다. 신문지는 팔레트가 흰색이라
+    // 밝게는 못 간다(WRAP 도 대비 0.06). 신문지답게 «짙은» 회색으로 간다
+    part(new BoxGeometry(0.88, 0.08, 0.58), [0.72, 0.71, 0.68], [0.02, 0.13, 0.01], [0, 0.05, 0]),
     part(new BoxGeometry(0.84, 0.06, 0.54), WHITE, [-0.02, 0.19, -0.01], [0, -0.04, 0], TILE.NEWSPAPER),
     // 접힌 등
-    part(new CylinderGeometry(0.05, 0.05, 0.62, 6), PAPER, [-0.44, 0.10, 0], LIE_Z, TILE.PAPER),
-    part(new BoxGeometry(0.50, 0.02, 0.10), DARK, [0.10, 0.23, 0.10]),
+    // 길이를 층보다 짧게 — 같으면 옆면이 같은 평면이다(자가 `0×3` 으로 잡았다)
+    part(new CylinderGeometry(0.05, 0.05, 0.58, 8), [0.78, 0.77, 0.74], [-0.44, 0.105, 0], LIE_Z, TILE.PAPER),
+    part(new BoxGeometry(0.50, 0.02, 0.10), INK, [0.10, 0.235, 0.10]),
   ]),
 
   연필깎이: () => assemble([
     // 손잡이 달린 탁상형 (26.2cm). 원작 아이 방에 있다
-    part(soft(0.60, 0.46, 0.44, 0.18), WHITE, [0, 0.23, 0], undefined, TILE.SHARPENER),
-    part(soft(0.66, 0.12, 0.50, 0.3), DARK, [0, 0.06, 0]),
+    // **몸통을 받침 «위»에 올린다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(soft(0.60, 0.46, 0.44, 0.18), WHITE, [0, 0.35, 0], undefined, TILE.SHARPENER),
+    part(soft(0.66, 0.12, 0.50, 0.3), INK, [0, 0.06, 0]),
     // 연필 꽂는 구멍
-    part(new CylinderGeometry(0.09, 0.09, 0.10, 8), DARK, [-0.32, 0.30, 0], LIE_X),
+    part(new CylinderGeometry(0.09, 0.09, 0.10, 8), INK, [-0.32, 0.42, 0], LIE_X),
     // 크랭크 손잡이
-    part(new CylinderGeometry(0.05, 0.05, 0.20, 7), METAL, [0.34, 0.30, 0], LIE_X),
-    part(soft(0.05, 0.30, 0.05, 0.3), METAL, [0.44, 0.38, 0]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 7), WOOD, [0.44, 0.52, 0], LIE_X),
+    part(new CylinderGeometry(0.05, 0.05, 0.20, 8), METAL, [0.34, 0.42, 0], LIE_X),
+    part(soft(0.05, 0.30, 0.05, 0.3), METAL, [0.44, 0.50, 0]),
+    part(new CylinderGeometry(0.07, 0.07, 0.12, 8), WOOD, [0.44, 0.64, 0], LIE_X),
   ]),
 
   'RC 컨트롤러': () => assemble([
@@ -130,11 +167,14 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   접시: () => assemble([
     // **얕은 웅덩이가 접시의 정체다.** 원반은 코스터고, 깊이 파면 사발이 된다
-    ...hollow(0.50, 0.38, 0.15, 0.045, 0.055, 20, WHITE, [0.90, 0.92, 0.96], TILE.PLATE),
+    // 안쪽을 짙게 — `[0.90,0.92,0.96]` 은 바깥과 대비가 0.08 이라 파인 게 안 보였다.
+    // 그리고 **접시를 굽 «위»에 올린다**(밑면 두 장이 같은 평면이면 z-fighting)
+    ...hollow(0.50, 0.38, 0.15, 0.045, 0.055, 20, WHITE, [0.80, 0.83, 0.89], TILE.PLATE)
+      .map((q) => part(q.geo, q.rgb, [0, 0.048, 0], undefined, q.tile)),
     // 굽 — 접시를 살짝 띄운다
     part(new CylinderGeometry(0.24, 0.26, 0.05, 16), WHITE, [0, 0.025, 0]),
     // 청색 테두리 — 흰 원반을 «접시»로 만드는 건 이 띠다
-    part(new TorusGeometry(0.475, 0.022, 5, 20), [0.55, 0.62, 0.75], [0, 0.14, 0], LIE_Z, TILE.CERAMIC),
+    part(new TorusGeometry(0.475, 0.024, 6, 20), [0.42, 0.52, 0.72], [0, 0.185, 0], LIE_Z, TILE.CERAMIC),
   ]),
 
   슬리퍼: () => assemble([
@@ -143,7 +183,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 앞뒤를 원기둥으로 둥글렸더니 그 원기둥이 옆에서 큰 원반으로 보여서
     // **아령처럼** 나왔다. 둥글리는 건 발가락 쪽만, 그것도 납작한 원기둥으로 한다.
     part(soft(0.74, 0.09, 0.34, 0.4), WHITE, [-0.05, 0.045, 0]),
-    part(new CylinderGeometry(0.17, 0.17, 0.09, 14), WHITE, [0.32, 0.045, 0]),
+    // 앞코 — 밑창 «안»에 가둔다. 같은 높이면 위·아랫면이 같은 평면이라 z-fighting 이다
+    part(new CylinderGeometry(0.17, 0.17, 0.082, 14), WHITE, [0.32, 0.045, 0]),
     // 발등 띠 — 폭 방향으로 걸친 아치. 축이 X여야 발등을 덮는다
     part(new TorusGeometry(0.17, 0.045, 4, 10, Math.PI), WHITE, [0.16, 0.08, 0], [0, 0, 0], TILE.CLOTH),
     part(new BoxGeometry(0.20, 0.04, 0.34), WHITE, [0.16, 0.24, 0]),
@@ -155,18 +196,31 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(soft(0.46, 0.66, 0.46, 0.1), WHITE, [0, 0.33, 0], undefined, TILE.MILK),
     // **지붕에는 인쇄를 안 넣는다.** 넣었더니 색 띠가 몸통 위에 한 번 더 나와서
     // 팩이 두 칸으로 잘려 보였다. 인쇄는 몸통 한 벌이면 충분하다.
-    part(new BoxGeometry(0.46, 0.26, 0.24), WHITE, [0, 0.76, 0.11], [0.7, 0, 0]),
-    part(new BoxGeometry(0.46, 0.26, 0.24), WHITE, [0, 0.76, -0.11], [-0.7, 0, 0]),
+    // **두 판의 폭을 다르게 한다.** 같으면 옆면 두 장이 같은 평면이라 z-fighting 이
+    // 셋 났다(자가 `0×1 1×2 0×2` 로 잡았다). 실제 게이블탑도 한쪽이 다른 쪽을 덮는다
+    part(new BoxGeometry(0.472, 0.26, 0.24), WHITE, [0, 0.76, 0.11], [0.7, 0, 0]),
+    part(new BoxGeometry(0.450, 0.26, 0.24), WHITE, [0, 0.76, -0.11], [-0.7, 0, 0]),
     // 접힌 마루. 지붕 둘이 만나는 자리를 덮어야 틈이 안 보인다
-    part(new BoxGeometry(0.46, 0.10, 0.04), PAPER, [0, 0.91, 0]),
+    // 접힌 마루. **팔레트가 흰색이라 밝게는 못 간다** — `WRAP` 도 포화돼 대비 0.06 이다.
+    // 흰 물건의 표식은 «짙은» 쪽이다
+    part(new BoxGeometry(0.47, 0.10, 0.045), [0.62, 0.60, 0.56], [0, 0.915, 0]),
   ]),
 
   '두루마리 휴지': () => assemble([
-    part(new CylinderGeometry(0.42, 0.42, 0.52, 20), WHITE, [0, 0.26, 0]),
-    // 심지 구멍. 어두운 안쪽이 보여야 두루마리다
-    part(new CylinderGeometry(0.13, 0.13, 0.56, 14), [0.55, 0.48, 0.38], [0, 0.26, 0], undefined, TILE.PAPER),
-    // 풀린 자락
-    part(new BoxGeometry(0.02, 0.34, 0.44), PAPER, [0.42, 0.17, 0], [0, 0, -0.12]),
+    /**
+      * **심지가 «속이 찬» 원기둥이었다.** 롤 안에 갇혀 있어서 화면에서는 아예 안 보이고
+      * 삼각형만 먹었다 — 「어두운 안쪽이 보여야 두루마리」라고 적어놓고 그랬다.
+      * 롤을 위아래 뚫린 띠로 바꾸고 그 안에 **뒤집은** 원기둥을 넣어 진짜 구멍을 판다.
+      */
+    part(new CylinderGeometry(0.42, 0.42, 0.52, 20, 1, true), WHITE, [0, 0.26, 0],
+      undefined, TILE.PAPER),
+    part(invert(new CylinderGeometry(0.13, 0.13, 0.52, 14, 1, true)), INK, [0, 0.26, 0]),
+    // 롤의 «단면» — 도넛 두 장. 이게 있어야 두께가 보인다
+    ...([0.52, 0.0] as const).map((y) => part(
+      new RingGeometry(0.13, 0.42, 20), [0.86, 0.84, 0.80], [0, y, 0],
+      [y > 0 ? -Math.PI / 2 : Math.PI / 2, 0, 0])),
+    // 풀린 자락. 휴지는 팔레트가 흰색이라 «짙은» 쪽으로 갈라야 한 겹이 보인다
+    part(new BoxGeometry(0.022, 0.34, 0.44), [0.70, 0.68, 0.64], [0.42, 0.17, 0], [0, 0, -0.12]),
   ]),
 
   // ─── 버킷 5 (30~60cm) ────────────────────────────────────────
@@ -184,7 +238,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    * 「모서리 둥근 블록」에서 못 벗어난다.
    */
   방석: () => assemble([
-    part(soft(0.92, 0.19, 0.92, 0.45), WHITE, [0, 0.095, 0]),
+    part(soft(0.92, 0.19, 0.92, 0.45), WHITE, [0, 0.095, 0], undefined, TILE.CLOTH),
     // 솜의 부픔 — 눌린 구.
     //
     // **밑면 밖으로 나가면 안 된다.** 처음엔 0.34 로 눌러서 구의 아래가 몸통 바닥보다
@@ -192,11 +246,10 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // 방석이 바닥에서 2cm 뜬 채로 놓인다. 검사가 두께비 0.320 으로 잡았다.
     part(new SphereGeometry(0.44, 14, 8).scale(1, 0.22, 1), WHITE, [0, 0.115, 0], undefined, TILE.CLOTH),
     // 시접 — 옆구리를 한 바퀴 도는 띠. 「천을 꿰맸다」가 여기서 나온다
-    part(new TorusGeometry(0.44, 0.022, 5, 18), PAPER, [0, 0.085, 0], LIE_Z),
-    part(new SphereGeometry(0.05, 6, 5), PAPER, [0.42, 0.06, 0.42]),
-    part(new SphereGeometry(0.05, 6, 5), PAPER, [-0.42, 0.06, 0.42]),
-    part(new SphereGeometry(0.05, 6, 5), PAPER, [0.42, 0.06, -0.42]),
-    part(new SphereGeometry(0.05, 6, 5), PAPER, [-0.42, 0.06, -0.42]),
+    // 시접·모서리 술 — `PAPER`(대비 0.05)로는 천에 파묻힌다. 꿰맨 자국은 «짙다»
+    part(new TorusGeometry(0.44, 0.026, 6, 18), INK, [0, 0.085, 0], LIE_Z),
+    ...([[0.42, 0.42], [-0.42, 0.42], [0.42, -0.42], [-0.42, -0.42]] as const).map(
+      ([x, z]) => part(new SphereGeometry(0.055, 6, 5), INK, [x, 0.06, z])),
   ]),
 
   백팩: () => assemble([
@@ -213,7 +266,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     // **진짜로 판다.** 예전엔 어두운 원반을 위에 얹어 「비어 있는 척」만 했다
     ...hollow(0.42, 0.32, 0.80, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.40]),
     // 구겨진 종이 한 덩이 — 통 «안»이 보인다는 걸 확실히 한다
-    part(new SphereGeometry(0.16, 10, 7), PAPER, [0.06, 0.20, -0.04], undefined, TILE.PLASTIC),
+    // 구겨진 종이 — 통 안은 어둡다. `PAPER`(대비 0.07)로는 통과 안 갈린다
+    part(new SphereGeometry(0.17, 10, 7), WRAP, [0.06, 0.20, -0.04], undefined, TILE.PAPER),
   ]),
 
   전화기: () => assemble([
@@ -223,8 +277,9 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     part(new CylinderGeometry(0.09, 0.09, 0.08, 8), WHITE, [0, 0.30, -0.06], undefined, TILE.PANEL),
     // 수화기 — 가운데 잘록한 막대
     part(soft(0.66, 0.14, 0.14, 0.35), WHITE, [0, 0.31, 0.20]),
-    part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [0.30, 0.34, 0.20]),
-    part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [-0.30, 0.34, 0.20]),
+    // 귀 캡 — 막대 «안»에서 시작하게 올린다. 밑면이 같은 평면이면 z-fighting 이다
+    part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [0.30, 0.355, 0.20]),
+    part(soft(0.20, 0.20, 0.20, 0.3), WHITE, [-0.30, 0.355, 0.20]),
   ]),
 
   밥솥: () => assemble([
