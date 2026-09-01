@@ -3,13 +3,22 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdSmall } from './generation';
-import { assemble, DARK, GLASS, METAL, PAPER, part, WHITE, soft } from './shapes.kit';
+import {
+  assemble, DARK, GLASS, INK, METAL, PAPER, part, WHITE, WRAP, soft,
+  type RGB,
+} from './shapes.kit';
 import { TILE } from './atlas';
 
 /** 눕힌 원기둥을 만들 때 쓰는 회전. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다. */
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 /** X축에 눕힌 원기둥의 뚜껑을 +X 쪽 바깥으로 향하게 하는 회전 */
 const CAP_X: readonly [number, number, number] = [0, 0, -Math.PI / 2];
+
+/**
+ * 침·핀의 강철. `METAL`(0.72)보다 짙다 — 압정·압핀 머리는 팔레트가 색색이라
+ * 0.72 로는 대비가 0.08 밖에 안 나서 침이 머리와 한 덩어리로 뭉쳤다.
+ */
+const PIN: RGB = [0.42, 0.44, 0.50];
 
 /**
  * 버킷 0~2 (1~8cm) 형태 — 원작 타케다 저택 물건.
@@ -25,58 +34,99 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
   // ─── 버킷 0 (1~2cm) ──────────────────────────────────────────
 
   개미: () => assemble([
-    // 머리·가슴·배 세 덩이. 개미가 개미로 읽히는 건 이 세 마디뿐이다
-    part(new SphereGeometry(0.20, 12, 8), WHITE, [0.34, 0.20, 0]),
-    part(new SphereGeometry(0.16, 12, 8), WHITE, [0.06, 0.19, 0]),
-    part(new SphereGeometry(0.26, 16, 10), WHITE, [-0.34, 0.22, 0]),
-    // 다리는 몸통 양옆 막대 두 개로 뭉갠다. 여섯 개를 따로 세우면 이 크기에서
-    // 삼각형만 먹고 화면에는 회색 얼룩으로 나온다
-    part(new BoxGeometry(0.44, 0.03, 0.46), DARK, [0.04, 0.08, 0]),
-    part(new CylinderGeometry(0.02, 0.02, 0.20, 6), DARK, [0.44, 0.30, 0], [0, 0, 0.5]),
+    /**
+     * 머리·가슴·배 세 마디 + 뻗은 다리. **세 마디가 붙으면 검은 덩어리 둘**이다 —
+     * 화면에서 실제로 그랬다. 마디 사이를 벌리고 가슴을 제일 가늘게 해서
+     * «허리»를 만든다. 그게 개미를 개미로 만드는 유일한 선이다.
+     */
+    part(new SphereGeometry(0.19, 8, 6), WHITE, [0.42, 0.21, 0]),
+    part(new SphereGeometry(0.12, 8, 6).scale(1.4, 1, 1), WHITE, [0.12, 0.20, 0]),
+    part(new SphereGeometry(0.27, 8, 6).scale(1.15, 0.95, 1), WHITE, [-0.32, 0.23, 0]),
+    /**
+     * 다리 — 몸 «밖으로» 뻗는다. 예전엔 몸통 밑에 깐 판이라 실루엣이 안 바뀌었다.
+     * 여섯을 따로 세우면 이 크기에서 삼각형만 먹으므로 좌우 한 장씩으로 뭉친다.
+     */
+    ...([1, -1] as const).map((k) => part(
+      new BoxGeometry(0.62, 0.035, 0.10), INK, [0.06, 0.11, k * 0.26], [0, 0, 0], )),
+    // 더듬이 둘 — 머리 «앞으로». 개미와 콩을 가르는 게 이 둘이다
+    ...([1, -1] as const).map((k) => part(
+      new CylinderGeometry(0.022, 0.016, 0.30, 6), INK,
+      [0.58, 0.31, k * 0.07], [0, 0, -0.9])),
   ]),
 
   쌀알: () => assemble([
-    // **길쭉해야 한다.** 구 세 개를 겹쳤더니 그냥 덩어리로 보여서
-    // 팥과 구분이 안 됐다. 가는 원기둥에 양끝을 뾰족하게 씌운다.
-    part(new CylinderGeometry(0.17, 0.17, 0.56, 14), WHITE, [0, 0.17, 0], LIE_X),
-    part(new ConeGeometry(0.17, 0.22, 8), WHITE, [0.39, 0.17, 0], CAP_X),
-    part(new ConeGeometry(0.17, 0.22, 8), WHITE, [-0.39, 0.17, 0], LIE_X),
+    /**
+     * **길고 가늘어야 한다.** 예전 반지름 0.17 은 통통해서 알약으로 보였다.
+     * 그리고 쌀알에는 **세로 홈**이 하나 있다 — 그 선 하나가 「낟알」을 만든다.
+     */
+    part(new CylinderGeometry(0.13, 0.13, 0.60, 8), WHITE, [0, 0.13, 0], LIE_X),
+    part(new ConeGeometry(0.13, 0.24, 8), WHITE, [0.42, 0.13, 0], CAP_X),
+    part(new ConeGeometry(0.13, 0.20, 8), WHITE, [-0.40, 0.13, 0], LIE_X),
+    // 배 쪽 홈. 몸통보다 짙어야 «파인 선»으로 읽힌다
+    part(new BoxGeometry(0.66, 0.035, 0.05), [0.74, 0.71, 0.64], [0, 0.13, 0.115]),
   ]),
 
   팥: () => assemble([
-    part(new SphereGeometry(0.5, 16, 10), WHITE, [0, 0.5, 0]),
-    // 배꼽 줄. 팥과 콩을 가르는 건 이 흰 줄 하나다
-    part(new BoxGeometry(0.62, 0.10, 0.06), [0.9, 0.88, 0.82], [0, 0.5, 0.44]),
+    /**
+     * 팥은 구가 아니라 **길쭉한 타원**이다. 그리고 옆구리에 흰 배꼽줄(제)이 있다 —
+     * 팥과 콩을 가르는 건 그 줄 하나인데, 예전 계수 `[0.9,0.88,0.82]` 는
+     * 팔레트를 곱하면 몸통과 **대비 0.10** 이라 화면에서 안 보였다.
+     * 1을 넘는 `WRAP` 으로 바꾸고 몸통 밖으로 살짝 튀어나오게 한다.
+     */
+    part(new SphereGeometry(0.5, 12, 8).scale(1.0, 0.78, 0.72), WHITE, [0, 0.39, 0]),
+    part(new BoxGeometry(0.74, 0.11, 0.09), WRAP, [0, 0.39, 0.345]),
   ]),
 
   클립: () => assemble([
-    // 겹친 고리 두 개. 벌어진 쪽이 안 보여도 클립으로 읽힌다
-    part(new TorusGeometry(0.34, 0.035, 4, 20), METAL, [0.10, 0.04, 0], [Math.PI / 2, 0, 0]),
-    part(new TorusGeometry(0.22, 0.035, 4, 14), METAL, [-0.12, 0.04, 0], [Math.PI / 2, 0, 0]),
-    part(new CylinderGeometry(0.035, 0.035, 0.30, 6), METAL, [-0.02, 0.04, 0.20], LIE_X),
+    /**
+     * 겹친 고리 둘. **원이 아니라 «길쭉한» 고리**다 — 종이 클립은 늘어난 모양이고,
+     * 정원 두 개를 겹치면 안경이 된다. 그리고 관 굵기 0.035 에 4분할이라
+     * 화면에서 실오라기였다. 굵히고 8분할로 올린다.
+     */
+    part(new TorusGeometry(0.30, 0.055, 8, 16).scale(1.55, 1, 1), METAL,
+      [0.08, 0.055, 0], [Math.PI / 2, 0, 0]),
+    // 안쪽 고리 — 바깥보다 «짙게». 같은 METAL 이면 두 겹이 한 덩어리로 뭉친다
+    part(new TorusGeometry(0.19, 0.050, 8, 14).scale(1.55, 1, 1), [0.44, 0.46, 0.52],
+      [-0.10, 0.055, 0], [Math.PI / 2, 0, 0]),
+    part(new CylinderGeometry(0.050, 0.050, 0.34, 8), METAL, [0.06, 0.055, 0.235], LIE_X),
   ]),
 
   압정: () => assemble([
-    // 넓은 머리 + 짧은 침. 원작 압정은 머리가 색색이다
+    /**
+     * 넓은 머리 + 짧은 침. **침을 굵히고 짙게 했다** — `METAL`(0.72)은 색색인
+     * 압정 머리 팔레트 위에서 대비가 0.08 이라 화면에서 머리와 한 덩어리였다.
+     * 머리 테두리 홈도 하나 넣는다. 압정은 위에서 보면 그 링이 먼저 보인다.
+     */
     part(new CylinderGeometry(0.5, 0.46, 0.16, 20), WHITE, [0, 0.42, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 0.34, 6), METAL, [0, 0.17, 0]),
-    part(new ConeGeometry(0.05, 0.10, 5), METAL, [0, 0.05, 0], [Math.PI, 0, 0]),
+    part(new TorusGeometry(0.44, 0.035, 6, 20), PIN, [0, 0.48, 0], [Math.PI / 2, 0, 0]),
+    part(new CylinderGeometry(0.075, 0.075, 0.36, 8), PIN, [0, 0.17, 0]),
+    part(new ConeGeometry(0.075, 0.12, 8), PIN, [0, 0.05, 0], [Math.PI, 0, 0]),
   ]),
 
   단추: () => assemble([
-    part(new CylinderGeometry(0.5, 0.5, 0.10, 20), WHITE, [0, 0.05, 0]),
-    // 구멍 넷. 어둡게 파인 원기둥으로 흉내낸다
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [0.16, 0.06, 0.16]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [-0.16, 0.06, 0.16]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [0.16, 0.06, -0.16]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 6), DARK, [-0.16, 0.06, -0.16]),
+    /**
+     * 구멍 넷 + 테두리 홈. **구멍이 판 밑면까지 뚫고 나가 있었다** —
+     * 원기둥 밑면이 단추 밑면과 «같은 평면»이라 z-fighting 이 넷 났다(자가 잡았다).
+     * 구멍을 판 «안»에 가두고, 대신 지름을 키워 화면에서 보이게 한다.
+     */
+    part(new CylinderGeometry(0.5, 0.5, 0.14, 20), WHITE, [0, 0.07, 0], undefined, TILE.BUTTON),
+    // 구멍 넷 — **판 «안»에 가둔다.** 밑면까지 뚫으면 단추 밑면과 같은 평면이 돼서
+    // z-fighting 이 넷 난다(자가 잡았다). 파인 깊이는 인쇄가 이어서 그려 준다
+    ...([[0.17, 0.17], [-0.17, 0.17], [0.17, -0.17], [-0.17, -0.17]] as const).map(
+      ([x, z]) => part(new CylinderGeometry(0.095, 0.095, 0.09, 8), INK, [x, 0.075, z])),
   ]),
 
   도장: () => assemble([
-    // 나무 몸통 + 붉은 인면. 원작 집에 실제로 있는 물건이다
-    part(new CylinderGeometry(0.22, 0.22, 0.86, 14), WHITE, [0, 0.47, 0]),
-    part(new CylinderGeometry(0.24, 0.24, 0.10, 14), [0.85, 0.3, 0.26], [0, 0.05, 0]),
-    part(new CylinderGeometry(0.19, 0.22, 0.10, 14), WHITE, [0, 0.90, 0]),
+    /**
+     * 나무 몸통 + 붉은 인면 + **손가락 홈**. 예전엔 매끈한 원기둥이라
+     * 화면에서 그냥 막대였다. 가운데를 잘록하게 하면 「쥐는 것」이 된다.
+     */
+    part(new CylinderGeometry(0.22, 0.22, 0.34, 14), WHITE, [0, 0.21, 0]),
+    part(new CylinderGeometry(0.185, 0.185, 0.26, 14), [0.72, 0.62, 0.48], [0, 0.51, 0]),
+    part(new CylinderGeometry(0.22, 0.22, 0.30, 14), WHITE, [0, 0.79, 0]),
+    // 인면 — 붉은 인주가 묻은 쪽. 여기가 도장의 정체다
+    part(new CylinderGeometry(0.245, 0.245, 0.10, 14), [0.85, 0.30, 0.26], [0, 0.05, 0]),
+    part(new CylinderGeometry(0.19, 0.22, 0.09, 14), WRAP, [0, 0.955, 0]),
   ]),
 
   // ─── 버킷 1 (2~4cm) ──────────────────────────────────────────
@@ -85,24 +135,28 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     // **눈을 인쇄로 새긴다.** 예전엔 원기둥 셋을 박아 윗면 1점·앞면 2점만 냈다 —
     // 나머지 네 면은 민짜였고, 그 셋이 삼각형 예산의 절반을 먹었다.
     // 아틀라스 한 칸이 여섯 면을 다 덮으면서 부품이 하나로 준다.
-    part(soft(0.9, 0.9, 0.9, 0.16), WHITE, [0, 0.45, 0], undefined, TILE.DICE),
+    part(soft(0.9, 0.9, 0.9, 0.12), WHITE, [0, 0.45, 0], undefined, TILE.DICE),
   ]),
 
   나사: () => assemble([
-    // 십자 머리 + 몸통. 나사산은 안 판다 — 3cm에서 안 보인다
-    part(new CylinderGeometry(0.20, 0.20, 0.10, 14), WHITE, [0, 0.93, 0]),
-    part(new BoxGeometry(0.32, 0.05, 0.07), DARK, [0, 0.97, 0]),
-    part(new BoxGeometry(0.07, 0.05, 0.32), DARK, [0, 0.97, 0]),
-    part(new CylinderGeometry(0.09, 0.09, 0.76, 7), WHITE, [0, 0.50, 0]),
-    part(new ConeGeometry(0.09, 0.14, 7), WHITE, [0, 0.07, 0], [Math.PI, 0, 0]),
+    /**
+     * 십자 머리 + 몸통. 나사산은 안 판다 — 3cm 에서 안 보인다.
+     * **십자의 두 번째 막대를 얇게 한다** — 같은 높이면 겹치는 자리에서
+     * 위·아랫면이 같은 평면이라 z-fighting 이 뜬다(자가 `1×2` 로 잡았다).
+     */
+    part(new CylinderGeometry(0.22, 0.20, 0.12, 14), WHITE, [0, 0.92, 0]),
+    part(new BoxGeometry(0.34, 0.06, 0.08), INK, [0, 0.965, 0]),
+    part(new BoxGeometry(0.08, 0.045, 0.34), INK, [0, 0.965, 0]),
+    part(new CylinderGeometry(0.09, 0.09, 0.76, 8), WHITE, [0, 0.50, 0]),
+    part(new ConeGeometry(0.09, 0.14, 8), WHITE, [0, 0.07, 0], [Math.PI, 0, 0]),
   ]),
 
   압핀: () => assemble([
     // 손잡이가 위로 솟은 압핀. 압정과 실루엣이 달라야 둘 다 두는 의미가 있다
     part(new CylinderGeometry(0.26, 0.30, 0.34, 20), WHITE, [0, 0.72, 0]),
     part(new CylinderGeometry(0.34, 0.34, 0.12, 20), WHITE, [0, 0.50, 0]),
-    part(new CylinderGeometry(0.04, 0.04, 0.40, 6), METAL, [0, 0.24, 0]),
-    part(new ConeGeometry(0.04, 0.09, 5), METAL, [0, 0.045, 0], [Math.PI, 0, 0]),
+    part(new CylinderGeometry(0.05, 0.05, 0.40, 8), PIN, [0, 0.24, 0]),
+    part(new ConeGeometry(0.05, 0.10, 8), PIN, [0, 0.045, 0], [Math.PI, 0, 0]),
   ]),
 
   지우개: () => assemble([

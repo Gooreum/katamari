@@ -145,6 +145,14 @@ export const TILE = {
    * 삼각형도 줄고 겹칠 데도 없다.
    */
   WATER: 35,
+  /**
+   * 단추 얼굴 — 테두리 단 + 구멍 넷.
+   *
+   * 단추는 **납작하고 민짜**라 튀어나올 데도 대비를 얹을 넓은 면도 없다. 게다가
+   * 팔레트에 검정이 있어서 계수로는 어떤 대비도 못 만든다(검정 × 0.22 = 더 검정).
+   * 그런 물건의 정답은 처음부터 «무늬»다.
+   */
+  BUTTON: 36,
 } as const;
 
 /**
@@ -696,6 +704,22 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillStyle = 'rgba(255,255,255,0.55)';
     for (const [x, y, w] of [[18, 22, 34], [64, 58, 26], [30, 100, 40]] as const) {
       cx.fillRect(x, y, w, 2);
+    }
+  });
+
+  /** 단추 얼굴 — 테두리 단 + 구멍 넷. 곱셈이라 어떤 팔레트에서도 단이 진다 */
+  at(TILE.BUTTON, () => {
+    base();
+    const c = CELL / 2;
+    cx.strokeStyle = 'rgba(70,64,56,0.30)'; cx.lineWidth = 6;
+    cx.beginPath(); cx.arc(c, c, CELL * 0.34, 0, Math.PI * 2); cx.stroke();
+    cx.strokeStyle = 'rgba(255,255,255,0.55)'; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(c, c, CELL * 0.30, 0, Math.PI * 2); cx.stroke();
+    cx.fillStyle = 'rgba(48,44,38,0.42)';
+    for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+      cx.beginPath();
+      cx.arc(c + x * CELL * 0.15, c + z * CELL * 0.15, CELL * 0.075, 0, Math.PI * 2);
+      cx.fill();
     }
   });
 
