@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdRooms } from './generation';
 import {
-  assemble, DARK, hollow, INK, invert, METAL, PAPER, part, SEG, soft, WHITE, WOOD,
+  assemble, DARK, hollow, INK, invert, METAL, part, SEG, soft, WHITE, WOOD, WRAP,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -149,15 +149,20 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    */
   신발장: () => assemble([
     part(soft(1.00, 0.03, 0.38, 0.35), WOOD, [0, 0.67, 0], undefined, TILE.WOOD_C),              // 상판
-    part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [-0.48, 0.34, 0]),         // 측판
-    part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [0.48, 0.34, 0]),
-    part(new BoxGeometry(0.96, 0.62, 0.03), PAPER, [0, 0.34, -0.185]),   // 뒷판
+    part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [-0.48, 0.34, 0], undefined, TILE.WOOD_C),
+    part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [0.48, 0.34, 0], undefined, TILE.WOOD_C),
+    // 뒷판 — 칸 «안»의 그늘. `PAPER`(대비 0.04)로는 칸이 안 보인다
+    part(new BoxGeometry(0.94, 0.60, 0.03), [0.22, 0.19, 0.16], [0, 0.34, -0.186]),
     // 칸 셋 — 이게 신발장의 정체다
     ...([0.20, 0.40] as const).map((y) =>
       part(soft(0.92, 0.025, 0.36, 0.30), WOOD, [0, y, 0])),
     // 신발 둘. 아래 칸에 들어가 있다
-    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), DARK, [-0.22, 0.07, 0]),
-    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), DARK, [0.14, 0.07, 0.02]),
+    // 신발 둘 — **뒷판(그늘)이 몸통이라 어두운 신발은 거기 파묻힌다.**
+    // 현관에 나와 있는 건 대개 밝은 실내화다
+    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), [1.35, 1.30, 1.18],
+      [-0.22, 0.07, 0], undefined, TILE.CLOTH),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), [1.35, 1.30, 1.18],
+      [0.14, 0.07, 0.02]),
     part(soft(0.60, 0.05, 0.34, 0.35), WOOD, [0, 0.03, 0]),              // 굽
   ]),
 
@@ -209,16 +214,23 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 얹혀야 「자는 자리」로 읽힌다.
    */
   이불: () => assemble([
-    part(soft(1.00, 0.05, 0.68, 0.45), WHITE, [0, 0.025, 0]),            // 요
-    part(new SphereGeometry(0.5, 20, 13).scale(0.94, 0.055, 0.62), PAPER, [0, 0.04, 0]),
-    // 접어서 걷어놓은 이불 — 발치 쪽
-    part(soft(0.56, 0.07, 0.62, 0.45), WHITE, [0.20, 0.085, 0.01]),
-    part(new SphereGeometry(0.5, 20, 13).scale(0.52, 0.05, 0.58), PAPER, [0.20, 0.10, 0.01]),
-    // 베개 — 머리맡
-    part(new SphereGeometry(0.5, 20, 13).scale(0.30, 0.075, 0.40), PAPER, [-0.36, 0.075, 0]),
+    // 요 — 천이니 짜임 인쇄를 문다(민짜 흰 판은 「바닥」이지 「이불」이 아니다)
+    part(soft(1.00, 0.05, 0.68, 0.45), WHITE, [0, 0.025, 0], undefined, TILE.CLOTH),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.94, 0.055, 0.62), WHITE, [0, 0.04, 0],
+      undefined, TILE.CLOTH),
+    /**
+     * 걷어놓은 이불 — **요와 «다른 색»이어야 두 장으로 읽힌다.** `PAPER` 는
+     * 대비가 0.05 라 화면에서 한 장짜리 흰 매트였다. 덮는 이불은 늘 무늬가 다르다.
+     */
+    part(soft(0.56, 0.07, 0.62, 0.45), [0.52, 0.56, 0.66], [0.20, 0.085, 0.01],
+      undefined, TILE.CLOTH),
+    part(new SphereGeometry(0.5, 20, 13).scale(0.52, 0.05, 0.58), [0.52, 0.56, 0.66],
+      [0.20, 0.10, 0.01]),
+    // 베개 — 머리맡. 요보다 밝아야 «얹힌 것»으로 보인다
+    part(new SphereGeometry(0.5, 20, 13).scale(0.30, 0.075, 0.40), WRAP, [-0.36, 0.075, 0]),
     // 베개 시접. 세그먼트를 넉넉히 줬다가 이불이 844삼각형으로 상한(800)을 넘었다 —
     // 눌린 구 셋과 이 링이 합쳐서 대부분이었다
-    part(new TorusGeometry(0.19, 0.018, 4, 12).scale(0.75, 1, 1), PAPER,
+    part(new TorusGeometry(0.19, 0.018, 4, 12).scale(0.75, 1, 1), INK,
       [-0.36, 0.06, 0], LIE_Z, TILE.CLOTH),
   ]),
 
@@ -251,7 +263,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 상판에 통짜를 얹으면 그건 조리대고, 파야 설거지하는 데가 된다.
    */
   싱크대: () => assemble([
-    part(soft(1.00, 0.46, 0.34, 0.10), WHITE, [0, 0.23, 0]),             // 몸통
+    // 몸통 — **굽 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(soft(1.00, 0.42, 0.34, 0.10), WHITE, [0, 0.26, 0]),
     /**
      * 스테인리스 상판. **개수통 자리를 비워야 한다** — 판 한 장으로 덮었더니
      * 파놓은 통이 통째로 가려져서 「그냥 조리대」가 됐다.
@@ -259,20 +272,25 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
      */
     part(soft(1.02, 0.025, 0.06, 0.35), METAL, [0, 0.475, 0.145]),
     part(soft(1.02, 0.025, 0.06, 0.35), METAL, [0, 0.475, -0.145]),
-    part(soft(0.58, 0.025, 0.35, 0.35), METAL, [0.22, 0.475, 0]),
-    part(soft(0.08, 0.025, 0.35, 0.35), METAL, [-0.47, 0.475, 0]),
+    // 좌우 조각은 앞·뒤 조각 «사이»만 덮는다. 깊이가 같으면 셋이 서로 겹쳐서
+    // 같은 평면 위에 판이 두 장 깔린다(자가 `1×3 2×3 1×4 2×4` 로 잡았다)
+    part(soft(0.58, 0.025, 0.23, 0.35), METAL, [0.22, 0.475, 0]),
+    part(soft(0.08, 0.025, 0.23, 0.35), METAL, [-0.47, 0.475, 0]),
     // 개수통 — 상판 왼쪽에 판다
     // 개수통 — 상판을 뚫은 자리에 판다. 상판 높이(0.4875)와 턱이 맞아야 한다
-    ...basin(0.36, 0.26, 0.15, 0.02, [0.45, 0.50, 0.55], METAL)
-      .map((p) => part(p.geo, p.rgb, [-0.24, 0.338, 0])),
+    // 개수통 — 상판보다 **8mm 높게** 앉힌다. 턱이 상판과 같은 높이면 같은 평면이
+    // 생겨 z-fighting 이다(자가 `1×5 2×6 3×7` 로 잡았다). 실제 드롭인 싱크도 턱이 뜬다
+    ...basin(0.36, 0.26, 0.15, 0.02, [0.45, 0.50, 0.55], METAL, TILE.METAL)
+      .map((q) => part(q.geo, q.rgb, [-0.24, 0.346, 0], undefined, q.tile)),
     // 꼭지는 «작게». 1.0 배로 뒀더니 형태 높이가 목표(0.85m)의 1.4배가 됐다 —
     // 압출 조각에는 꼭지가 없었으니 목표값이 그만큼 낮은 게 당연하다
     ...tap(-0.24, 0.49, -0.12, 0.6),
     // 문 둘 + 손잡이 — 몸통 앞면에 선을 그어야 장으로 읽힌다
     part(soft(0.44, 0.38, 0.02, 0.30), WHITE, [0.25, 0.24, 0.175]),
     part(soft(0.44, 0.38, 0.02, 0.30), WHITE, [-0.25, 0.24, 0.175]),
-    part(new CylinderGeometry(0.012, 0.012, 0.12, 6), METAL, [0.05, 0.24, 0.19], LIE_X, TILE.METAL),
-    part(new CylinderGeometry(0.012, 0.012, 0.12, 6), METAL, [-0.05, 0.24, 0.19], LIE_X),
+    // 손잡이 둘 — 길이를 다르게. 한 축에 나란히 놓으면 끝면이 같은 평면이다
+    part(new CylinderGeometry(0.013, 0.013, 0.13, 8), METAL, [0.055, 0.24, 0.19], LIE_X, TILE.METAL),
+    part(new CylinderGeometry(0.013, 0.013, 0.11, 8), METAL, [-0.055, 0.24, 0.19], LIE_X),
     part(soft(0.96, 0.05, 0.30, 0.35), DARK, [0, 0.025, 0]),             // 굽
   ]),
 
@@ -281,16 +299,21 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 통짜 상자에 색만 칠하면 그건 캐비닛이다.
    */
   냉장고: () => assemble([
-    part(soft(0.39, 1.00, 0.39, 0.08), WHITE, [0, 0.50, 0]),
+    part(soft(0.39, 0.985, 0.39, 0.08), WHITE, [0, 0.5275, 0]),
     // 냉동실 / 냉장실 — 앞면을 둘로 가르는 선
-    part(soft(0.37, 0.26, 0.02, 0.30), [0.92, 0.93, 0.95], [0, 0.855, 0.20]),
-    part(soft(0.37, 0.66, 0.02, 0.20), [0.92, 0.93, 0.95], [0, 0.35, 0.20]),
+    // 문 두 짝 — 몸통과 대비가 0.07 이라 「앞면을 둘로 가르는 선」이 안 보였다.
+    // 문은 몸통보다 «한 단 밝다»(빛을 정면으로 받는다)
+    // 문 두 짝 — 냉장고 팔레트가 «흰색»이라 밝게는 못 간다(1.42 로도 대비 0.06).
+    // 흰 물건의 선은 짙은 쪽이다
+    part(soft(0.37, 0.26, 0.025, 0.30), [0.74, 0.75, 0.78], [0, 0.855, 0.202]),
+    part(soft(0.37, 0.66, 0.025, 0.20), [0.74, 0.75, 0.78], [0, 0.35, 0.202]),
     // 세로 손잡이 둘
     part(new CylinderGeometry(0.016, 0.016, 0.18, 7), METAL, [0.14, 0.86, 0.225], undefined, TILE.PANEL),
     part(new CylinderGeometry(0.016, 0.016, 0.44, 7), METAL, [0.14, 0.40, 0.225]),
     // 문틈 — 어두운 띠 하나가 「문이 둘」을 확정한다
     part(new BoxGeometry(0.37, 0.012, 0.02), DARK, [0, 0.70, 0.205]),
-    part(soft(0.35, 0.03, 0.35, 0.35), DARK, [0, 0.015, 0]),             // 굽
+    // 굽 — 몸통보다 좁게 하고 몸통을 그 «위»에 올린다
+    part(soft(0.35, 0.035, 0.35, 0.35), DARK, [0, 0.0175, 0]),           // 굽
   ]),
 
   /**
@@ -301,7 +324,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(soft(0.62, 1.00, 0.21, 0.08), WOOD, [0, 0.50, 0]),
     part(soft(0.66, 0.03, 0.24, 0.35), WOOD, [0, 1.01, 0]),              // 갓돌림  // NOTE:찬장
     // 파인 안쪽 — 유리문 너머로 보인다
-    part(invert(new BoxGeometry(0.54, 0.86, 0.17)), [0.40, 0.34, 0.26], [0, 0.53, 0.01]),
+    // 파인 안쪽 — 유리문 너머의 «그늘». WOOD 와 대비가 0.05 라 통짜로 보였다
+    part(invert(new BoxGeometry(0.54, 0.86, 0.17)), [0.16, 0.13, 0.10], [0, 0.53, 0.01]),
     // 선반 둘 + 그릇 — 「그릇장」을 만드는 건 이것이다
     ...([0.40, 0.68] as const).map((y) =>
       part(new BoxGeometry(0.54, 0.02, 0.17), WOOD, [0, y, 0])),
@@ -450,17 +474,21 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 상자에 색만 칠하면 그건 궤짝이고, 입구가 안 뚫리면 개가 못 들어간다.
    */
   개집: () => assemble([
-    part(soft(0.94, 0.56, 0.86, 0.10), WOOD, [0, 0.28, 0]),
+    // 몸통 — **마루 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(soft(0.94, 0.52, 0.86, 0.10), WOOD, [0, 0.31, 0]),
     // 박공 지붕 — 두 경사면. **여기가 개집을 개집으로 만든다**
-    part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, 0.24], [0.62, 0, 0], TILE.WOOD_C),
-    part(new BoxGeometry(1.00, 0.05, 0.62), [0.72, 0.36, 0.28], [0, 0.72, -0.24], [-0.62, 0, 0]),
+    // 지붕 — 몸통(WOOD)과 대비가 0.04 였다. 지붕은 함석이니 «밝게» 간다
+    part(new BoxGeometry(1.00, 0.05, 0.62), [1.15, 0.72, 0.58], [0, 0.72, 0.24], [0.62, 0, 0], TILE.WOOD_C),
+    part(new BoxGeometry(0.96, 0.05, 0.62), [1.15, 0.72, 0.58], [0, 0.72, -0.24], [-0.62, 0, 0]),
     // 박공 삼각면 둘 — 지붕 옆을 막는다
-    part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [0.46, 0.72, 0], [0, 0, Math.PI / 2]),
-    part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [-0.46, 0.72, 0], [0, 0, Math.PI / 2]),
+    // 박공 삼각면 둘 — 지붕판 «안»으로 물린다. 폭이 지붕과 같으면 옆면이 같은 평면이다
+    part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [0.455, 0.72, 0], [0, 0, Math.PI / 2]),
+    part(new CylinderGeometry(0.34, 0.34, 0.04, 14), WOOD, [-0.465, 0.72, 0], [0, 0, Math.PI / 2]),
     // 뚫린 입구 — 뒤집은 원기둥으로 «안»을 만든다
+    // 뚫린 입구 «안» — 개집 안은 깜깜하다. 0.30 으로는 몸통과 대비가 0.07 이었다
     part(invert(new CylinderGeometry(0.24, 0.24, 0.30, 14, 1, true)),
-      [0.30, 0.24, 0.20], [0, 0.30, 0.29], LIE_Z),
-    part(new CylinderGeometry(0.24, 0.24, 0.02, 14), [0.22, 0.18, 0.15], [0, 0.30, 0.16], LIE_Z),
+      [0.09, 0.07, 0.06], [0, 0.30, 0.285], LIE_Z),
+    part(new CylinderGeometry(0.235, 0.235, 0.02, 14), [0.09, 0.07, 0.06], [0, 0.30, 0.16], LIE_Z),
     // 마루 — 바닥에서 살짝 띄운다
     part(soft(0.98, 0.05, 0.90, 0.35), WOOD, [0, 0.025, 0]),
   ]),
@@ -472,13 +500,16 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   창고: () => assemble([
     part(soft(0.89, 1.00, 0.75, 0.06), METAL, [0, 0.50, 0]),
     // 골함석 — 세로 골 다섯. 옆면에 세로선이 그어져야 함석으로 읽힌다
+    // 골함석 — 세로 골 다섯. 길이를 몸통보다 짧게(같으면 끝면이 같은 평면이다)
     ...([-0.32, -0.16, 0, 0.16, 0.32] as const).map((x) =>
-      part(new CylinderGeometry(0.022, 0.022, 0.96, 6), [0.86, 0.88, 0.90], [x, 0.50, 0.385], undefined, TILE.WOOD_C)),
+      part(new CylinderGeometry(0.022, 0.022, 0.92, 6), [0.86, 0.88, 0.90], [x, 0.50, 0.385], undefined, TILE.WOOD_C)),
     // 한쪽으로 흐르는 지붕 — 평지붕이면 상자다
-    part(new BoxGeometry(0.96, 0.05, 0.82), [0.62, 0.64, 0.66], [0, 1.03, 0], [0.10, 0, 0]),
+    // 지붕 — 벽(METAL)과 대비가 0.08 이라 몸통과 한 덩어리였다. 지붕은 «녹슨» 쪽이다
+    part(new BoxGeometry(0.98, 0.05, 0.84), [0.34, 0.30, 0.27], [0, 1.03, 0], [0.10, 0, 0]),
     // 여닫이문 둘 + 빗장
-    part(soft(0.32, 0.68, 0.02, 0.20), [0.55, 0.50, 0.44], [-0.17, 0.36, 0.385]),
-    part(soft(0.32, 0.68, 0.02, 0.20), [0.55, 0.50, 0.44], [0.17, 0.36, 0.385]),
+    // 여닫이문 둘 — 깊이를 골보다 살짝 앞으로 빼서 같은 평면을 안 만든다
+    part(soft(0.32, 0.68, 0.02, 0.20), [0.55, 0.50, 0.44], [-0.17, 0.36, 0.394]),
+    part(soft(0.32, 0.66, 0.02, 0.20), [0.55, 0.50, 0.44], [0.17, 0.36, 0.394]),
     part(new CylinderGeometry(0.016, 0.016, 0.24, 6), DARK, [0, 0.44, 0.40], LIE_X),
   ]),
 
@@ -490,17 +521,22 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 이번 작업은 **형상만** 바꾼다.
    */
   나무: () => assemble([
-    part(new CylinderGeometry(0.09, 0.15, 1.10, 20), WOOD, [0, 0.55, 0], undefined, TILE.WOOD_C),
+    // 줄기 — 몸통이 «잎 덩어리»라 그것과 갈려야 한다. `WOOD`(0.40)로는 대비가 0.10 이다
+    // 줄기 — **뿌리목 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(new CylinderGeometry(0.09, 0.15, 1.05, 20), [0.34, 0.24, 0.16], [0, 0.625, 0],
+      undefined, TILE.WOOD_C),
     // 갈라진 가지 둘 — 줄기 하나면 기둥이다
-    part(new CylinderGeometry(0.045, 0.07, 0.50, 14), WOOD, [0.14, 1.20, 0.04], [0, 0, -0.42]),
-    part(new CylinderGeometry(0.045, 0.07, 0.46, 14), WOOD, [-0.13, 1.18, -0.05], [0, 0, 0.40]),
+    part(new CylinderGeometry(0.045, 0.07, 0.50, 14), [0.34, 0.24, 0.16], [0.14, 1.20, 0.04], [0, 0, -0.42]),
+    part(new CylinderGeometry(0.045, 0.07, 0.46, 14), [0.34, 0.24, 0.16], [-0.13, 1.18, -0.05], [0, 0, 0.40]),
     // 잎 덩어리 넷 — 하나면 사탕, 넷이면 나무다
     part(new SphereGeometry(0.36, 20, 13).scale(1, 0.86, 1), [0.36, 0.62, 0.28], [0, 1.72, 0]),
-    part(new SphereGeometry(0.26, 20, 13).scale(1, 0.86, 1), [0.30, 0.55, 0.24], [0.30, 1.46, 0.08]),
-    part(new SphereGeometry(0.24, 20, 13).scale(1, 0.86, 1), [0.30, 0.55, 0.24], [-0.28, 1.42, -0.10]),
-    part(new SphereGeometry(0.22, 20, 13).scale(1, 0.86, 1), [0.42, 0.70, 0.32], [0.10, 2.00, -0.12]),
+    // 아래쪽 잎 덩어리는 «그늘»이다. 0.30 은 큰 덩어리와 대비가 0.06 이라
+    // 넷이 한 덩어리로 뭉쳤다 — 그늘답게 확실히 내린다
+    part(new SphereGeometry(0.26, 20, 13).scale(1, 0.86, 1), [0.18, 0.34, 0.14], [0.30, 1.46, 0.08]),
+    part(new SphereGeometry(0.24, 20, 13).scale(1, 0.86, 1), [0.18, 0.34, 0.14], [-0.28, 1.42, -0.10]),
+    part(new SphereGeometry(0.22, 20, 13).scale(1, 0.86, 1), [0.56, 0.92, 0.42], [0.10, 2.00, -0.12]),
     // 뿌리목 — 바닥에서 벌어진다
-    part(new CylinderGeometry(0.20, 0.28, 0.10, 20), WOOD, [0, 0.05, 0]),
+    part(new CylinderGeometry(0.20, 0.28, 0.10, 20), [0.34, 0.24, 0.16], [0, 0.05, 0]),
   ]),
 
   /**
@@ -512,8 +548,9 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     ...([-0.40, -0.20, 0, 0.20, 0.40] as const).map((z) =>
       part(soft(1.00, 0.05, 0.17, 0.30), WOOD, [0, 0.325, z], undefined, TILE.WOOD_C)),
     // 테두리 두 줄
-    part(soft(1.00, 0.055, 0.04, 0.35), [0.44, 0.33, 0.22], [0, 0.325, 0.48]),
-    part(soft(1.00, 0.055, 0.04, 0.35), [0.44, 0.33, 0.22], [0, 0.325, -0.48]),
+    // 테두리 두 줄 — 널(WOOD)과 대비가 0.02 였다. 테두리는 «짙은» 마구리다
+    part(soft(1.00, 0.055, 0.04, 0.35), [0.24, 0.17, 0.11], [0, 0.325, 0.48]),
+    part(soft(1.00, 0.055, 0.04, 0.35), [0.24, 0.17, 0.11], [0, 0.325, -0.48]),
     // 다리 넷
     ...([[0.44, 0.42], [-0.44, 0.42], [0.44, -0.42], [-0.44, -0.42]] as const).map(
       ([x, z]) => part(soft(0.08, 0.30, 0.08, 0.30), WOOD, [x, 0.15, z])),
@@ -525,7 +562,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * (줄 자체는 «공중에 뜬 면»이라 못 만든다 — 밥상 상판과 같은 한계다)
    */
   '빨래 기둥': () => assemble([
-    part(new CylinderGeometry(0.035, 0.045, 1.00, 10), METAL, [0, 0.50, 0]),
+    // 기둥 — **밑동 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
+    part(new CylinderGeometry(0.035, 0.045, 0.94, 10), METAL, [0, 0.53, 0]),
     // 가로대 + 끝 마개 둘
     part(new CylinderGeometry(0.026, 0.026, 0.34, 10), METAL, [0, 0.97, 0], LIE_X),
     part(new SphereGeometry(0.034, 10, 7), METAL, [0.17, 0.97, 0], undefined, TILE.METAL),
@@ -534,6 +572,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     part(new CylinderGeometry(0.016, 0.016, 0.26, 6), METAL, [0.07, 0.86, 0], [0, 0, -0.62]),
     part(new CylinderGeometry(0.016, 0.016, 0.26, 6), METAL, [-0.07, 0.86, 0], [0, 0, 0.62]),
     // 콘크리트 밑동
-    part(new CylinderGeometry(0.11, 0.14, 0.10, 14), [0.72, 0.72, 0.70], [0, 0.05, 0]),
+    // 콘크리트 밑동 — `METAL`(0.72,0.74,0.78)과 대비가 0.02 였다. 콘크리트는 «칙칙»하다
+    part(new CylinderGeometry(0.13, 0.17, 0.12, 14), [0.36, 0.35, 0.33], [0, 0.06, 0], undefined, TILE.STONE),
   ]),
 };

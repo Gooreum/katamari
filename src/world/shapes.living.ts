@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdLiving } from './generation';
 import {
-  assemble, hollow, invert, DARK, GLASS, METAL, PAPER, part, WHITE, WOOD, soft,
+  assemble, hollow, invert, DARK, GLASS, METAL, part, SHINE, WHITE, WRAP, soft,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
@@ -52,7 +52,8 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
   책: () => assemble([
     part(soft(0.62, 1.00, 0.16, 0.1), WHITE, [0, 0.50, 0], undefined, TILE.BOOK),
     // 책배 — 종이 단면. 표지보다 밝고 살짝 안쪽으로 들어간다
-    part(new BoxGeometry(0.58, 0.94, 0.10), PAPER, [0.015, 0.50, 0.045]),
+    // 책배 — 종이 단면. `PAPER`(대비 0.04)로는 표지와 안 갈린다. 종이는 «희다»
+    part(new BoxGeometry(0.58, 0.94, 0.10), WRAP, [0.015, 0.50, 0.045]),
     // 책등. 표지가 접히는 쪽이라 조금 두껍다
     part(soft(0.05, 1.00, 0.17, 0.3), WHITE, [-0.31, 0.50, 0]),
     // 책등 위아래 가름끈
@@ -73,15 +74,20 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
   비디오테이프: () => assemble([
     part(soft(1.00, 0.135, 0.57, 0.14), DARK, [0, 0.09, 0]),
     // 위 라벨면. 손글씨가 찍힌다
-    part(new BoxGeometry(0.92, 0.02, 0.50), WHITE, [0, 0.163, 0], undefined, TILE.VIDEO),
+    // 위 라벨면 — 몸통(검정)과 확실히 갈려야 한다. 넓이도 키운다
+    part(new BoxGeometry(0.94, 0.022, 0.53), WRAP, [0, 0.164, 0], undefined, TILE.VIDEO),
     // 릴 창 둘 — 안이 비쳐야 테이프다
-    part(new CylinderGeometry(0.13, 0.13, 0.03, 14), GLASS, [-0.19, 0.168, 0.06]),
-    part(new CylinderGeometry(0.13, 0.13, 0.03, 14), GLASS, [0.19, 0.168, 0.06]),
+    // 릴 창 둘 — 라벨보다 «짙어야» 창으로 읽힌다. 라벨 «안»에 가둔다
+    // 릴 창 — 테이프 팔레트가 «검정»(밝기 0.18)이라 0.30 으로는 대비가 0.03 이다.
+    // 검은 물건 위의 창은 «밝은» 쪽이어야 보인다
+    ...([-0.19, 0.19] as const).map((x) =>
+      part(new CylinderGeometry(0.13, 0.13, 0.026, 14), [1.9, 1.95, 2.05], [x, 0.170, 0.06])),
     // 릴 허브
-    part(new CylinderGeometry(0.045, 0.045, 0.04, 8), METAL, [-0.19, 0.175, 0.06]),
-    part(new CylinderGeometry(0.045, 0.045, 0.04, 8), METAL, [0.19, 0.175, 0.06]),
+    ...([-0.19, 0.19] as const).map((x) =>
+      part(new CylinderGeometry(0.045, 0.045, 0.034, 8), [1.0, 1.02, 1.10], [x, 0.178, 0.06])),
     // 앞 셔터. 은색 띠 하나가 앞뒤를 갈라준다
-    part(new BoxGeometry(0.86, 0.10, 0.03), METAL, [0, 0.09, -0.30]),
+    // 앞 셔터 — 검정 위의 은색은 `SHINE` 급이라야 띠로 보인다
+    part(new BoxGeometry(0.86, 0.10, 0.03), SHINE, [0, 0.09, -0.30]),
     // 뒤쪽 굽 둘
     part(new BoxGeometry(0.10, 0.03, 0.07), DARK, [-0.36, 0.015, 0.22]),
     part(new BoxGeometry(0.10, 0.03, 0.07), DARK, [0.36, 0.015, 0.22]),
@@ -124,15 +130,22 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
   액자: () => assemble([
     // 그림면. 안쪽으로 들어가 있어야 테가 튀어나온 게 보인다
     part(new BoxGeometry(0.72, 0.86, 0.03), WHITE, [0, 0.52, 0], undefined, TILE.PICTURE),
-    // 테 넷
-    part(soft(0.86, 0.09, 0.07, 0.3), WOOD, [0, 0.955, 0.015]),
-    part(soft(0.86, 0.09, 0.07, 0.3), WOOD, [0, 0.085, 0.015]),
-    part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [-0.385, 0.52, 0.015], undefined, TILE.WOOD_C),
-    part(soft(0.09, 1.00, 0.07, 0.3), WOOD, [0.385, 0.52, 0.015]),
-    // 뒤판
-    part(new BoxGeometry(0.80, 0.92, 0.02), PAPER, [0, 0.52, -0.025]),
+    // 테 넷 — 가로 테를 세로 테보다 짧게. 길이가 같으면 끝면이 같은 평면이다
+    // 테 넷 — **그림면과 확실히 갈려야 «테가 튀어나왔다»가 보인다.** 액자 팔레트는
+    // 나무·은색 둘이라 `WOOD`(0.40)로는 대비가 0.08 이다. 계수를 더 벌린다
+    part(soft(0.78, 0.09, 0.075, 0.3), [0.30, 0.22, 0.15], [0, 0.955, 0.016]),
+    part(soft(0.78, 0.09, 0.075, 0.3), [0.30, 0.22, 0.15], [0, 0.085, 0.016]),
+    part(soft(0.09, 1.00, 0.07, 0.3), [0.30, 0.22, 0.15], [-0.385, 0.52, 0.015], undefined, TILE.WOOD_C),
+    part(soft(0.09, 1.00, 0.07, 0.3), [0.30, 0.22, 0.15], [0.385, 0.52, 0.015], undefined, TILE.WOOD_C),
+    /**
+     * 뒤판 — **이게 몸통이다.** 상자 겉넓이가 그림면보다 넓어서 자가 여기를 기준으로
+     * 삼는다. 짙게 뒀더니 나무 테와 대비가 0.03 이라 헛색 다섯이 잡혔다.
+     * 액자 뒤판은 원래 «크라프트 판지»라 밝다 — 그러면 테도 그림면도 갈린다.
+     */
+    part(new BoxGeometry(0.78, 0.90, 0.02), [0.85, 0.76, 0.62], [0, 0.52, -0.026],
+      undefined, TILE.CARDBOARD),
     // 받침대. 뒤로 비스듬히 뻗는다
-    part(new BoxGeometry(0.16, 0.62, 0.02), PAPER, [0, 0.34, -0.14], [0.42, 0, 0]),
+    part(new BoxGeometry(0.16, 0.62, 0.02), [0.85, 0.76, 0.62], [0, 0.34, -0.14], [0.42, 0, 0]),
   ]),
 
   /**
@@ -165,8 +178,9 @@ export const LIVING_BUILDERS: Record<ShapeIdLiving, () => BufferGeometry> = {
     part(new BoxGeometry(0.16, 0.05, 0.26), [0.42, 0.50, 0.55], [0.42, 0.215, 0]),
     part(new BoxGeometry(0.26, 0.05, 0.16), [0.42, 0.50, 0.55], [0, 0.215, -0.42]),
     // 꽁초 둘. 필터가 보여야 꽁초다
-    part(new CylinderGeometry(0.038, 0.038, 0.26, 6), PAPER, [0.10, 0.235, 0.14], [0, 0.6, 1.5708]),
-    part(new CylinderGeometry(0.040, 0.040, 0.09, 6), [0.78, 0.60, 0.30], [0.26, 0.235, 0.05], [0, 0.6, 1.5708]),
+    part(new CylinderGeometry(0.038, 0.038, 0.26, 8), WRAP, [0.10, 0.235, 0.14], [0, 0.6, 1.5708]),
+    // 꽁초 필터 — 담배 몸통과 «확실히» 갈려야 필터로 읽힌다(전 대비 0.06)
+    part(new CylinderGeometry(0.042, 0.042, 0.09, 8), [1.35, 1.00, 0.42], [0.26, 0.235, 0.05], [0, 0.6, 1.5708]),
     // 재
     part(new SphereGeometry(0.07, 6, 4).scale(1, 0.4, 1), DARK, [-0.12, 0.16, -0.06]),
   ]),
