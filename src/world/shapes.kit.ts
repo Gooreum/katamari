@@ -46,7 +46,56 @@ export const PAPER: RGB = [0.92, 0.9, 0.86];
 /** 나무·흙 */
 export const WOOD: RGB = [0.5, 0.38, 0.26];
 
+/**
+ * **1을 넘는 계수.** 포장지·라벨·이빨처럼 「몸통보다 확실히 밝은 것」에 쓴다.
+ *
+ * 정점색은 절대색이 아니라 팔레트에 **곱하는 계수**고, three 는 그 곱을 클램프하지
+ * 않는다. 그래서 어두운 팔레트 위에서 밝은 표식을 만들 길이 이것뿐이다 —
+ * `PAPER`(0.92)는 **어떤 팔레트에서도** 몸통(`WHITE` = 1.0)과 대비를 0.08 밖에
+ * 못 만들고, 실제로 캐러멜 포장지·팥 배꼽줄·골프공 딤플이 그래서 안 보였다.
+ * 나는 여태 계수만 보고 「색을 줬다」고 판단해 왔다.
+ *
+ * 밝은 팔레트에서는 흰색으로 포화되는데, 포장지·라벨은 원래 흰색이라 그게 맞다.
+ */
+export const WRAP: RGB = [1.55, 1.52, 1.42];
+/**
+ * 같은 이유의 어두운 쪽 — 홈·그늘·눈동자·구멍.
+ * `DARK`(0.18)는 «고무»라는 뜻이 붙어 있어 타이어·손잡이가 쓴다. 이건 «선»이다.
+ */
+export const INK: RGB = [0.22, 0.20, 0.18];
+
 export interface Part { geo: BufferGeometry; rgb: RGB; tile: number }
+
+/**
+ * 부품 하나의 **정규화 뒤 실측.** `assemble()` 이 `geo.userData['parts']` 에 남긴다.
+ *
+ * ## 왜 생겼나
+ *
+ * 형태를 재는 자를 세 번 만들었고(면 수·인쇄·실루엣) **세 번 다 자와 코드가
+ * 서로 다른 것을 봤다.** 자는 소스를 정규식으로 다시 파싱하고 코드는 실제
+ * 지오메트리를 쓰니, `SphereGeometry(0.30, 20, 13)` 의 「20」을 치수로 세거나
+ * `.scale()` 을 못 읽어서 44건이 헛failed 했다.
+ *
+ * 이제 형태가 **자기 부품 실측을 직접 들고 있다.** 병합 «전»에 부품별 정점 개수를
+ * 적어두고, `normalize()` 까지 끝난 좌표에서 그 구간의 상자를 잰다 —
+ * **자가 보는 좌표계가 곧 게임의 좌표계다.** 어긋날 데가 없다.
+ *
+ * 비용은 형태를 짓는 순간 한 번(146종 × 부품 수)이고 런타임에는 0이다.
+ */
+export interface PartMeta {
+  readonly rgb: RGB;
+  readonly tile: number;
+  readonly min: Vec3;
+  readonly max: Vec3;
+  /** 이 부품이 차지하는 정점 개수. 병합된 삼각형을 부품으로 되돌릴 때 쓴다 */
+  readonly n: number;
+  /**
+   * 상자 부피. 삼각형 부호부피가 아니라 상자인 이유는 재는 대상이
+   * 「이 부품이 **실루엣**에 얼마나 기여하나」라서다. 실루엣은 부피가 아니라
+   * 차지하는 자리가 정한다.
+   */
+  readonly vol: number;
+}
 
 export type Vec3 = readonly [number, number, number];
 const ZERO: Vec3 = [0, 0, 0];
@@ -442,11 +491,54 @@ export function assemble(parts: Part[]): BufferGeometry {
     foldUv(geo, tile);
     paint(geo, rgb);
   }
+  /**
+   * **부품별 정점 개수를 병합 «전»에 적는다.** `mergeGeometries(_, false)` 는
+   * 속성을 순서대로 이어 붙이므로, 이 개수만 있으면 병합 뒤에도 어느 정점이
+   * 어느 부품인지 안다. 부품 지오메트리는 곧 `dispose()` 되므로 지금 세야 한다.
+   */
+  const runs = parts.map((p) => p.geo.attributes['position']!.count);
   const merged = mergeGeometries(parts.map((p) => p.geo), false);
   for (const p of parts) p.geo.dispose();
   // 조용히 넘어가면 그 형태만 화면에서 사라진 채로 게임이 돈다. 시끄럽게 죽는 편이 낫다.
   if (!merged) throw new Error('형태 병합 실패 — 부품들의 속성 구성이 다릅니다');
+  /**
+   * 상자는 비워두고 **`normalize()` 가 채운다.** 여기서 직접 재면
+   * `normalize(assemble([...]).scale(...))` 처럼 **뒤에 한 번 더 변환하는**
+   * 형태(꽃잎·자갈)에서 상자가 낡는다 — 실제로 자가 그걸 잡았다.
+   * 정점 개수만 들려 보내면 `normalize()` 가 언제 불리든 다시 잰다.
+   */
+  merged.userData['parts'] = parts.map((p, k) => ({
+    rgb: p.rgb, tile: p.tile, n: runs[k]!,
+    min: [0, 0, 0] as Vec3, max: [0, 0, 0] as Vec3, vol: 0,
+  } satisfies PartMeta));
   return normalize(merged);
+}
+
+/**
+ * `userData['parts']` 의 상자를 **지금 정점에서** 다시 잰다.
+ * `normalize()` 끝에서 부른다 — 그래서 정규화를 몇 번 태우든 늘 최신이다.
+ */
+function remeasureParts(geo: BufferGeometry): void {
+  const parts = geo.userData['parts'] as PartMeta[] | undefined;
+  if (!parts) return;
+  const p = geo.getAttribute('position');
+  let at = 0;
+  geo.userData['parts'] = parts.map((meta) => {
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity;
+    let x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (let i = at; i < at + meta.n; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (z < z0) z0 = z; if (z > z1) z1 = z;
+    }
+    at += meta.n;
+    return {
+      rgb: meta.rgb, tile: meta.tile, n: meta.n,
+      min: [x0, y0, z0] as Vec3, max: [x1, y1, z1] as Vec3,
+      vol: (x1 - x0) * (y1 - y0) * (z1 - z0),
+    } satisfies PartMeta;
+  });
 }
 
 /** 최장축을 1.0으로 맞추고, 바닥을 y=-0.5, 수평 중심을 원점에 놓는다. */
@@ -466,6 +558,8 @@ export function normalize(geo: BufferGeometry): BufferGeometry {
 
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
+  // 부품 상자를 «지금» 좌표에서 다시 잰다 — 정규화를 두 번 태워도 안 낡는다
+  remeasureParts(geo);
   return geo;
 }
 
