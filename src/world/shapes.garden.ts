@@ -203,7 +203,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    */
   석등: () => assemble([
     // 기단 — 아래가 넓은 8각 받침
-    part(new CylinderGeometry(0.15, 0.19, 0.09, 14), STONE, [0, 0.045, 0]),
+    part(new CylinderGeometry(0.15, 0.19, 0.09, 14), STONE, [0, 0.045, 0], undefined, TILE.STONE),
     // 0.15 → **0.168**. 기단 위(0.15)와 같은 반지름으로 만나면 돌 두 장이
     // 한 덩어리로 녹는다. 실제 석등은 돌을 «얹는» 것이라 단이 진다
     part(new CylinderGeometry(0.13, 0.168, 0.04, 14), STONE_DARK, [0, 0.11, 0]),
@@ -264,7 +264,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // 밑에 괸 돌 — 그릇이 흙에 박힌 게 아니라 «놓인» 것으로 보이게
     part(new CylinderGeometry(0.27, 0.30, 0.05, 14), STONE_DARK, [0, 0.025, 0]),
     // 고인 물 — 「파였다」를 확정하는 건 결국 물이다
-    part(new CylinderGeometry(0.185, 0.185, 0.012, 12), [1.05, 1.25, 1.35],
+    part(new CylinderGeometry(0.185, 0.185, 0.012, 14), [1.05, 1.25, 1.35],
       [0, 0.175, 0], undefined, TILE.WATER),
     // 앞에 딛는 납작 돌
     part(new CylinderGeometry(0.15, 0.16, 0.045, 10), STONE, [0.34, 0.022, 0.16]),
@@ -292,7 +292,7 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // SEAM-OK-ALL: 높이 5.6cm 짜리 **납작한 돌**이다. 얇은 판 셋을 겹쳐 두께를 낸
     // 것이라 옆에서 보이는 면이 거의 없다 — 여기에 턱을 주면 돌이 아니라 «케이크»가
     // 된다. 이 형상의 이음매는 전부 «일부러» 이어져 있다
-    part(new CylinderGeometry(0.145, 0.155, 0.036, 10), STONE_DARK, [0, 0.018, 0]),
+    part(new CylinderGeometry(0.145, 0.155, 0.036, 10), STONE_DARK, [0, 0.018, 0], undefined, TILE.STONE),
     part(new CylinderGeometry(0.150, 0.145, 0.016, 10), STONE, [0, 0.044, 0], undefined, TILE.STONE),
     // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다.
     // `MOSS` 는 돌과 대비가 0.02 였다 — 이끼는 확실히 «어둡고 푸르다»
@@ -354,9 +354,9 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
       // 가지 — 잎 덩이가 «공중에» 뜨지 않게 줄기에서 뻗어 받친다
       part(new CylinderGeometry(0.016, 0.022, Math.hypot(dx, dz) * 1.9, 6), PINE_BARK,
         [at[0] + dx * 0.5, at[1] - 0.02, at[2] + dz * 0.5],
-        [0, Math.atan2(dx, dz), Math.PI / 2 - 0.25]),
+        [0, Math.atan2(dx, dz), Math.PI / 2 - 0.25], TILE.LEAF),
       part(new SphereGeometry(r, 8, 5).scale(1, 0.44, 1), PINE,
-        [at[0] + dx, at[1] + 0.045, at[2] + dz]),
+        [at[0] + dx, at[1] + 0.045, at[2] + dz], undefined, TILE.LEAF),
     ];
     return assemble([
       s0.part, s1.part, s2.part, s3.part,
@@ -398,7 +398,8 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * **부챗살이 정체다** — 자루 끝에 살 다섯이 부채꼴로 벌어져야 갈퀴다.
    */
   갈퀴: () => assemble([
-    ...culm(0, 0, 0.74, 0.017, 0, 3),
+    // 자루 — 대나무 결 인쇄를 문다. 몸통이 민무늬면 갈퀴가 막대 하나로 보인다
+    ...culm(0, 0, 0.74, 0.017, 0, 3).map((q) => part(q.geo, q.rgb, undefined, undefined, TILE.WOOD_F)),
     // 살 다섯 — 부채꼴. 각도를 벌려 심는다
     ...([-0.42, -0.21, 0, 0.21, 0.42] as const).map((a) =>
       part(new CylinderGeometry(0.006, 0.008, 0.20, 6), BAMBOO,

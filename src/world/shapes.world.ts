@@ -34,7 +34,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   ]),
 
   축구공: () => assemble([
-    part(new SphereGeometry(0.5, 16, 10), WHITE),
+    part(new SphereGeometry(0.5, 16, 10), WHITE, undefined, undefined, TILE.COVER),
     // 검은 조각 다섯. 구면에 살짝 박아 실루엣은 안 건드린다 —
     // 밖으로 튀어나오면 normalize() 가 그만큼 전체를 줄여서 공이 작아진다.
     part(new SphereGeometry(0.15, 12, 8), DARK, [0, 0.44, 0], undefined, TILE.RUBBER),
@@ -55,8 +55,8 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   // ── 61cm~1.15m (거리 설비) ────────────────────────────────
   소화전: () => assemble([
-    part(new CylinderGeometry(0.10, 0.13, 0.14, 14), METAL, [0, -0.43, 0]),
-    part(new CylinderGeometry(0.17, 0.19, 0.62, 14), WHITE, [0, -0.05, 0]),
+    part(new CylinderGeometry(0.10, 0.13, 0.14, 14), METAL, [0, -0.43, 0], undefined, TILE.METAL),
+    part(new CylinderGeometry(0.17, 0.19, 0.62, 14), WHITE, [0, -0.05, 0], undefined, TILE.METAL),
     part(new SphereGeometry(0.17, 14, 9), WHITE, [0, 0.26, 0], undefined, TILE.METAL),
     part(new CylinderGeometry(0.05, 0.05, 0.10, 10), METAL, [0, 0.40, 0]),
     // 양옆 배출구가 소화전을 소화전으로 만든다. 이게 없으면 볼라드와 구별이 안 된다
@@ -65,7 +65,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   ]),
 
   볼라드: () => assemble([
-    part(new CylinderGeometry(0.13, 0.15, 0.86, 14), WHITE, [0, -0.05, 0]),
+    part(new CylinderGeometry(0.13, 0.15, 0.86, 14), WHITE, [0, -0.05, 0], undefined, TILE.PLASTIC),
     part(new SphereGeometry(0.13, 14, 9), WHITE, [0, 0.38, 0], undefined, TILE.METAL),
     // 반사띠 둘 — 이게 없으면 그냥 기둥이다
     // 반사띠 둘 — `PAPER`(대비 0.09)로는 기둥과 안 갈린다. 반사띠는 «흰색»이다
@@ -85,7 +85,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 판 하나만 재면 0.38 이 맞아 보이는데, 그건 판 두께가 깊이에 더해지는 걸
     // 빼먹은 계산이다 (0.38 로는 0.76 이 나왔다).
     // 판 둘. **폭을 다르게 한다** — 같으면 옆면 두 장이 같은 평면이라 z-fighting 이다
-    part(new BoxGeometry(0.66, 0.86, 0.05), WHITE, [0, 0, 0.115], [-0.32, 0, 0]),
+    part(new BoxGeometry(0.66, 0.86, 0.05), WHITE, [0, 0, 0.115], [-0.32, 0, 0], TILE.PAPER),
     part(new BoxGeometry(0.63, 0.86, 0.05), WHITE, [0, 0, -0.115], [0.32, 0, 0]),
     // 종이는 판의 **바깥면 법선**을 따라 0.035 띄운다 — 판 두께 절반이 0.025라
     // 그보다 작으면 면 안에 파묻혀 안 보인다
@@ -116,7 +116,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   ]),
 
   오토바이: () => assemble([
-    part(new TorusGeometry(0.24, 0.09, 5, 14), DARK, [-0.42, 0.24, 0]),
+    part(new TorusGeometry(0.24, 0.09, 5, 14), DARK, [-0.42, 0.24, 0], undefined, TILE.RUBBER),
     part(new TorusGeometry(0.24, 0.09, 5, 14), DARK, [0.42, 0.24, 0]),
     // 자전거보다 몸통이 굵다 — 그게 구분점이다
     part(new BoxGeometry(0.72, 0.26, 0.26), WHITE, [0, 0.40, 0]),
@@ -128,9 +128,9 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
 
   우체통: () => assemble([
     // 기둥 위에 둥근 통. 동네의 그것보다 크고 다리가 보인다
-    part(new CylinderGeometry(0.10, 0.12, 0.44, 14), METAL, [0, 0.22, 0]),
+    part(new CylinderGeometry(0.10, 0.12, 0.44, 14), METAL, [0, 0.22, 0], undefined, TILE.METAL),
     // 통 + 둥근 뚜껑. **폭이 같으면 옆면 두 장이 같은 평면이다** — 뚜껑을 살짝 좁힌다
-    part(new BoxGeometry(0.44, 0.46, 0.34), WHITE, [0, 0.66, 0]),
+    part(new BoxGeometry(0.44, 0.46, 0.34), WHITE, [0, 0.66, 0], undefined, TILE.METAL),
     part(new CylinderGeometry(0.22, 0.22, 0.325, 20, 1, false, 0, Math.PI), WHITE,
       [0, 0.89, 0], LIE_Z, TILE.WOOD_C),
     // 투입구
@@ -142,7 +142,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new CylinderGeometry(0.045, 0.045, 1.06, 10), METAL, [0, 0.58, 0], undefined, TILE.METAL),
     // 표지 판 + 안쪽 원. **두께가 같으면 옆면이 같은 평면이다** — 안쪽을 얇게
     // 앞으로 내고, `PAPER`(대비 0.04) 대신 확실히 갈리는 색으로 간다
-    part(new CylinderGeometry(0.34, 0.34, 0.06, 20), WHITE, [0, 1.02, 0], LIE_Z),
+    part(new CylinderGeometry(0.34, 0.34, 0.06, 20), WHITE, [0, 1.02, 0], LIE_Z, TILE.METAL),
     part(new CylinderGeometry(0.24, 0.24, 0.05, 20), [0.86, 0.28, 0.22], [0, 1.02, 0.022], LIE_Z),
     part(new BoxGeometry(0.30, 0.05, 0.30), METAL, [0, 0.025, 0]),
   ]),
@@ -229,7 +229,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 발판이 겹치면 z-fighting 이다
     part(new CylinderGeometry(0.095, 0.095, 0.44, 14), WHITE, [0, 0.22, -0.105]),
     part(new CylinderGeometry(0.095, 0.095, 0.44, 14), WHITE, [0, 0.22, 0.105]),
-    part(new BoxGeometry(0.30, 0.46, 0.20), WHITE, [0, 0.66, 0]),
+    part(new BoxGeometry(0.30, 0.46, 0.20), WHITE, [0, 0.66, 0], undefined, TILE.CLOTH),
     // 얼굴 — 옷(WHITE)과 대비가 0.08 이었다. 살빛은 옷보다 확실히 짙거나 밝아야 한다
     // 얼굴 — 인쇄를 뺀다. `TILE.CLOTH`(천 짜임)를 물려놨더니 얼굴에 격자가 찍혔다
     part(new SphereGeometry(0.15, 14, 9), [0.74, 0.56, 0.44], [0, 1.02, 0]),
@@ -263,10 +263,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     // 헤드라이트 둘 — `PAPER`(대비 0.04)로는 차체와 안 갈린다. 등은 «빛난다»
     // 헤드라이트 — 차체 팔레트가 밝은 쪽이라 `WRAP` 도 대비가 0.06 이다.
     // 등은 «테두리가 짙어야» 등으로 읽힌다
-    part(new SphereGeometry(0.085, 14, 9), [0.34, 0.36, 0.40], [0.635, 0.32, 0.20]),
-    part(new SphereGeometry(0.085, 14, 9), [0.34, 0.36, 0.40], [0.635, 0.32, -0.20]),
-    part(new SphereGeometry(0.058, 12, 8), WRAP, [0.665, 0.32, 0.20], undefined, TILE.GLASSY),
-    part(new SphereGeometry(0.058, 12, 8), WRAP, [0.665, 0.32, -0.20]),
+    part(new SphereGeometry(0.085, 20, 13), [0.34, 0.36, 0.40], [0.635, 0.32, 0.20]),
+    part(new SphereGeometry(0.085, 20, 13), [0.34, 0.36, 0.40], [0.635, 0.32, -0.20]),
+    part(new SphereGeometry(0.058, 14, 9), WRAP, [0.665, 0.32, 0.20], undefined, TILE.GLASSY),
+    part(new SphereGeometry(0.058, 14, 9), WRAP, [0.665, 0.32, -0.20]),
     // 범퍼 — 앞뒤에 짙은 띠 하나면 「차 앞」이 어디인지 읽힌다
     // 범퍼 — 차체 밑면(y 0.15)보다 위에서 시작해야 밑면이 같은 평면이 안 된다
     part(new BoxGeometry(0.06, 0.10, 0.50), [0.34, 0.35, 0.38], [0.65, 0.23, 0]),
@@ -275,7 +275,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   가로수: () => assemble([
     part(new CylinderGeometry(0.10, 0.14, 0.62, 20), WOOD, [0, 0.31, 0], undefined, TILE.WOOD_C),
     // 잎은 덩어리 셋 — 하나면 사탕처럼 보인다
-    part(new SphereGeometry(0.40, 20, 13), WHITE, [0, 0.86, 0]),
+    part(new SphereGeometry(0.40, 20, 13), WHITE, [0, 0.86, 0], undefined, TILE.LEAF),
     part(new SphereGeometry(0.28, 20, 13), WHITE, [-0.26, 0.72, 0.10]),
     part(new SphereGeometry(0.26, 20, 13), WHITE, [0.24, 0.76, -0.12]),
   ]),

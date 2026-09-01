@@ -105,7 +105,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   냄비: () => assemble([
     // **속을 판다.** 뚜껑을 비껴 얹어서 안이 보이게 한다 — 통짜 원기둥은 컵이다
-    ...hollow(0.42, 0.38, 0.44, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.38]),
+    ...hollow(0.42, 0.38, 0.44, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.38], TILE.METAL),
     // 뚜껑 — 한쪽으로 밀어 얹는다. 이게 「끓이는 중」의 정체다
     part(new CylinderGeometry(0.44, 0.44, 0.05, 20), METAL, [0.14, 0.47, 0], [0, 0, 0.16]),
     part(new SphereGeometry(0.08, 8, 6), DARK, [0.16, 0.53, 0], undefined, TILE.METAL),
@@ -225,7 +225,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   곰인형: () => assemble([
     // 배가 둥글고 팔다리가 짧다. 곰인형은 곰이 아니라 **인형** 비율이다
-    part(new SphereGeometry(0.5, 16, 10).scale(0.66, 0.86, 0.60), WHITE, [0, 0.40, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(0.66, 0.86, 0.60), WHITE, [0, 0.40, 0], undefined, TILE.CLOTH),
     part(new SphereGeometry(0.28, 16, 10), WHITE, [0.02, 0.90, 0]),
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, 0.19]),
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, -0.19]),

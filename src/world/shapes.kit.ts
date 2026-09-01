@@ -444,13 +444,17 @@ export function hollow(
   return [
     // 바깥벽 — 위아래가 뚫린 띠. 뚜껑을 안 덮어야 테두리가 두께를 갖는다
     part(new CylinderGeometry(rTop, rBot, h, seg, 1, true), rgb, [0, h / 2, 0], undefined, tile),
-    // **안쪽벽.** 이게 「움푹하다」의 전부다
+    /**
+     * **안쪽벽.** 이게 「움푹하다」의 전부다.
+     * 재질 인쇄는 «안쪽에도» 문다 — 같은 그릇의 같은 재료다. 안쪽이 민무늬면
+     * 그릇 안이 넓게 보이는 형상(휴지통·양동이·화분)에서 그 면이 통째로 단색이 된다.
+     */
     part(invert(new CylinderGeometry(iTop, iBot, cavity, seg, 1, true)),
-      inner, [0, floorT + cavity / 2, 0]),
+      inner, [0, floorT + cavity / 2, 0], undefined, tile),
     // 안쪽 바닥 — 없으면 그릇을 통해 방바닥이 보인다
-    part(new CylinderGeometry(iBot, iBot, 0.008, seg), inner, [0, floorT, 0]),
+    part(new CylinderGeometry(iBot, iBot, 0.008, seg), inner, [0, floorT, 0], undefined, tile),
     // 바깥 바닥
-    part(new CylinderGeometry(rBot, rBot, 0.008, seg), rgb, [0, 0.004, 0]),
+    part(new CylinderGeometry(rBot, rBot, 0.008, seg), rgb, [0, 0.004, 0], undefined, tile),
     // 테두리 — 바깥벽과 안쪽벽을 잇는 링. 없으면 벽이 종이처럼 얇아 보인다
     part(new TorusGeometry((rTop + iTop) / 2, wall / 2, 5, seg), rgb, [0, h, 0],
       [Math.PI / 2, 0, 0]),

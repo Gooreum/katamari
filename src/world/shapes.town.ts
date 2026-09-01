@@ -60,7 +60,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   ]),
 
   도토리: () => assemble([
-    part(new SphereGeometry(0.36, 16, 10).scale(1, 1.25, 1), WHITE, [0, 0.30, 0]),
+    part(new SphereGeometry(0.36, 16, 10).scale(1, 1.25, 1), WHITE, [0, 0.30, 0], undefined, TILE.WOOD_F),
     // 깍정이
     part(new SphereGeometry(0.38, 10, 7, 0, Math.PI * 2, 0, Math.PI / 2), WOOD, [0, 0.52, 0], undefined, TILE.WOOD_C),
     part(new CylinderGeometry(0.05, 0.05, 0.16, 6), WOOD, [0, 0.78, 0]),
@@ -179,7 +179,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   ]),
 
   모종삽: () => assemble([
-    part(new SphereGeometry(0.30, 16, 10).scale(1, 0.32, 0.7), METAL, [0.28, 0.06, 0]),
+    part(new SphereGeometry(0.30, 16, 10).scale(1, 0.32, 0.7), METAL, [0.28, 0.06, 0], undefined, TILE.METAL),
     part(new CylinderGeometry(0.05, 0.05, 0.34, 6), METAL, [-0.10, 0.10, 0], LIE_X),
     part(new CylinderGeometry(0.09, 0.07, 0.30, 7), WHITE, [-0.40, 0.10, 0], LIE_X, TILE.METAL),
   ]),
@@ -187,7 +187,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   // ── 버킷 4~5 (16~60cm) ────────────────────────────────────
   비둘기: () => assemble([
     // 이 동네의 이름이다. 참새보다 크고 목이 굵다
-    part(new SphereGeometry(0.32, 16, 10).scale(1.4, 1, 1), WHITE, [-0.04, 0.36, 0]),
+    part(new SphereGeometry(0.32, 16, 10).scale(1.4, 1, 1), WHITE, [-0.04, 0.36, 0], undefined, TILE.CLOTH),
     part(new CylinderGeometry(0.16, 0.20, 0.20, 14), WHITE, [0.24, 0.56, 0]),
     part(new SphereGeometry(0.20, 12, 8), WHITE, [0.32, 0.70, 0], undefined, TILE.STRAW),
     part(new ConeGeometry(0.06, 0.18, 5), [0.85, 0.8, 0.75], [0.50, 0.68, 0], [0, 0, -Math.PI / 2]),
@@ -200,21 +200,21 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
 
   삽: () => assemble([
     // 원작 동선의 삽. 자루가 길어서 최장축이 세로다
-    part(new BoxGeometry(0.30, 0.36, 0.05), METAL, [0, 0.16, 0]),
+    part(new BoxGeometry(0.30, 0.36, 0.05), METAL, [0, 0.16, 0], undefined, TILE.WOOD_F),
     part(new ConeGeometry(0.17, 0.14, 4).scale(1, 1, 0.3), METAL, [0, -0.06, 0], [Math.PI, 0, 0]),
-    part(new CylinderGeometry(0.045, 0.045, 0.86, 7), WOOD, [0, 0.74, 0]),
+    part(new CylinderGeometry(0.045, 0.045, 0.86, 8), WOOD, [0, 0.74, 0], undefined, TILE.WOOD_F),
     // D자 손잡이
     part(new TorusGeometry(0.11, 0.03, 4, 8), WOOD, [0, 1.18, 0], LIE_Z, TILE.METAL),
   ]),
 
   개밥그릇: () => assemble([
-    part(new CylinderGeometry(0.5, 0.36, 0.34, 20), WHITE, [0, 0.17, 0]),
+    part(new CylinderGeometry(0.5, 0.36, 0.34, 20), WHITE, [0, 0.17, 0], undefined, TILE.PLASTIC),
     part(new CylinderGeometry(0.44, 0.30, 0.30, 20), DARK, [0, 0.22, 0]),
     part(new TorusGeometry(0.49, 0.04, 4, 20), WHITE, [0, 0.33, 0], LIE_Z, TILE.CERAMIC),
   ]),
 
   양동이: () => assemble([
-    part(new CylinderGeometry(0.44, 0.34, 0.72, 20), WHITE, [0, 0.36, 0]),
+    part(new CylinderGeometry(0.44, 0.34, 0.72, 20), WHITE, [0, 0.36, 0], undefined, TILE.PLASTIC),
     part(new CylinderGeometry(0.39, 0.30, 0.62, 20), DARK, [0, 0.40, 0]),
     part(new TorusGeometry(0.44, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z, TILE.METAL),
     // 손잡이 — 반원
@@ -223,7 +223,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
 
   모래성: () => assemble([
     // 원작 동선의 모래성. 원통 본체 + 탑 넷 + 총안
-    part(new CylinderGeometry(0.42, 0.5, 0.52, 20), WHITE, [0, 0.26, 0]),
+    part(new CylinderGeometry(0.42, 0.5, 0.52, 20), WHITE, [0, 0.26, 0], undefined, TILE.DIRT),
     ...[[0.34, 0.34], [-0.34, 0.34], [0.34, -0.34], [-0.34, -0.34]].map(
       ([x, z]) => part(new CylinderGeometry(0.13, 0.15, 0.34, 14), WHITE, [x!, 0.60, z!]),
     ),
@@ -245,7 +245,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   // ── 버킷 6 (60cm~1.2m) ────────────────────────────────────
   개: () => assemble([
     // 원작 MaS3에서 피해 다녀야 하는 그 개. 서 있는 자세
-    part(new SphereGeometry(0.30, 20, 13).scale(1.7, 1, 1.05), WHITE, [-0.06, 0.56, 0]),
+    part(new SphereGeometry(0.30, 20, 13).scale(1.7, 1, 1.05), WHITE, [-0.06, 0.56, 0], undefined, TILE.CLOTH),
     part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.70, 0]),
     part(soft(0.22, 0.14, 0.18, 0.45), WHITE, [0.62, 0.62, 0]),
     part(new SphereGeometry(0.05, 14, 9), DARK, [0.73, 0.64, 0], undefined, TILE.STRAW),

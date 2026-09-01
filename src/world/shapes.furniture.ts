@@ -85,11 +85,14 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    */
   책장: () => assemble([
     // 측판 — **굽 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
-    part(soft(0.05, 0.94, 0.32, 0.3), WHITE, [-0.34, 0.535, 0], undefined, TILE.WOOD_C),
-    part(soft(0.05, 0.94, 0.32, 0.3), WHITE, [0.34, 0.535, 0], undefined, TILE.WOOD_C),
+    part(soft(0.05, 0.9325, 0.32, 0.3), WHITE, [-0.34, 0.53125, 0], undefined, TILE.WOOD_C),
+    part(soft(0.05, 0.9325, 0.32, 0.3), WHITE, [0.34, 0.53125, 0], undefined, TILE.WOOD_C),
     // 위 마감 — 측판보다 «살짝 넓게». 폭이 같으면 옆면이 같은 평면이라 z-fighting 이다
     // 위 마감 — 측판보다 «넓고», 밑면이 측판 윗면(1.005)과 겹치지 않게 살짝 물린다
-    part(soft(0.78, 0.05, 0.35, 0.3), WHITE, [0, 0.985, 0], undefined, TILE.WOOD_C),
+    // **형상 전체 높이를 정확히 1.000 으로 맞춘다.** 굽을 넣으면서 1.010 이 됐는데,
+    // `normalize()` 가 최장축을 1.0 으로 누르므로 선반 높이가 1% 씩 내려가
+    // `surf-shelf-mid`(0.605)·`surf-shelf-high`(0.878) 에 얹힌 물건이 5mm 넘게 떴다
+    part(soft(0.78, 0.045, 0.35, 0.3), WHITE, [0, 0.9775, 0], undefined, TILE.WOOD_C),
     // 뒷판 — 안쪽은 그늘이다. `PAPER`(대비 0.04)로는 측판과 한 덩어리
     // 뒷판은 «칸 안의 그늘»이다. 선반(WOOD)·측판(WHITE) 둘 다와 갈려야 칸이 보인다
     /**
@@ -97,7 +100,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
      * **책장 팔레트가 나무색(밝기 0.46)이라 계수 차이가 0.46배로 눌린다** —
      * 문턱 0.15 를 넘기려면 계수 차이가 0.33 이상이어야 한다. 그늘답게 깊게 간다.
      */
-    part(new BoxGeometry(0.66, 0.90, 0.03), [0.14, 0.12, 0.10], [0, 0.535, -0.157],
+    part(new BoxGeometry(0.66, 0.89, 0.03), [0.14, 0.12, 0.10], [0, 0.5325, -0.157],
       undefined, TILE.WOOD_F),
     // 선반 셋 — 이게 책장의 정체다. 깊이를 측판보다 얕게 해서 «칸»이 보이게
     ...([0.30, 0.56, 0.82] as const).map((y) =>
@@ -112,9 +115,9 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 나무 판때기가 하나도 없었다. 상판 없는 상은 상이 아니다.
    */
   밥상: () => assemble([
-    part(new CylinderGeometry(0.50, 0.50, 0.05, 20), WHITE, [0, 0.325, 0]),
+    part(new CylinderGeometry(0.50, 0.50, 0.05, 20), WHITE, [0, 0.325, 0], undefined, TILE.WOOD_C),
     // 테두리 — 상판 옆면에 한 줄을 그어야 판이 두께를 갖는다
-    part(new TorusGeometry(0.49, 0.022, 4, 20), WOOD, [0, 0.325, 0], LIE_Z),
+    part(new TorusGeometry(0.49, 0.022, 4, 20), WOOD, [0, 0.325, 0], LIE_Z, TILE.WOOD_C),
     // 다리 넷. 상판 지름(1.0)보다 안쪽에 모아야 상다리로 보인다
     ...([[0.30, 0.30], [-0.30, 0.30], [0.30, -0.30], [-0.30, -0.30]] as const).map(
       ([x, z]) => part(new CylinderGeometry(0.030, 0.024, 0.30, 6), WOOD, [x, 0.15, z], undefined, TILE.WOOD_C)),
@@ -145,8 +148,8 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 아래 선반이 있어야 「대」로 읽힌다.
    */
   화분대: () => assemble([
-    part(new CylinderGeometry(0.34, 0.34, 0.045, 20), WHITE, [0, 0.98, 0]),  // 상판
-    part(new TorusGeometry(0.33, 0.018, 4, 20), WOOD, [0, 0.98, 0], LIE_Z),
+    part(new CylinderGeometry(0.34, 0.34, 0.045, 20), WHITE, [0, 0.98, 0], undefined, TILE.WOOD_C),  // 상판
+    part(new TorusGeometry(0.33, 0.018, 4, 20), WOOD, [0, 0.98, 0], LIE_Z, TILE.WOOD_C),
     // 다리 셋. 120°씩
     ...([0, 2.0944, 4.1888] as const).map((a) =>
       part(new CylinderGeometry(0.028, 0.022, 0.96, 6), WOOD,
@@ -161,7 +164,7 @@ export const FURNITURE_BUILDERS: Record<ShapeIdFurniture, () => BufferGeometry> 
    * 세 장이 **어긋나게** 포개져야 쌓인 것으로 읽힌다.
    */
   방석더미: () => assemble([
-    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.20, 1), WHITE, [0, 0.05, 0]),
+    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.20, 1), WHITE, [0, 0.05, 0], undefined, TILE.CLOTH),
     // 가운데 방석 — 위아래와 밝기가 달라야 «더미»가 된다(PAPER 는 대비 0.09)
     part(new SphereGeometry(0.48, 16, 10).scale(1, 0.20, 1), [0.76, 0.74, 0.70],
       [0.03, 0.14, 0.02], [0, 0.22, 0], TILE.CLOTH),

@@ -131,7 +131,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   신문: () => assemble([
     // 접어서 쌓아둔 신문 (21.5cm). 층이 보여야 한 장이 아니라 신문이다
-    part(new BoxGeometry(0.92, 0.10, 0.62), WHITE, [0, 0.05, 0]),
+    part(new BoxGeometry(0.92, 0.10, 0.62), WHITE, [0, 0.05, 0], undefined, TILE.NEWSPAPER),
     // 가운데 층 — 위아래와 «밝기»가 달라야 겹이 보인다. 신문지는 팔레트가 흰색이라
     // 밝게는 못 간다(WRAP 도 대비 0.06). 신문지답게 «짙은» 회색으로 간다
     part(new BoxGeometry(0.88, 0.08, 0.58), [0.72, 0.71, 0.68], [0.02, 0.13, 0.01], [0, 0.05, 0]),
@@ -157,7 +157,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   'RC 컨트롤러': () => assemble([
     // 안테나 세운 조종기 (30.1cm). 안테나가 실루엣의 전부다
-    part(soft(0.56, 0.30, 0.40, 0.2), WHITE, [0, 0.15, 0]),
+    part(soft(0.56, 0.30, 0.40, 0.2), WHITE, [0, 0.15, 0], undefined, TILE.PLASTIC),
     part(soft(0.60, 0.08, 0.44, 0.25), WHITE, [0, 0.29, 0], undefined, TILE.RC),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [-0.16, 0.35, 0], undefined, TILE.PANEL),
     part(new CylinderGeometry(0.10, 0.10, 0.06, 8), DARK, [0.16, 0.35, 0]),
@@ -182,7 +182,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     //
     // 앞뒤를 원기둥으로 둥글렸더니 그 원기둥이 옆에서 큰 원반으로 보여서
     // **아령처럼** 나왔다. 둥글리는 건 발가락 쪽만, 그것도 납작한 원기둥으로 한다.
-    part(soft(0.74, 0.09, 0.34, 0.4), WHITE, [-0.05, 0.045, 0]),
+    part(soft(0.74, 0.09, 0.34, 0.4), WHITE, [-0.05, 0.045, 0], undefined, TILE.CLOTH),
     // 앞코 — 밑창 «안»에 가둔다. 같은 높이면 위·아랫면이 같은 평면이라 z-fighting 이다
     part(new CylinderGeometry(0.17, 0.17, 0.082, 14), WHITE, [0.32, 0.045, 0]),
     // 발등 띠 — 폭 방향으로 걸친 아치. 축이 X여야 발등을 덮는다
@@ -254,7 +254,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   백팩: () => assemble([
     // 원작 아이 방의 란도셀. 뚜껑과 어깨끈이 실루엣이다
-    part(soft(0.62, 0.72, 0.40, 0.3), WHITE, [0, 0.36, 0]),
+    part(soft(0.62, 0.72, 0.40, 0.3), WHITE, [0, 0.36, 0], undefined, TILE.CLOTH),
     part(soft(0.64, 0.30, 0.42, 0.3), WHITE, [0, 0.62, 0.02]),
     part(soft(0.16, 0.08, 0.06, 0.3), METAL, [0, 0.48, 0.22]),
     // 어깨끈
@@ -264,7 +264,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   휴지통: () => assemble([
     // **진짜로 판다.** 예전엔 어두운 원반을 위에 얹어 「비어 있는 척」만 했다
-    ...hollow(0.42, 0.32, 0.80, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.40]),
+    ...hollow(0.42, 0.32, 0.80, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.40], TILE.PLASTIC),
     // 구겨진 종이 한 덩이 — 통 «안»이 보인다는 걸 확실히 한다
     // 구겨진 종이 — 통 안은 어둡다. `PAPER`(대비 0.07)로는 통과 안 갈린다
     part(new SphereGeometry(0.17, 10, 7), WRAP, [0.06, 0.20, -0.04], undefined, TILE.PAPER),
@@ -272,7 +272,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
 
   전화기: () => assemble([
     // 다이얼식 탁상 전화. 원작 복도에 있는 그 검은 것
-    part(soft(0.80, 0.24, 0.56, 0.25), WHITE, [0, 0.12, 0]),
+    part(soft(0.80, 0.24, 0.56, 0.25), WHITE, [0, 0.12, 0], undefined, TILE.PLASTIC),
     part(new CylinderGeometry(0.24, 0.24, 0.06, 14), DARK, [0, 0.26, -0.06]),
     part(new CylinderGeometry(0.09, 0.09, 0.08, 8), WHITE, [0, 0.30, -0.06], undefined, TILE.PANEL),
     // 수화기 — 가운데 잘록한 막대
@@ -295,7 +295,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   화분: () => assemble([
     // 뒷마당의 토마토 화분. 흙과 줄기가 있어야 화분이다.
     // **파야 흙이 «담긴» 것으로 보인다** — 통짜 위에 얹은 흙은 뚜껑이다
-    ...hollow(0.38, 0.28, 0.52, 0.035, 0.06, 20, WHITE, [0.42, 0.30, 0.22]),
+    ...hollow(0.38, 0.28, 0.52, 0.035, 0.06, 20, WHITE, [0.42, 0.30, 0.22], TILE.CERAMIC),
     part(new CylinderGeometry(0.33, 0.33, 0.04, 20), [0.28, 0.22, 0.16], [0, 0.40, 0]),
     part(new CylinderGeometry(0.03, 0.025, 0.44, 6), [0.35, 0.55, 0.25], [0, 0.64, 0]),
     part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0], undefined, TILE.CERAMIC),
@@ -311,7 +311,7 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    * 면 수를 올려도 안 고쳐진다. 필요한 건 **경계**다.
    */
   주전자: () => assemble([
-    part(new CylinderGeometry(0.36, 0.40, 0.44, 20), WHITE, [0, 0.24, 0]),
+    part(new CylinderGeometry(0.36, 0.40, 0.44, 20), WHITE, [0, 0.24, 0], undefined, TILE.METAL),
     // 테 — 여기서 그림자가 한 줄 생긴다. 이 한 조각이 「부품이 둘이다」를 말한다
     part(lip(0.36, 0.035, 20), WHITE, [0, 0.4775, 0]),
     part(new CylinderGeometry(0.28, 0.34, 0.11, 20), WHITE, [0, 0.55, 0]),

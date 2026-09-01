@@ -23,8 +23,8 @@ const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
 export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
   고양이: () => assemble([
     // 웅크린 자세. 원작 집 고양이는 대부분 앉아 있다
-    part(new SphereGeometry(0.30, 20, 13), WHITE, [-0.10, 0.32, 0]),
-    part(soft(0.44, 0.34, 0.34, 0.45), WHITE, [0.12, 0.30, 0]),
+    part(new SphereGeometry(0.30, 20, 13), WHITE, [-0.10, 0.32, 0], undefined, TILE.CLOTH),
+    part(soft(0.44, 0.34, 0.34, 0.45), WHITE, [0.12, 0.30, 0], undefined, TILE.CLOTH),
     /**
      * **목.** 검사는 통과했지만(머리가 몸통 밖에 있다) 화면에서는 몸통과 머리가
      * 「두 덩이」로 따로 놀았다 — 사이를 잇는 게 아무것도 없어서다.
@@ -41,13 +41,13 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
       */
     // 주둥이 — 고양이 팔레트는 살구·검정·흰색 셋이다. `WRAP` 은 밝은 둘에서 포화되고
     // 짙은 쪽은 검정에서 안 갈린다. **과반(살구·흰색)에서 도는 중간 톤**으로 간다
-    part(new SphereGeometry(0.10, 10, 8).scale(1, 0.8, 1.25), [0.55, 0.46, 0.42], [0.60, 0.50, 0]),
-    part(new SphereGeometry(0.05, 8, 6), [0.92, 0.48, 0.55], [0.66, 0.53, 0]),
+    part(new SphereGeometry(0.10, 20, 13).scale(1, 0.8, 1.25), [0.55, 0.46, 0.42], [0.60, 0.50, 0]),
+    part(new SphereGeometry(0.05, 14, 9), [0.92, 0.48, 0.55], [0.66, 0.53, 0]),
     ...([1, -1] as const).map((k) =>
-      part(new SphereGeometry(0.055, 8, 6), INK, [0.58, 0.62, k * 0.10])),
+      part(new SphereGeometry(0.055, 14, 9), INK, [0.58, 0.62, k * 0.10])),
     // 귀 «안». 짙어야 귀가 두 겹으로 읽힌다
     ...([1, -1] as const).map((k) =>
-      part(new ConeGeometry(0.05, 0.11, 5), [0.86, 0.52, 0.52], [0.40, 0.755, k * 0.11])),
+      part(new ConeGeometry(0.05, 0.11, 14), [0.86, 0.52, 0.52], [0.40, 0.755, k * 0.11])),
     // 앞다리 둘
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, 0.12]),
     part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, -0.12]),
@@ -58,7 +58,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
   의자: () => assemble([
     // 등받이 있는 나무 의자. 다리 넷이 보여야 의자다
     part(soft(0.62, 0.08, 0.58, 0.3), WHITE, [0, 0.52, 0], undefined, TILE.WOOD_C),
-    part(soft(0.62, 0.60, 0.08, 0.3), WHITE, [0, 0.82, -0.25]),
+    part(soft(0.62, 0.60, 0.08, 0.3), WHITE, [0, 0.82, -0.25], undefined, TILE.WOOD_C),
     part(soft(0.52, 0.08, 0.06, 0.3), WHITE, [0, 0.66, -0.25]),
     part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [0.26, 0.26, 0.24]),
     part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [-0.26, 0.26, 0.24]),
@@ -68,7 +68,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   스툴: () => assemble([
     // 등받이 없는 둥근 걸상. 의자와 실루엣이 달라야 둘 다 두는 의미가 있다
-    part(new CylinderGeometry(0.34, 0.34, 0.10, 20), WHITE, [0, 0.55, 0]),
+    part(new CylinderGeometry(0.34, 0.34, 0.10, 20), WHITE, [0, 0.55, 0], undefined, TILE.WOOD_C),
     part(new CylinderGeometry(0.30, 0.30, 0.06, 20), WHITE, [0, 0.62, 0]),
     part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [0.20, 0.26, 0.20], [0.06, 0, -0.06], TILE.WOOD_C),
     part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [-0.20, 0.26, 0.20], [0.06, 0, 0.06]),
@@ -88,7 +88,8 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
      * 화면에서 「안테나 달린 검은 상자」였던 게 이것이다. 브라운관은 캐비닛보다
      * 확실히 짙고, 그 위에 밝은 반사가 한 줄 있다.
      */
-    part(new BoxGeometry(0.66, 0.52, 0.035), [0.30, 0.31, 0.34], [-0.04, 0.44, 0.315]),
+    part(new BoxGeometry(0.66, 0.52, 0.035), [0.30, 0.31, 0.34], [-0.04, 0.44, 0.315],
+      undefined, TILE.PANEL),
     part(new BoxGeometry(0.56, 0.42, 0.03), [0.16, 0.17, 0.20], [-0.04, 0.44, 0.335],
       undefined, TILE.SCREEN),
     // 오른쪽 조작부 — 다이얼 둘. 캐비닛보다 짙어야 「누르는 데」로 읽힌다
@@ -127,9 +128,9 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
    * 되면서 처음 드러났다.
    */
   스탠드: () => assemble([
-    part(new CylinderGeometry(0.22, 0.22, 0.06, 20), WHITE, [0, 0.03, 0]),
+    part(new CylinderGeometry(0.22, 0.22, 0.06, 20), WHITE, [0, 0.03, 0], undefined, TILE.CLOTH),
     part(new CylinderGeometry(0.035, 0.035, 0.62, 10), METAL, [0, 0.35, 0]),
-    part(new CylinderGeometry(0.23, 0.14, 0.36, 20), WHITE, [0, 0.82, 0]),
+    part(new CylinderGeometry(0.23, 0.14, 0.36, 20), WHITE, [0, 0.82, 0], undefined, TILE.CLOTH),
     // 갓 안쪽 — 밝게 둬야 불이 켜진 것처럼 보인다
     // 갓 «안». 불이 켜져 있으니 바깥보다 훨씬 밝아야 한다 — `[1,0.95,0.75]` 는
     // 갓 천과 대비가 0.04 라 그냥 같은 색이었다
@@ -145,7 +146,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
 
   물뿌리개: () => assemble([
     // 뒷마당 것. 긴 주둥이와 장미꼭지가 실루엣의 전부다
-    part(new CylinderGeometry(0.30, 0.34, 0.56, 20), WHITE, [0, 0.30, 0]),
+    part(new CylinderGeometry(0.30, 0.34, 0.56, 20), WHITE, [0, 0.30, 0], undefined, TILE.METAL),
     // 말린 테두리 — 양철 물뿌리개는 입이 말려 있다. 없으면 몸통과 어깨가 한 덩어리다
     part(lip(0.30, 0.030, 20), WHITE, [0, 0.595, 0]),
     part(new CylinderGeometry(0.24, 0.28, 0.10, 20), WHITE, [0, 0.66, 0]),

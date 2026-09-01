@@ -1346,6 +1346,20 @@ function relaxOverlaps(
           const t = specs[j]!;
           if (Math.max(s.size, t.size) > Math.min(s.size, t.size) * RELAX_SIZE_RATIO) continue;
 
+          /**
+           * **높이가 안 겹치면 밀지 않는다.**
+           *
+           * 완화가 xz 두 축만 봐서, 선반 위 22cm 에 얹은 비디오테이프를 그 «밑
+           * 바닥»에 놓인 물건이 옆으로 밀고 있었다. 화면에서는 더미가 두 무리로
+           * 쪼개지고, 얹은 물건이 상판 밖으로 나가면 허공에 뜬다.
+           *
+           * TV장에 `underPass` 를 주자 그 발판이 더 이상 «막힌 자리»가 아니게 되면서
+           * 바닥 물건이 장 밑으로 들어왔고, 그때 이 결함이 드러났다
+           * (`arrange.mts` 가 더미 퍼짐 1.7cm → 15.2cm 로 잡았다).
+           * y 는 물체 중심, `sy` 는 높이다 — 서로 다른 층은 애초에 안 부딪힌다.
+           */
+          if (Math.abs(s.y - t.y) >= (s.sy + t.sy) / 2) continue;
+
           const ox = (s.sx + t.sx) / 2 - Math.abs(s.x - t.x);
           const oz = (s.sz + t.sz) / 2 - Math.abs(s.z - t.z);
           if (ox <= 0 || oz <= 0) continue;
