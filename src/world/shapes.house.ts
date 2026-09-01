@@ -3,7 +3,9 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdHouse } from './generation';
-import { assemble, hollow, DARK, GLASS, METAL, PAPER, part, soft, WHITE, WOOD } from './shapes.kit';
+import {
+  assemble, hollow, DARK, GLASS, INK, METAL, part, soft, WHITE, WOOD, WRAP,
+} from './shapes.kit';
 import { TILE } from './atlas';
 
 /** 눕힌 원기둥. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다 */
@@ -47,9 +49,13 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   계란: () => assemble([
     // 눕힌 타원. **완전한 구면이면 골프공과 구별이 안 된다** — 마당 표에 골프공이 있다
-    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.76, 0.76), WHITE, [0, 0.38, 0]),
+    // **껍질 얼룩을 인쇄로 넣는다.** 민짜 타원은 골프공과 구별이 안 되고,
+    // 붙일 만한 부품도 없다(달걀에 뭘 붙이면 달걀이 아니다)
+    part(new SphereGeometry(0.5, 14, 10).scale(1, 0.76, 0.76), WHITE, [0, 0.38, 0],
+      undefined, TILE.EGG),
     // 한쪽만 좁다. 달걀을 달걀로 만드는 건 이 비대칭이다
-    part(new SphereGeometry(0.5, 16, 10).scale(0.44, 0.60, 0.60), WHITE, [0.32, 0.38, 0]),
+    part(new SphereGeometry(0.5, 14, 10).scale(0.44, 0.60, 0.60), WHITE, [0.32, 0.38, 0],
+      undefined, TILE.EGG),
   ]),
 
   /**
@@ -60,11 +66,14 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
    * **통짜 원뿔이라 갓등처럼 보였다.** 사발의 정체는 파인 것이다.
    */
   밥공기: () => assemble([
-    ...hollow(0.50, 0.32, 0.44, 0.035, 0.06, 20, WHITE, [0.80, 0.82, 0.86]),
+    // **사발을 굽 «위»에 올린다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다.
+    // 안쪽도 짙게 — `[0.80,0.82,0.86]` 은 바깥과 대비가 0.14 로 아슬아슬했다
+    ...hollow(0.50, 0.32, 0.44, 0.035, 0.06, 20, WHITE, [0.72, 0.75, 0.80], TILE.CERAMIC)
+      .map((q) => part(q.geo, q.rgb, [0, 0.095, 0], undefined, q.tile)),
     // 굽 — 사발을 살짝 띄운다. 없으면 컵이다
     part(new CylinderGeometry(0.28, 0.30, 0.10, 20), WHITE, [0, 0.05, 0]),
     // 테두리 청색 띠 — 밥공기다운 마감
-    part(new TorusGeometry(0.475, 0.022, 5, 20), [0.55, 0.64, 0.80], [0, 0.42, 0], LIE_Z),
+    part(new TorusGeometry(0.475, 0.024, 6, 20), [0.42, 0.54, 0.76], [0, 0.535, 0], LIE_Z),
   ]),
 
   젓가락: () => assemble([
@@ -81,7 +90,8 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     // 눌린 구 하나가 숟가락 머리를 만든다. 상자로 하면 주걱이 된다
     part(new SphereGeometry(0.5, 16, 10).scale(0.46, 0.24, 0.36), METAL, [0.30, 0.06, 0]),
     // 자루 끝 — 얇은 판이 허공에서 끊기면 부러진 것으로 보인다
-    part(new CylinderGeometry(0.05, 0.05, 0.035, 8), METAL, [-0.46, 0.05, 0]),
+    // 자루 끝 — 자루 «안»에 가둔다. 같은 두께면 위·아랫면이 같은 평면이다
+    part(new CylinderGeometry(0.05, 0.05, 0.031, 8), METAL, [-0.46, 0.05, 0]),
   ]),
 
   당근: () => assemble([
@@ -121,9 +131,15 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   비누: () => assemble([
     // 모서리가 닳은 덩어리. 상자로 만들면 지우개와 구별이 안 된다
-    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.42, 0.66), WHITE, [0, 0.21, 0]),
-    // 눌러 찍은 글자 자리 — 비누에는 늘 뭔가 찍혀 있다
-    part(new BoxGeometry(0.34, 0.02, 0.15), PAPER, [0, 0.40, 0]),
+    /**
+      * 모서리가 닳은 덩어리. 상자로 만들면 지우개와 구별이 안 된다.
+      * **눌러 찍은 글자 자리를 인쇄로 옮겼다** — `PAPER` 판때기는 대비 0.05 라
+      * 「비누에는 늘 뭔가 찍혀 있다」고 적어놓고 실제로는 없는 것과 같았다.
+      */
+    part(new SphereGeometry(0.5, 14, 10).scale(1, 0.42, 0.66), WHITE, [0, 0.21, 0],
+      undefined, TILE.SOAP),
+    // 거품 한 덩이 — 비누는 늘 젖어 있다. 실루엣도 깬다
+    part(new SphereGeometry(0.13, 8, 6).scale(1.4, 0.7, 1.1), WRAP, [-0.30, 0.40, 0.12]),
   ]),
 
   고무오리: () => assemble([
@@ -133,9 +149,10 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new CylinderGeometry(0.11, 0.15, 0.16, 14), WHITE, [0.22, 0.56, 0]),
     part(new SphereGeometry(0.22, 12, 8), WHITE, [0.26, 0.76, 0]),
     // 부리 — 몸과 다른 색이어야 오리가 된다
-    part(new ConeGeometry(0.09, 0.24, 6), [0.95, 0.58, 0.16], [0.48, 0.72, 0], TIP_X),
-    part(new SphereGeometry(0.042, 6, 4), DARK, [0.33, 0.84, 0.12]),
-    part(new SphereGeometry(0.042, 6, 4), DARK, [0.33, 0.84, -0.12]),
+    // 부리 — **2배로 키운다.** 몸통 부피의 0.7% 짜리는 화면에서 노란 덩어리에 묻힌다
+    part(new ConeGeometry(0.15, 0.34, 8), [0.98, 0.52, 0.10], [0.54, 0.70, 0], TIP_X),
+    part(new SphereGeometry(0.075, 8, 6), INK, [0.34, 0.86, 0.13]),
+    part(new SphereGeometry(0.075, 8, 6), INK, [0.34, 0.86, -0.13]),
     // 치켜든 꼬리
     part(new ConeGeometry(0.13, 0.26, 5), WHITE, [-0.46, 0.46, 0], [0, 0, 1.0]),
   ]),
@@ -144,27 +161,36 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(soft(0.70, 0.05, 0.07, 0.4), WHITE, [-0.13, 0.04, 0]),
     part(soft(0.26, 0.05, 0.11, 0.35), WHITE, [0.35, 0.04, 0]),
     // 솔. **흰 솔이 있어야 칫솔이지, 없으면 막대다**
-    part(new BoxGeometry(0.23, 0.07, 0.10), PAPER, [0.35, 0.09, 0]),
+    // 솔. **「흰 솔이 있어야 칫솔」이라고 적어놓고 `PAPER`(대비 0.06)를 줬다** —
+    // 자루 색이 뭐든 솔은 확실히 밝아야 한다
+    part(new BoxGeometry(0.23, 0.075, 0.105), WRAP, [0.35, 0.092, 0]),
     part(new SphereGeometry(0.05, 6, 5), WHITE, [-0.46, 0.04, 0]),
   ]),
 
   수건: () => assemble([
     // 개어놓은 수건. **층이 보여야 한 장이 아니라 수건이다** (신문과 같은 수법)
     part(new BoxGeometry(0.98, 0.13, 0.62), WHITE, [0, 0.065, 0]),
-    part(new BoxGeometry(0.94, 0.11, 0.58), PAPER, [0.01, 0.185, 0]),
-    part(new BoxGeometry(0.90, 0.09, 0.54), WHITE, [-0.01, 0.285, 0]),
-    // 접힌 쪽의 둥근 등
-    part(new CylinderGeometry(0.065, 0.065, 0.62, 6), PAPER, [-0.49, 0.13, 0], LIE_Z),
+    // 가운데 층 — **`PAPER`(대비 0.06)로는 겹이 안 보인다.** 수건 팔레트는 밝은 쪽이라
+    // 표식이 «짙은» 쪽이어야 한다(신문·우유팩과 같은 처방)
+    part(new BoxGeometry(0.94, 0.11, 0.58), [0.74, 0.73, 0.70], [0.01, 0.185, 0], undefined, TILE.CLOTH),
+    part(new BoxGeometry(0.90, 0.09, 0.54), WHITE, [-0.01, 0.285, 0], undefined, TILE.CLOTH),
+    // 접힌 쪽의 둥근 등. 길이를 층보다 짧게 — 같으면 옆면이 같은 평면이다
+    part(new CylinderGeometry(0.065, 0.065, 0.53, 8), [0.70, 0.69, 0.66], [-0.49, 0.13, 0], LIE_Z),
     // 가장자리 짜임 띠
-    part(new BoxGeometry(0.86, 0.03, 0.06), [0.78, 0.82, 0.88], [0, 0.33, 0.18]),
+    part(new BoxGeometry(0.86, 0.035, 0.06), [0.52, 0.58, 0.68], [0, 0.335, 0.18]),
   ]),
 
   // ─── 아이 방 ─────────────────────────────────────────────────
 
   구슬: () => assemble([
-    part(new SphereGeometry(0.5, 16, 10), GLASS, [0, 0.5, 0]),
+    part(new SphereGeometry(0.5, 16, 10), GLASS, [0, 0.5, 0], undefined, TILE.GLASSY),
     // 안에 든 꽈배기 심지. **구슬을 구슬로 만드는 건 이것이다** — 없으면 그냥 공이다
-    part(new SphereGeometry(0.30, 16, 10).scale(1, 0.34, 0.34), WHITE, [0, 0.50, 0], [0, 0, 0.6], TILE.CERAMIC),
+    /**
+     * **안에 든 꽈배기 심지를 뺐다.** 머티리얼이 불투명이라 그 구는 바깥 구 «안»에
+     * 완전히 갇혀 있었다 — 화면에 한 픽셀도 안 나오면서 삼각형만 먹고 있었다.
+     * 「구슬을 구슬로 만드는 건 이것」이라고 적어놓고 실제로는 없는 것과 같았다.
+     * 유리 결은 `TILE.GLASSY` 인쇄가 낸다.
+     */
   ]),
 
   '장난감 블록': () => assemble([
@@ -181,16 +207,20 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     // 얇게 만들면 화면에서 구별이 안 된다(실제로 안 됐다). 딱지는 여러 겹을
     // 접어 만드는 물건이니 **두껍게** 하고, 그 위에 대각선 결을 얹는다.
     part(soft(0.94, 0.20, 0.94, 0.12), WHITE, [0, 0.10, 0], undefined, TILE.CARD),
-    part(new BoxGeometry(0.92, 0.07, 0.34), PAPER, [0, 0.22, 0], [0, 0.79, 0]),
-    part(new BoxGeometry(0.92, 0.07, 0.34), PAPER, [0, 0.22, 0], [0, -0.79, 0]),
+    // 접힌 대각선 결 둘. **`PAPER`(대비 0.05)로는 아래 판과 안 갈렸다.**
+    // 그리고 «같은 높이»면 겹치는 자리에서 위·아랫면이 같은 평면이라 z-fighting 이다
+    part(new BoxGeometry(0.92, 0.075, 0.34), WRAP, [0, 0.222, 0], [0, 0.79, 0]),
+    part(new BoxGeometry(0.92, 0.055, 0.34), WRAP, [0, 0.222, 0], [0, -0.79, 0]),
   ]),
 
   공책: () => assemble([
     part(soft(0.76, 0.09, 0.98, 0.12), WHITE, [0, 0.045, 0]),
-    part(new BoxGeometry(0.70, 0.08, 0.92), PAPER, [0.02, 0.11, 0]),
-    part(new BoxGeometry(0.76, 0.04, 0.98), WHITE, [0, 0.17, 0]),
-    // 등에 감은 철끈 — 공책과 그냥 종이 뭉치를 가르는 것
-    part(new CylinderGeometry(0.045, 0.045, 0.98, 6), METAL, [-0.36, 0.10, 0], LIE_Z),
+    // 속지 — 표지보다 «밝다». 표지가 어떤 색이든 종이는 희다
+    part(new BoxGeometry(0.70, 0.08, 0.92), WRAP, [0.02, 0.11, 0]),
+    part(new BoxGeometry(0.76, 0.04, 0.94), WHITE, [0, 0.17, 0], undefined, TILE.COVER),
+    // 등에 감은 철끈 — 공책과 그냥 종이 뭉치를 가르는 것. 길이를 표지보다 짧게
+    ...([-0.30, -0.10, 0.10, 0.30] as const).map((z) => part(
+      new TorusGeometry(0.055, 0.016, 6, 12), INK, [-0.34, 0.105, z], [0, Math.PI / 2, 0])),
   ]),
 
   곰인형: () => assemble([
@@ -200,7 +230,9 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, 0.19]),
     part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, -0.19]),
     // 주둥이 + 코 + 눈. 얼굴이 없으면 눈사람이다
-    part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), PAPER, [0.22, 0.85, 0], undefined, TILE.CLOTH),
+    // 주둥이 — `PAPER`(대비 0.07)면 얼굴이 통째로 뭉친다. 곰인형 주둥이는 늘 «밝다»
+    part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), WRAP, [0.22, 0.85, 0],
+      undefined, TILE.CLOTH),
     part(new SphereGeometry(0.05, 6, 4), DARK, [0.33, 0.88, 0]),
     part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, 0.11]),
     part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, -0.11]),

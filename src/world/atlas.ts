@@ -155,6 +155,12 @@ export const TILE = {
   BUTTON: 36,
   /** 각설탕 — 눌러 굳힌 알갱이 결. 민짜 정육면체는 흰 상자다 */
   SUGAR: 37,
+  /** 비누 — 눌러 찍은 글자 자리. 판때기로 붙이면 대비가 0.05 라 안 보인다 */
+  SOAP: 38,
+  /** 달걀 껍질 얼룩 — 민짜 타원은 골프공과 구별이 안 된다 */
+  EGG: 39,
+  /** 유리 — 안이 비치는 결. 구슬·유리병처럼 «붙일 데가 없는» 것들이 쓴다 */
+  GLASSY: 40,
 } as const;
 
 /**
@@ -739,6 +745,45 @@ export function buildPrintAtlas(): CanvasTexture {
     for (let i = 0; i < 60; i++) {
       cx.fillRect(rnd(i * 23 + 9, CELL), rnd(i * 29 + 13, CELL), 2, 2);
     }
+  });
+
+  /** 비누 — 눌러 찍은 상표 자국. 가운데만 한 단 들어간다 */
+  at(TILE.SOAP, () => {
+    base();
+    cx.fillStyle = 'rgba(86,82,74,0.10)';
+    cx.beginPath(); cx.ellipse(CELL / 2, CELL / 2, CELL * 0.30, CELL * 0.17, 0, 0, Math.PI * 2);
+    cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,0.55)';
+    cx.beginPath(); cx.ellipse(CELL / 2, CELL / 2 - 3, CELL * 0.27, CELL * 0.14, 0, 0, Math.PI * 2);
+    cx.fill();
+    cx.fillStyle = 'rgba(86,82,74,0.16)';
+    for (let i = 0; i < 3; i++) cx.fillRect(CELL * 0.32, CELL * 0.46 + i * 7, CELL * 0.36, 3);
+  });
+
+  /** 달걀 — 아주 옅은 반점. 세면 메추리알이 된다 */
+  at(TILE.EGG, () => {
+    base();
+    for (let i = 0; i < 90; i++) {
+      cx.fillStyle = `rgba(150,126,96,${(0.03 + rnd(i * 19, 0.05)).toFixed(3)})`;
+      cx.beginPath();
+      cx.ellipse(rnd(i * 7 + 5, CELL), rnd(i * 13 + 3, CELL),
+        2 + rnd(i * 11, 5), 2 + rnd(i * 5, 4), rnd(i * 3, 3), 0, Math.PI * 2);
+      cx.fill();
+    }
+  });
+
+  /** 유리 — 비스듬한 반사 줄. 곱셈이라 흰 줄이 「빛난다」가 된다 */
+  at(TILE.GLASSY, () => {
+    base();
+    cx.save();
+    cx.translate(CELL / 2, CELL / 2); cx.rotate(-0.5); cx.translate(-CELL / 2, -CELL / 2);
+    for (const [x, w, a] of [[18, 14, 0.62], [40, 6, 0.42], [86, 10, 0.5]] as const) {
+      cx.fillStyle = `rgba(255,255,255,${a})`;
+      cx.fillRect(x, -CELL, w, CELL * 3);
+    }
+    cx.fillStyle = 'rgba(60,78,96,0.12)';
+    cx.fillRect(58, -CELL, 20, CELL * 3);
+    cx.restore();
   });
 
   const tex = new CanvasTexture(cv);
