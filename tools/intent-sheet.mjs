@@ -183,7 +183,12 @@ function main() {
 
   const cells = targets.map((target, i) => {
     const render = join(TMP_DIR, `render-${i}.png`);
-    const url = `${BASE}${viewer}?only=${encodeURIComponent(target)}&tilt=0.25`;
+    /**
+     * **크기를 칸마다 맞춘다.** 뷰어 기본값은 「실제 놓이는 크기」라 1.6cm 짜리는
+     * 화면에서 점이 되고 1.2m 짜리는 꽉 찬다. 시트는 «알아볼 수 있는가»를 보는
+     * 것이므로 크기 차이가 섞이면 답이 오염된다.
+     */
+    const url = `${BASE}${viewer}?only=${encodeURIComponent(target)}&size=0.9&tilt=0.25`;
     console.log(`[${i + 1}/${targets.length}] ${target} 렌더`);
     shoot(url, render, 4500, PHOTO * 2, PHOTO * 2, HIDE_HUD);
     if (!existsSync(render)) throw new Error(`${target} 렌더 실패 — ${url}`);

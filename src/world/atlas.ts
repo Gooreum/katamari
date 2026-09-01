@@ -165,6 +165,8 @@ export const TILE = {
   SCREEN: 41,
   /** 골프공 딤플 — 구 넷을 박아도 대비가 0.05 라 안 보였다. 인쇄면 온 면에 찍힌다 */
   GOLF: 42,
+  /** 캐러멜 알맹이 — 잘릴 때 눌린 가로 자국. 거의 흰색이라 팔레트 색이 그대로 나온다 */
+  TOFFEE: 43,
 } as const;
 
 /**
@@ -271,17 +273,77 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.beginPath(); cx.arc(96, 92, 22, 0, Math.PI * 2); cx.fill();
   });
 
-  // ── 캐러멜 상자 ── 세로 띠 포장.
+  /**
+   * ── 캐러멜 갑 ── **실물 사진을 보고 다시 그렸다.**
+   * 근거: `.design-bounce/ref/캐러멜 상자/` (모리나가 공식 제품 페이지)
+   *
+   * 앞의 것은 주황 바탕에 크림색 세로 띠였다. 실물과 색부터 달랐다 —
+   * 정답을 모르는 판정자가 「자판기」라고 답하면서 근거로 **「주황 테두리 패널」** 을
+   * 댔다. 내가 지어낸 색이 물건의 정체를 덮은 것이다.
+   *
+   * 실물은 **노란 바탕에 흰 테두리 액자**가 둘리고, 채도가 높은 것은 위쪽의
+   * **자주색 마크 하나**뿐이다. 아래쪽에는 코끼리와 낱개 그림이 작게 들어간다.
+   */
   at(TILE.CARAMEL, () => {
-    cx.fillStyle = '#c9762a';
+    cx.fillStyle = '#f5c516';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#f5e3c0';
-    cx.fillRect(30, 0, 68, CELL);
-    cx.fillStyle = '#8a3f1c';
-    cx.fillRect(30, 40, 68, 48);
-    cx.fillStyle = '#f5e3c0';
-    cx.fillRect(42, 54, 44, 8);
-    cx.fillRect(42, 70, 44, 8);
+    /**
+     * **위아래를 뒤집어 그린다.** 세운 갑의 앞면 uv 는 v 가 아래에서 위로 자라서,
+     * 캔버스 좌표 그대로 그리면 화면에서 상하가 뒤집힌다 — 실물에서 «위»에 있는
+     * 자주색 마크가 아래로 내려가고 낱개 그림이 위로 올라간다.
+     * 좌우 대칭인 무늬에서는 안 드러나던 문제다.
+     */
+    cx.save();
+    cx.translate(0, CELL);
+    cx.scale(1, -1);
+    // 흰 테두리 액자 — 갑의 윤곽을 그리는 것이 이 선이다
+    cx.strokeStyle = '#fbf6e6';
+    cx.lineWidth = 5;
+    cx.strokeRect(9, 7, CELL - 18, CELL - 14);
+    cx.lineWidth = 2;
+    cx.strokeRect(17, 15, CELL - 34, CELL - 30);
+    // 위쪽 흰 띠 한 줄 (뚜껑 아래)
+    cx.fillStyle = '#fbf6e6';
+    cx.fillRect(17, 22, CELL - 34, 6);
+    // **자주색 마크 하나** — 실물에서 유일하게 채도가 높은 요소다
+    cx.fillStyle = '#6b2560';
+    cx.beginPath(); cx.arc(64, 44, 13, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#f0b81c';
+    cx.beginPath(); cx.arc(64, 42, 6, 0, Math.PI * 2); cx.fill();
+    // 세로 글자 기둥 — 흰 글씨가 세로로 흐른다. 획 하나하나는 이 크기에서 안 보인다
+    cx.fillStyle = '#fbf6e6';
+    for (let y = 62; y < 104; y += 9) cx.fillRect(58, y, 12, 5);
+    // 아래쪽 낱개 그림 — 작은 크림색 사각 셋
+    cx.fillStyle = '#f6ead0';
+    cx.fillRect(88, 92, 11, 9);
+    cx.fillRect(96, 103, 11, 9);
+    cx.fillRect(84, 108, 11, 9);
+    // 왼쪽 아래 코끼리 자리 — 흰 덩어리 하나로만 암시한다
+    cx.beginPath(); cx.arc(32, 104, 9, 0, Math.PI * 2); cx.fill();
+    cx.restore();
+  });
+
+  /**
+   * ── 캐러멜 알맹이 ── 잘릴 때 눌린 가로 자국.
+   *
+   * **바탕이 거의 흰색이어야 한다.** 정점색이 그렇듯 인쇄 색도 팔레트에 «곱해진다» —
+   * 갈색 팔레트(적갈 0x8a4f2a) 위에 갈색을 인쇄하면 두 번 곱해져 거의 검정이 된다.
+   * 색은 팔레트가 정하고, 인쇄는 «어디가 더 어두운가»만 정한다.
+   *
+   * 실물에서 본 것: 옆면에 가로로 눌린 주름이 몇 줄 있고 면이 고르지 않다.
+   * 무늬가 아니라 «흔적»이므로 아주 옅게만 넣는다 — 진하면 포장지로 보인다.
+   */
+  at(TILE.TOFFEE, () => {
+    cx.fillStyle = '#f6f2ea';
+    cx.fillRect(0, 0, CELL, CELL);
+    // 자국은 «둘»이면 된다. 셋을 고르게 넣었더니 벌집처럼 규칙적으로 보였다
+    cx.fillStyle = '#e6ded1';
+    cx.fillRect(0, 44, CELL, 4);
+    cx.fillRect(0, 79, CELL, 3);
+    // 잘린 면이 옆면보다 무디다 — 위아래 가장자리를 살짝 밝힌다
+    cx.fillStyle = '#fdfbf6';
+    cx.fillRect(0, 0, CELL, 9);
+    cx.fillRect(0, CELL - 9, CELL, 9);
   });
 
   // ── 껌 ── 은박 + 띠지.

@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, INK, METAL, part, SHINE, WHITE, WOOD, WRAP, soft, lip,
+import { assemble, DARK, INK, METAL, part, SEG, WHITE, WOOD, WRAP, soft, lip,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
@@ -22,17 +22,34 @@ const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
  */
 export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
   고양이: () => assemble([
-    // 웅크린 자세. 원작 집 고양이는 대부분 앉아 있다
-    part(new SphereGeometry(0.30, 20, 13), WHITE, [-0.10, 0.32, 0], undefined, TILE.CLOTH),
-    part(soft(0.44, 0.34, 0.34, 0.45), WHITE, [0.12, 0.30, 0], undefined, TILE.CLOTH),
+    /**
+     * 웅크린 자세. **인쇄 타일을 구에서 뗐다.**
+     * 근거: `.design-bounce/ref/고양이/` (위키미디어)
+     *
+     * 정답을 모르는 판정자가 이름은 맞히면서 근거에 「몸통은 **격자 무늬가 촘촘한
+     * 큰 구체**」라고 적었다. `TILE.CLOTH` 가 구면 uv 에 감기면서 바둑판이 되어
+     * 짠 바구니처럼 보인 것이다. 이름을 맞혀도 실물과 다르면 틀린 것이다.
+     *
+     * 인쇄는 **평평한 면에서만** 쓴다. 털은 무늬 대신 «가로 줄무늬 띠»로 만든다 —
+     * 사진에서 줄무늬가 등과 옆구리를 가로로 감고 있다.
+     */
+    part(new SphereGeometry(0.30, 20, 13).scale(1.0, 0.92, 1.0), WHITE, [-0.10, 0.31, 0]),
+    part(soft(0.44, 0.34, 0.34, 0.45), WHITE, [0.12, 0.30, 0]),
+    /**
+     * 줄무늬는 **뺐다.** 상자 셋을 등에 얹어 가로줄을 만들려 했는데, 구면 위에서
+     * 상자는 어디선가 반드시 삐져나온다 — 판정자가 「등에 작은 **사각 돌기** 4개」로
+     * 읽었다. 무늬를 «부품»으로 만들면 무늬가 아니라 혹이 된다.
+     * 털무늬는 인쇄로 풀어야 할 문제이고, 구면 uv 에 감기는 인쇄는
+     * 바둑판이 되므로(그게 앞의 결함이었다) 지금은 무지로 둔다.
+     */
     /**
      * **목.** 검사는 통과했지만(머리가 몸통 밖에 있다) 화면에서는 몸통과 머리가
      * 「두 덩이」로 따로 놀았다 — 사이를 잇는 게 아무것도 없어서다.
      * 몸통(0.22)에서 머리(0.20)로 좁아지는 목이 둘을 한 마리로 묶는다.
      */
-    part(new CylinderGeometry(0.15, 0.22, 0.18, 20), WHITE, [0.30, 0.44, 0], [0, 0, -0.7]),
+    part(new CylinderGeometry(0.15, 0.22, 0.18, SEG.MID), WHITE, [0.30, 0.44, 0], [0, 0, -0.7]),
     // 머리 + 귀 둘 + 코
-    part(new SphereGeometry(0.22, 20, 13), WHITE, [0.44, 0.56, 0]),
+    part(new SphereGeometry(0.22, SEG.MID, 9), WHITE, [0.44, 0.56, 0]),
     part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, 0.11]),
     part(new ConeGeometry(0.09, 0.17, 5), WHITE, [0.38, 0.76, -0.11]),
     /**
@@ -41,16 +58,17 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
       */
     // 주둥이 — 고양이 팔레트는 살구·검정·흰색 셋이다. `WRAP` 은 밝은 둘에서 포화되고
     // 짙은 쪽은 검정에서 안 갈린다. **과반(살구·흰색)에서 도는 중간 톤**으로 간다
-    part(new SphereGeometry(0.10, 20, 13).scale(1, 0.8, 1.25), [0.55, 0.46, 0.42], [0.60, 0.50, 0]),
-    part(new SphereGeometry(0.05, 14, 9), [0.92, 0.48, 0.55], [0.66, 0.53, 0]),
+    part(new SphereGeometry(0.10, SEG.SMALL, 7).scale(1, 0.8, 1.25), [0.55, 0.46, 0.42],
+      [0.60, 0.50, 0]),
+    part(new SphereGeometry(0.05, SEG.TINY, 5), [0.92, 0.48, 0.55], [0.66, 0.53, 0]),
     ...([1, -1] as const).map((k) =>
-      part(new SphereGeometry(0.055, 14, 9), INK, [0.58, 0.62, k * 0.10])),
+      part(new SphereGeometry(0.055, SEG.TINY, 5), INK, [0.58, 0.62, k * 0.10])),
     // 귀 «안». 짙어야 귀가 두 겹으로 읽힌다
     ...([1, -1] as const).map((k) =>
-      part(new ConeGeometry(0.05, 0.11, 14), [0.86, 0.52, 0.52], [0.40, 0.755, k * 0.11])),
+      part(new ConeGeometry(0.05, 0.11, SEG.TINY), [0.86, 0.52, 0.52], [0.40, 0.755, k * 0.11])),
     // 앞다리 둘
-    part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, 0.12]),
-    part(new CylinderGeometry(0.07, 0.07, 0.26, 20), WHITE, [0.34, 0.13, -0.12]),
+    ...([0.12, -0.12] as const).map((z) =>
+      part(new CylinderGeometry(0.07, 0.07, 0.26, SEG.SMALL), WHITE, [0.34, 0.13, z])),
     // 몸을 감은 꼬리
     part(new TorusGeometry(0.22, 0.05, 4, 10, Math.PI * 1.2), WHITE, [-0.10, 0.10, 0], LIE_Z),
   ]),
@@ -79,29 +97,58 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new CylinderGeometry(0.025, 0.025, 0.40, 14), WOOD, [0, 0.16, -0.20], LIE_X),
   ]),
 
+  /**
+   * 브라운관 TV — **실물 사진을 보고 다시 만들었다.**
+   * 근거: `.design-bounce/ref/텔레비전/` (위키미디어)
+   *
+   * 정답을 모르는 판정자가 근거에 「검은 상자 앞면에 **큰 검은 사각 패널**」이라고
+   * 적었다. 이름은 맞혔지만 화면과 캐비닛이 한 덩어리라는 뜻이다.
+   *
+   * 사진에서 확인한 둘:
+   *   ① **꺼진 화면은 검정이 아니라 옅은 회녹색이다.** 검정 캐비닛에 검정 화면을
+   *      넣으면 안테나만 남는다. 팔레트를 검정(5)에서 나무(7)로 옮기고
+   *      화면을 «밝은» 쪽으로 보낸다 — 정점색이 곱하는 계수라 나무 위에서
+   *      회녹색을 만들려면 파랑 계수가 1을 크게 넘어야 한다
+   *   ② **화면은 앞판의 71%만 차지한다.** 나머지 오른쪽은 튜너 다이얼과
+   *      세로살 스피커망이 있는 조작판 «기둥»이다. 앞판을 화면으로 다 덮으면
+   *      옛날 텔레비전이 아니라 요즘 모니터가 된다
+   */
   텔레비전: () => assemble([
-    // 브라운관 TV. 원작 거실의 그것 — 다리가 짧고 몸통이 두껍다
     // 캐비닛 — 나뭇결. 브라운관 TV 는 나무 상자다
     part(soft(0.86, 0.66, 0.62, 0.14), WHITE, [0, 0.42, 0], undefined, TILE.WOOD_C),
-    /**
-     * 화면. **`GLASS`(0.55~0.78)는 캐비닛과 대비가 0.06** 이라 화면이 안 보였다 —
-     * 화면에서 「안테나 달린 검은 상자」였던 게 이것이다. 브라운관은 캐비닛보다
-     * 확실히 짙고, 그 위에 밝은 반사가 한 줄 있다.
-     */
-    part(new BoxGeometry(0.66, 0.52, 0.035), [0.30, 0.31, 0.34], [-0.04, 0.44, 0.315],
+    // 검은 베젤 — 화면이 이 «안쪽»으로 움푹 들어가야 유리로 읽힌다
+    part(new BoxGeometry(0.60, 0.54, 0.035), [0.26, 0.27, 0.30], [-0.10, 0.44, 0.315],
       undefined, TILE.PANEL),
-    part(new BoxGeometry(0.56, 0.42, 0.03), [0.16, 0.17, 0.20], [-0.04, 0.44, 0.335],
+    /**
+     * 화면 유리. 나무 팔레트(0.60, 0.42, 0.25)에 이 계수를 곱하면
+     * (0.73, 0.79, 0.75) — 옅은 회녹색이 된다. 사진의 꺼진 브라운관 색이다.
+     */
+    part(new BoxGeometry(0.52, 0.46, 0.03), [1.22, 1.88, 3.00], [-0.10, 0.44, 0.336],
       undefined, TILE.SCREEN),
-    // 오른쪽 조작부 — 다이얼 둘. 캐비닛보다 짙어야 「누르는 데」로 읽힌다
-    part(new CylinderGeometry(0.085, 0.085, 0.06, 10), INK, [0.34, 0.56, 0.325], LIE_Z, TILE.PANEL),
-    part(new CylinderGeometry(0.085, 0.085, 0.06, 10), INK, [0.34, 0.36, 0.325], LIE_Z),
-    // 스피커 구멍 — 다이얼 밑. 이게 있어야 조작부가 «패널»이 된다
-    part(new BoxGeometry(0.13, 0.16, 0.02), INK, [0.34, 0.17, 0.325], undefined, TILE.PANEL),
-    // 안테나
-    // 안테나 — TV 팔레트가 «검정»이라 `METAL`(0.72)은 캐비닛과 대비가 0.05 다.
-    // 검은 물건 위의 금속은 «밝은» 쪽이어야 보인다
-    part(new CylinderGeometry(0.022, 0.016, 0.52, 6), SHINE, [0.16, 0.98, -0.16], [0.3, 0, 0.3]),
-    part(new CylinderGeometry(0.022, 0.016, 0.52, 6), SHINE, [-0.16, 0.98, -0.16], [0.3, 0, -0.3]),
+    /**
+     * 오른쪽 조작판 기둥. 사진에서 앞판의 29%를 차지하고 화면과 «세로로 갈린다».
+     * 황동빛이라 캐비닛보다 밝고 노랗다.
+     */
+    part(new BoxGeometry(0.19, 0.54, 0.028), [1.34, 1.42, 0.92], [0.30, 0.44, 0.316],
+      undefined, TILE.PANEL),
+    // 튜너 다이얼 — 눈금 링이 둘린 원형 손잡이. 기둥 «위쪽»에 하나뿐이다
+    part(new CylinderGeometry(0.072, 0.072, 0.03, 12), [1.55, 1.62, 1.05],
+      [0.30, 0.60, 0.336], LIE_Z, TILE.PANEL),
+    part(new CylinderGeometry(0.030, 0.030, 0.045, 8), INK, [0.30, 0.60, 0.345], LIE_Z),
+    /**
+     * 스피커망 — **촘촘한 세로살**이다. 사진에서 다이얼 아래를 길게 채운다.
+     * 살 다섯이면 「망」으로 읽히고 삼각형도 안 늘어난다.
+     */
+    ...([-0.064, -0.032, 0, 0.032, 0.064] as const).map((dx) =>
+      part(new BoxGeometry(0.012, 0.30, 0.012), INK, [0.30 + dx, 0.33, 0.330])),
+    /**
+     * 안테나. 팔레트를 검정에서 «나무»로 옮겼으므로 계수도 같이 바꾼다 —
+     * `SHINE`(2.6, 2.55, 2.4)을 나무(0.60, 0.42, 0.25)에 곱하면 주황빛으로 포화된다.
+     * 파랑 쪽을 더 올려 은색으로 뺀다: (0.60, 0.42, 0.25) × 아래 = (0.99, 0.97, 0.90)
+     */
+    ...([[0.16, 0.3], [-0.16, -0.3]] as const).map(([x, rz]) =>
+      part(new CylinderGeometry(0.022, 0.016, 0.52, 6), [1.65, 2.30, 3.60],
+        [x, 0.98, -0.16], [0.3, 0, rz])),
     part(soft(0.10, 0.14, 0.10, 0.3), WHITE, [0.30, 0.05, 0.20]),
     part(soft(0.10, 0.14, 0.10, 0.3), WHITE, [-0.30, 0.05, 0.20]),
   ]),
