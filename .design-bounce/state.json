@@ -1,0 +1,9 @@
+{
+  "phase": "sample",
+  "spec_approved": true,
+  "sample_approved": false,
+  "sample_size": 6,
+  "targets_done_count": 6,
+  "current_target": "",
+  "current_step": 1
+}

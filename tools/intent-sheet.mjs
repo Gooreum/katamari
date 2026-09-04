@@ -30,6 +30,8 @@ const OUT_DIR = join(ROOT, '.design-bounce', 'sample');
 const TMP_DIR = join(ROOT, '.design-bounce', '.tmp');
 const SHOT = join(HERE, 'shot.mjs');
 const BASE = process.env['VIEW_BASE'] ?? 'http://localhost:5174';
+/** `shot.mjs` 가 쓰는 크롬 프로필. 좀비를 잡을 때 이 경로로 찾는다 */
+const PROFILE = '/tmp/cdp-shot-profile';
 
 /** 칸 크기. 사진과 렌더가 «나란히» 보여야 다른 점이 보인다 — 위아래로 쌓으면 안 된다 */
 const PHOTO = 300;
@@ -56,12 +58,23 @@ function findViewer() {
   throw new Error('게임 조명 뷰어(view.html)를 찾지 못했습니다');
 }
 
-/** 좀비 크롬이 포트를 물고 있으면 다음 촬영이 통째로 매달린다 */
+/**
+ * 좀비 크롬이 포트를 물고 있으면 다음 촬영이 통째로 매달린다.
+ *
+ * **프로세스 이름이 아니라 «프로필 경로»로 잡는다.** 처음엔 `Chrome for Testing` 으로
+ * 찾았는데 `shot.mjs` 는 일반 `Google Chrome` 을 띄운다 — 하나도 안 죽었고,
+ * 살아 있는 크롬이 프로필 디렉토리를 물고 있어서 지우기가 실패하고
+ * 그다음 촬영이 전부 죽었다. `--user-data-dir` 인자로 찾으면 정확히 그놈만 잡힌다.
+ */
 function reapChrome() {
   try {
-    execFileSync('pkill', ['-9', '-f', 'Chrome for Testing'], { stdio: 'ignore' });
+    execFileSync('pkill', ['-9', '-f', PROFILE], { stdio: 'ignore' });
   } catch { /* 죽일 게 없으면 pkill 이 1을 반환한다 — 정상 */ }
-  rmSync('/tmp/cdp-shot-profile', { recursive: true, force: true });
+  // 프로세스가 파일 핸들을 놓을 틈을 준다. 안 기다리면 지우기가 실패한다
+  try {
+    execFileSync('sleep', ['0.4'], { stdio: 'ignore' });
+  } catch { /* 무시 */ }
+  rmSync(PROFILE, { recursive: true, force: true });
 }
 
 function shoot(url, out, waitMs, w, h, js = '') {

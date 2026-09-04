@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/skills/design-bounce/hooks/ref-gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/skills/design-bounce/hooks/sample-gate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
