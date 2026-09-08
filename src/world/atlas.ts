@@ -374,18 +374,38 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillRect(0, 70, CELL, 6);
   });
 
-  // ── 건전지 ── 라벨 띠 + 극 표시.
+  /**
+   * ── 건전지 ── 라벨 띠 + 극 표시.
+   *
+   * **팔레트를 검정(5)에서 흰색(0)으로 옮기고 색을 여기서 정한다.**
+   * 인쇄 색도 팔레트에 «곱해지므로» 검은 팔레트 위에 검은 타일을 그리면
+   * 금색 띠(224,160,32)가 (41,29,6)이 되어 통째로 까맣게 나온다 —
+   * 화면에서 실제로 검은 막대였다. 캐러멜 갑에서 같은 실수를 했다.
+   *
+   * 잰 값(`ref/건전지/`): 띠는 전체 길이의 0.24, 위끝은 양극 끝에서 0.18 지점.
+   * 세운 원기둥의 앞면 uv 는 v 가 아래에서 위로 자라므로 **위아래를 뒤집어 그린다.**
+   */
   at(TILE.BATTERY, () => {
-    cx.fillStyle = '#2f2e2c';
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    cx.fillStyle = '#38352f';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#e0a020';
-    cx.fillRect(0, 26, CELL, 76);
-    cx.fillStyle = '#2f2e2c';
-    cx.fillRect(0, 26, CELL, 8);
-    cx.fillRect(0, 94, CELL, 8);
+    // 라벨 띠 — 위끝 0.18 지점(y=23)부터 0.24 높이(31px)
+    cx.fillStyle = '#e8b038';
+    cx.fillRect(0, 23, CELL, 31);
+    cx.fillStyle = '#2a2723';
+    cx.fillRect(0, 23, CELL, 4);
+    cx.fillRect(0, 50, CELL, 4);
+    // 띠 안의 짙은 블록 — 잰 값으로 전체의 0.15
+    cx.fillStyle = '#2f5f96';
+    cx.fillRect(0, 30, CELL, 17);
     cx.fillStyle = '#f4f1e8';
-    cx.fillRect(48, 52, 32, 8);                    // +
-    cx.fillRect(60, 40, 8, 32);
+    cx.fillRect(48, 36, 32, 5);                    // +
+    cx.fillRect(60, 30, 8, 17);
+    // 아래쪽(음극 쪽)에 옅은 띠 하나 — 위아래가 다른 물건임을 말한다
+    cx.fillStyle = '#5c574e';
+    cx.fillRect(0, 104, CELL, 6);
+    cx.restore();
   });
 
   // ── 지우개 ── 종이 띠. 정점색 계수로는 원리상 못 만들던 바로 그 부품이다.

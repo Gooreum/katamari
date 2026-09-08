@@ -1,0 +1,21 @@
+# 성냥갑
+
+- 출처: https://commons.wikimedia.org/wiki/File:Matchbox_back.JPG (2026-09-08 내려받음, main.jpg — 1935년 곽 하나를 위에서 곧게 찍은 사진. 라벨 비율과 색 면적은 여기서 쟀다)
+- 출처: https://commons.wikimedia.org/wiki/File:Japonalluettiq002_Japanese_matchbox_Drawing_of_red_horse_and_moon_on_yellow_background_Japanese_letters.jpg (2026-09-08 내려받음, label_japan.jpg — 神戸燐寸株式會社 「月馬印」 일본 성냥 라벨)
+- 출처: https://commons.wikimedia.org/wiki/File:%E3%81%AA%E3%82%93%E3%81%8B%E3%80%81%E6%98%94%E6%87%90%E3%81%8B%E3%81%97%E3%81%84%E3%82%82%E3%81%AE%E3%81%8C%E8%89%B2%E3%80%85%E3%81%A8%E3%80%82%E3%80%82_(8810874483).jpg (2026-09-08 내려받음, japan_box.jpg — 일본 가정용 「パイプ 徳用マッチ」 빨간 곽)
+- 출처: https://commons.wikimedia.org/wiki/File:Match_box.jpg (2026-09-08 내려받음, tray_open.jpg — 속서랍을 뺀 상태)
+- 출처: https://commons.wikimedia.org/wiki/File:A_vintage_box_of_safety_matches.jpg (2026-09-08 내려받음, side_print.jpg — 짧은 옆면에도 글씨가 찍히는 것)
+- 출처: https://commons.wikimedia.org/wiki/File:A_safety_wax_match_box_and_matches.JPG (2026-09-08 내려받음, matches_open.jpg — 서랍을 반쯤 연 모서리 확대)
+- 잰 것: 라벨 가로:세로 ≈ 1.55 : 1 — main.jpg 라벨 1171 × 766 px 로 1.53 : 1, label_japan.jpg 1280 × 822 px 로 1.56 : 1. 서로 다른 나라 두 라벨이 거의 같은 비율이다
+- 잰 것: main.jpg 에서 라벨이 윗면 가장자리에 남기는 흰 여백 ≈ 라벨 세로의 3~5%. 라벨이 윗면을 거의 꽉 채운다
+- 잰 것: main.jpg 위·아래 가장자리에 남색 옆면 띠가 각각 ≈ 37 px 보인다 (라벨 세로 766 px 의 5%). 비스듬히 본 면이라 실제 두께는 이보다 크다
+- 잰 것: main.jpg 라벨 색 면적 — 빨강 28% · 남색 27% · 검정에 가까운 어두운 색 23% · 금색 11% · 흰색 10%. 남색 (50,95,132), 빨강 (163,32,27), 금색 (195,164,54)
+- 잰 것: label_japan.jpg 색 면적 — 노랑 바탕 41% · 빨강 24% · 먹색 16% · 흰/크림 14% · 남색 5%. 노랑 (249,208,68), 빨강 (223,74,49), 남색 (52,60,90)
+- 살릴 것: 윗면 거의 전체를 덮는 종이 라벨과, 그 라벨을 두르는 가는 이중 테두리(main.jpg 는 금색 한 줄, label_japan.jpg 는 빨강+크림 두 줄) · 곽의 짧은 옆면이 윗면과 다른 색 종이로 덮여 띠처럼 보이는 것 · 겉곽 안에 인쇄 없는 맨 판지 속서랍이 따로 들어 있는 것
+- 버릴 것: main.jpg 의 1935년 왕실 결혼 기념 문양(왕관·모노그램·날짜). 일본 가정집 물건이 아니다
+- 본 것: main.jpg 인쇄 — 파랑·빨강·흰 사선 띠가 화면을 대각으로 가로지르고 그 위에 금색 모노그램과 왕관, 아래에 「19 24/5 35」. 라벨 넉 변에 금색 테두리가 한 줄 돌고, 곽 옆면은 남색 종이, 오른쪽 짧은 면은 칠하지 않은 나무색이다
+- 본 것: label_japan.jpg 인쇄 — 노랑 바탕에 빨간 말이 흰 초승달을 뛰어넘고, 오른쪽 위에 먹색 「月馬印」, 좌우에 「登録」「商標」. 아래쪽 1/5 을 남색 가로 띠가 채우고 그 안에 크림색 글씨로 「神戸燐寸株式會社」. 바탕 노랑이 면의 40% 로 가장 넓고, 그림·글씨가 나머지를 채워 빈 여백이 거의 없다
+- 본 것: japan_box.jpg 인쇄 — 빨강 바탕에 흰 파이프 그림 한 개, 흰 굵은 로마자 「THE PIPE」, 세로쓰기 흰 가타카나 「パイプ 徳用マッチ」, 검은 잔글씨 주의문, 흑백 바코드. 윗면뿐 아니라 긴 옆면에도 같은 빨강 바탕에 흰 글씨가 이어진다
+- 본 것: tray_open.jpg / matches_open.jpg — 속서랍은 인쇄가 전혀 없는 흰 판지이고 모서리가 접혀 겹친다. 성냥 축은 미색 나무, 머리는 벽돌빛 빨강 또는 잿빛 검정. side_print.jpg 는 짧은 옆면에도 검은 글씨(「MATCHES PRICE 6 P.」)가 세로로 찍힌다는 것을 보여준다
+- 못 찾은 것: 위키미디어 커먼즈에 Category:Matchboxes of Japan 이 없다. Category:Matchboxes 와 그 하위 Category:Matchboxes by country · Category:Matches in matchboxes · Category:Striker strips, 그리고 커먼즈 검색(マッチ箱 / 徳用マッチ / Japanese matches / matchbox japan)을 훑었지만 일본 소형 성냥갑을 정면에서 곧게 찍은 사진은 없었다. 그래서 형태·비율은 스웨덴 곽(main.jpg), 인쇄는 일본 라벨·일본 곽으로 나눠 봤다
+- 못 찾은 것: 정면과 측면이 함께 곧게 보이는 사진이 없어 두께 : 가로 비율은 못 쟀다
