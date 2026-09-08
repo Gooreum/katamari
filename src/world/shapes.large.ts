@@ -40,18 +40,34 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
      * 인쇄는 붙이지 않는다 — `TILE.CLOTH` 가 구면 uv 에 감기면 바둑판이 되어
      * 짠 바구니로 읽혔다(판정자가 「격자 무늬가 촘촘한 큰 구체」라고 적었다).
      */
-    part(new SphereGeometry(0.30, SEG.BIG, 12).scale(1.0, 0.72, 1.05), WHITE, [-0.16, 0.22, 0]),
+    part(new SphereGeometry(0.29, SEG.BIG, 12).scale(1.0, 0.70, 1.02), WHITE, [-0.17, 0.21, 0]),
+    /**
+     * **뒷다리 허벅지 — 좌우로 둘.** 앞의 것은 몸통이 원뿔대 하나뿐이라
+     * 화면에서 «고깔»로 보였다. 앉은 고양이의 실루엣은 매끈한 원뿔이 아니다 —
+     * 아래에서 허벅지가 «양옆으로 불룩» 튀어나오고 그 위 어깨는 좁다.
+     * 사진에서 앞다리 바깥으로 허벅지가 비어져 나온 것이 그것이다.
+     */
+    ...([1, -1] as const).map((k) =>
+      part(new SphereGeometry(0.185, SEG.SMALL, 7).scale(1.35, 0.92, 0.90), WHITE,
+        [-0.05, 0.185, k * 0.155])),
     // 가슴에서 허리로 — 앉은 몸통은 «위로 좁아지는» 원뿔대다. 이게 세로 실루엣을 만든다
-    part(new CylinderGeometry(0.20, 0.29, 0.46, SEG.BIG), WHITE, [-0.02, 0.44, 0]),
+    part(new CylinderGeometry(0.175, 0.255, 0.46, SEG.BIG), WHITE, [-0.02, 0.44, 0]),
     /**
      * 어깨 — 원뿔대 위를 둥글게 덮어 목으로 잇는다.
      * 반지름이 원뿔대 윗지름(0.20)보다 크면 **가리비 무늬 띠**가 생긴다 —
      * 14분할 구가 원뿔대를 2cm 씩 뚫고 나와 면마다 턱이 졌다. 안쪽으로 넣는다.
      */
-    part(new SphereGeometry(0.185, SEG.MID, 9).scale(1.02, 0.88, 1.0), WHITE, [0.01, 0.655, 0]),
-    part(new CylinderGeometry(0.135, 0.175, 0.17, SEG.MID), WHITE, [0.02, 0.775, 0]),
-    // 머리 — 전체 높이의 28%. 사진에서 잰 값이다
-    part(new SphereGeometry(0.215, SEG.MID, 9).scale(1.0, 0.94, 1.0), WHITE, [0.04, 0.98, 0]),
+    part(new SphereGeometry(0.163, SEG.MID, 9).scale(1.04, 0.90, 1.0), WHITE, [0.01, 0.650, 0]),
+    part(new CylinderGeometry(0.128, 0.156, 0.17, SEG.MID), WHITE, [0.02, 0.775, 0]),
+    /**
+     * 머리 — 전체 높이의 28%. 사진에서 잰 값이다.
+     * **아래가 넓다.** 고양이 얼굴은 정수리보다 볼이 넓다 — 매끈한 공을 얹으면
+     * 인형이 된다. 볼을 좌우로 붙여 아래를 벌린다.
+     */
+    part(new SphereGeometry(0.205, SEG.MID, 9).scale(1.0, 0.96, 1.0), WHITE, [0.04, 0.985, 0]),
+    ...([1, -1] as const).map((k) =>
+      part(new SphereGeometry(0.098, SEG.TINY, 5).scale(1.0, 0.86, 0.95), WHITE,
+        [0.09, 0.925, k * 0.135])),
     /**
      * 귀 — **머리 높이의 45%.** 사진에서 잰 값이고, 작은 삼각형이 아니라 크다.
      * 고양이를 고양이이게 하는 단서가 이것이다.
@@ -76,9 +92,9 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
      * 앞다리 — **곧게 선다.** 앉은 고양이의 앞다리는 가슴 아래에서 수직으로
      * 내려와 발이 앞으로 나온다. 이 세로선이 「앉았다」를 만든다.
      */
-    ...([0.105, -0.105] as const).flatMap((z) => [
-      part(new CylinderGeometry(0.062, 0.070, 0.40, SEG.SMALL), WHITE, [0.13, 0.20, z]),
-      part(soft(0.17, 0.075, 0.115, 0.40), WHITE, [0.175, 0.038, z]),
+    ...([0.088, -0.088] as const).flatMap((z) => [
+      part(new CylinderGeometry(0.058, 0.068, 0.42, SEG.SMALL), WHITE, [0.165, 0.21, z]),
+      part(soft(0.175, 0.078, 0.108, 0.40), WHITE, [0.215, 0.039, z]),
     ]),
     // 꼬리 — 몸통을 감아 앞발 옆으로 돌아 나온다. 사진에서 본 것
     part(new TorusGeometry(0.24, 0.048, 4, 11, Math.PI * 1.15), WHITE, [-0.14, 0.075, 0],

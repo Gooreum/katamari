@@ -336,14 +336,17 @@ export function buildPrintAtlas(): CanvasTexture {
   at(TILE.TOFFEE, () => {
     cx.fillStyle = '#f6f2ea';
     cx.fillRect(0, 0, CELL, CELL);
-    // 자국은 «둘»이면 된다. 셋을 고르게 넣었더니 벌집처럼 규칙적으로 보였다
-    cx.fillStyle = '#e6ded1';
-    cx.fillRect(0, 44, CELL, 4);
-    cx.fillRect(0, 79, CELL, 3);
+    /**
+     * 자국은 **아주 옅어야 한다.** 진하면 상자 이음선으로 읽힌다 —
+     * 실제로 「골판지 상자」로 보였다. 흔적은 있는 듯 없는 듯해야 흔적이다.
+     */
+    cx.fillStyle = '#f0ebe1';
+    cx.fillRect(0, 47, CELL, 3);
+    cx.fillRect(0, 82, CELL, 2);
     // 잘린 면이 옆면보다 무디다 — 위아래 가장자리를 살짝 밝힌다
-    cx.fillStyle = '#fdfbf6';
-    cx.fillRect(0, 0, CELL, 9);
-    cx.fillRect(0, CELL - 9, CELL, 9);
+    cx.fillStyle = '#fcf9f3';
+    cx.fillRect(0, 0, CELL, 7);
+    cx.fillRect(0, CELL - 7, CELL, 7);
   });
 
   // ── 껌 ── 은박 + 띠지.
