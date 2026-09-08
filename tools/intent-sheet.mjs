@@ -32,6 +32,8 @@ const SHOT = join(HERE, 'shot.mjs');
 const BASE = process.env['VIEW_BASE'] ?? 'http://localhost:5174';
 /** `shot.mjs` 가 쓰는 크롬 프로필. 좀비를 잡을 때 이 경로로 찾는다 */
 const PROFILE = '/tmp/cdp-shot-profile';
+/** `shot.mjs` 가 여는 CDP 포트. 좀비가 이걸 물고 있으면 다음 촬영이 통째로 죽는다 */
+const CDP_PORT = 9333;
 
 /** 칸 크기. 사진과 렌더가 «나란히» 보여야 다른 점이 보인다 — 위아래로 쌓으면 안 된다 */
 const PHOTO = 300;
@@ -67,21 +69,49 @@ function findViewer() {
  * 그다음 촬영이 전부 죽었다. `--user-data-dir` 인자로 찾으면 정확히 그놈만 잡힌다.
  */
 function reapChrome() {
+  // 프로필 경로로 잡는다 — 이 도구가 띄운 크롬만 정확히 걸린다
   try {
     execFileSync('pkill', ['-9', '-f', PROFILE], { stdio: 'ignore' });
   } catch { /* 죽일 게 없으면 pkill 이 1을 반환한다 — 정상 */ }
+  /**
+   * **포트도 따로 비운다.** 프로필 경로만으로 부족했다 — 다른 경로로 띄워진
+   * 크롬이 9333 을 물고 있으면 `shot.mjs` 가 «CDP 엔드포인트를 못 찾았다»로 죽는다.
+   * 남의 크롬을 죽이는 게 아니라 이 포트를 쓰는 놈만 죽인다.
+   */
+  try {
+    execFileSync('bash', ['-c', `lsof -ti :${CDP_PORT} | xargs -r kill -9`], { stdio: 'ignore' });
+  } catch { /* 물고 있는 게 없으면 정상 */ }
   // 프로세스가 파일 핸들을 놓을 틈을 준다. 안 기다리면 지우기가 실패한다
   try {
-    execFileSync('sleep', ['0.4'], { stdio: 'ignore' });
+    execFileSync('sleep', ['0.6'], { stdio: 'ignore' });
   } catch { /* 무시 */ }
   rmSync(PROFILE, { recursive: true, force: true });
 }
 
+/**
+ * 한 장 찍는다. **두 번까지 다시 해 본다.**
+ *
+ * 헤드리스 크롬은 앞 실행의 뒤처리와 겹치면 CDP 포트를 안 열고 죽는다
+ * (`CDP 엔드포인트를 못 찾았다`). 같은 명령을 손으로 다시 치면 되는데,
+ * 대상이 열둘이면 그 한 번의 실패가 시트 전체를 날린다.
+ * 재시도 전에 좀 더 기다렸다가 다시 정리한다.
+ */
 function shoot(url, out, waitMs, w, h, js = '') {
-  reapChrome();
-  execFileSync('node', [SHOT, url, out, String(waitMs), String(w), String(h), js], {
-    stdio: 'inherit', cwd: ROOT,
-  });
+  for (let attempt = 1; ; attempt++) {
+    reapChrome();
+    try {
+      execFileSync('node', [SHOT, url, out, String(waitMs), String(w), String(h), js], {
+        stdio: 'inherit', cwd: ROOT,
+      });
+      return;
+    } catch (e) {
+      if (attempt >= 3) throw e;
+      console.log(`  촬영 실패 — 다시 (${attempt}/2)`);
+      try {
+        execFileSync('sleep', ['2'], { stdio: 'ignore' });
+      } catch { /* 무시 */ }
+    }
+  }
 }
 
 /**
