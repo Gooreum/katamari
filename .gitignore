@@ -17,3 +17,6 @@ dist/
 .design-bounce/ref/**/*.jpg
 .design-bounce/ref/**/*.jpeg
 .design-bounce/ref/**/*.webp
+
+# 시트 페이지가 읽는 레퍼런스 목록. tools/ref-index.mjs 가 만든다
+tools/ref-index.json

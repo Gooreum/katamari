@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>의도 시트 — 실물 옆에 실제 3D</title>
+<style>
+  :root { color-scheme: dark }
+  html, body { margin: 0; background: #14130f; color: #f2ede1;
+    font: 15px/1.55 -apple-system, "Apple SD Gothic Neo", sans-serif; }
+  body { padding: 22px 22px 60px }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.01em }
+  .sub { margin: 0 0 6px; font-size: 13px; color: #9c968a }
+  .how { margin: 0 0 18px; font-size: 13px; color: #c8a24a }
+  .grid { display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
+  .cell { background: #201e19; border: 1px solid #35322a; border-radius: 10px; padding: 12px }
+  .cell header { font-size: 15px; margin-bottom: 9px; display: flex; align-items: center; gap: 8px }
+  .cell header b { display: inline-block; min-width: 22px; height: 22px; line-height: 22px;
+    text-align: center; background: #c8a24a; color: #1a1813; border-radius: 5px; font-size: 13px }
+  .cell header .cm { margin-left: auto; font-size: 12px; color: #8d8677 }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+  .pane { display: flex; flex-direction: column; gap: 5px }
+  .pane img, .pane canvas { width: 100%; aspect-ratio: 1; object-fit: contain;
+    background: #f6f3ec; border-radius: 6px; display: block }
+  .pane canvas { background: #a89e84; cursor: grab }
+  .pane canvas:active { cursor: grabbing }
+  .pane .none { width: 100%; aspect-ratio: 1; display: grid; place-items: center;
+    background: #2b2822; border: 1px dashed #5c564a; border-radius: 6px; color: #8d8677 }
+  figcaption { font-size: 11px; color: #8d8677 }
+  .keep { margin: 11px 0 0; font-size: 13px; color: #ddd6c6 }
+  .keep.warn { color: #e0a24a }
+</style>
+</head>
+<body>
+<h1>의도 시트</h1>
+<p class="sub">왼쪽은 내가 찾아본 실물 사진, 오른쪽은 실제로 만든 것 — 게임과 같은 조명이다.</p>
+<p class="how">오른쪽 그림을 <b>마우스로 끌면 돌아간다.</b> 아닌 번호만 불러 주세요.</p>
+<div class="grid" id="grid"></div>
+
+<script type="module">
+/**
+ * **살아 있는 의도 시트.** `tools/intent-sheet.mjs` 가 뽑는 PNG 와 같은 것을 보여주되,
+ * 3D 쪽이 «돌아간다».
+ *
+ * PNG 한 장으로는 확인이 안 된다 — 한 각도에서만 보이고, 그 각도를 고른 것도 나다.
+ * 내가 고른 각도만 보여주면 「내가 통과시키는 것」과 다를 게 없다.
+ * 여기서는 보는 사람이 각도를 정한다.
+ *
+ *   ?only=캐러멜,달팽이      (없으면 .design-bounce/ref 에 있는 대상 전부)
+ *
+ * 조명은 `Game.ts` 와 «같은 숫자»다. 여기를 바꾸려면 저기도 같이 바꿔야 한다.
+ */
+import {
+  Scene, PerspectiveCamera, WebGLRenderer, Mesh, MeshLambertMaterial,
+  HemisphereLight, DirectionalLight, Color, PlaneGeometry, Vector3, Box3,
+} from '/node_modules/three/build/three.module.js';
+import { buildShapeGeometries } from '/src/world/shapes.ts';
+import { SHAPE_IDS, SHAPE_COLOR, PALETTE } from '/src/world/generation.ts';
+import { buildPrintAtlas } from '/src/world/atlas.ts';
+import { World } from '/src/world/World.ts';
+import { buildHouseStage } from '/src/world/stage.house.ts';
+import { buildTownStage } from '/src/world/stage.town.ts';
+import { buildWorldStage } from '/src/world/stage.world.ts';
+
+const q = new URLSearchParams(location.search);
+
+/**
+ * 각 형상이 실제로 놓이는 크기 **범위**. 칸 머리에 cm 로 적는다.
+ *
+ * 처음엔 «제일 큰 것»만 적었는데 고양이가 533cm 로 나왔다 — 바깥 맵에 크게
+ * 흩뿌려진 한 마리 때문이다. 하나짜리 최댓값은 「이 물건이 화면에서 어느 정도로
+ * 보이나」를 못 알려준다. 최소~최대를 같이 적는다.
+ */
+const placed = new Map();
+for (const b of [buildHouseStage('house'), buildTownStage(), buildWorldStage()]) {
+  for (const o of new World(new Scene(), b).objects) {
+    const cur = placed.get(o.label);
+    placed.set(o.label, cur
+      ? [Math.min(cur[0], o.size), Math.max(cur[1], o.size)]
+      : [o.size, o.size]);
+  }
+}
+const sizeLabel = (name) => {
+  const r = placed.get(name);
+  if (!r) return '';
+  const [lo, hi] = r.map((v) => v * 100);
+  return hi - lo < 1 ? `${hi.toFixed(0)}cm` : `${lo.toFixed(0)}~${hi.toFixed(0)}cm`;
+};
+
+/**
+ * 대상 목록. `?only=` 가 없으면 **레퍼런스를 찾아 둔 것 전부**를 보여준다 —
+ * 어떤 대상을 봐야 하는지 사용자가 외우고 있을 이유가 없다.
+ */
+const refs = await fetch('/tools/ref-index.json').then((r) => r.json()).catch(() => ({}));
+const only = q.get('only');
+const names = (only ? only.split(',') : Object.keys(refs))
+  .map((n) => n.trim()).filter((n) => SHAPE_IDS.includes(n));
+
+const atlas = buildPrintAtlas();
+const geos = buildShapeGeometries();
+const grid = document.getElementById('grid');
+
+names.forEach((name, i) => {
+  const ref = refs[name] ?? {};
+  const cell = document.createElement('figure');
+  cell.className = 'cell';
+  cell.style.margin = '0';
+  const cm = sizeLabel(name);
+  const left = ref.photo
+    ? `<img src="${ref.photo}" alt="">`
+    : '<div class="none">못 찾음</div>';
+  cell.innerHTML = `
+    <header><b>${i + 1}</b> ${name}<span class="cm">${cm}</span></header>
+    <div class="pair">
+      <div class="pane">${left}<figcaption>실물 — ${ref.src ?? '레퍼런스 없음'}</figcaption></div>
+      <div class="pane"><canvas></canvas><figcaption>내가 만든 것 — 끌어서 돌린다</figcaption></div>
+    </div>
+    <p class="keep${ref.keep ? '' : ' warn'}">살릴 것: ${ref.keep ?? '아직 안 적었다'}</p>`;
+  grid.appendChild(cell);
+  mount(cell.querySelector('canvas'), name);
+});
+
+/** 칸 하나에 렌더러 하나. 대상이 수십이면 무겁지만, 시트는 한 번에 열둘 안팎이다 */
+function mount(canvas, name) {
+  const scene = new Scene();
+  scene.background = new Color(0xa89e84);
+  // ── Game.ts 와 «같은 숫자» ──
+  scene.add(new HemisphereLight(0xffffff, 0x3a3524, 0.42));
+  const sun = new DirectionalLight(0xfff2d8, 2.35);
+  sun.position.set(1, 2.2, 1.4);
+  sun.castShadow = true;
+  Object.assign(sun.shadow.camera,
+    { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 10 });
+  sun.shadow.mapSize.set(1024, 1024);
+  scene.add(sun);
+
+  const floor = new Mesh(new PlaneGeometry(8, 8), new MeshLambertMaterial({ color: 0xa89e84 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  /**
+   * **크기는 칸마다 맞춘다.** 실제 크기로 두면 1.6cm 짜리 주사위가 몇 픽셀이라
+   * 「안 보인다」와 「못 알아본다」가 섞인다. 실제 크기는 칸 머리에 cm 로 따로 적는다.
+   */
+  const geo = geos[SHAPE_IDS.indexOf(name)];
+  const mat = new MeshLambertMaterial({
+    color: PALETTE[(SHAPE_COLOR[name] ?? [0])[0]], vertexColors: true, map: atlas,
+  });
+  const mesh = new Mesh(geo, mat);
+  mesh.scale.setScalar(0.9);
+  mesh.castShadow = true;
+  const box = new Box3().setFromObject(mesh);
+  mesh.position.y = -box.min.y;
+  scene.add(mesh);
+
+  const camera = new PerspectiveCamera(34, 1, 0.05, 60);
+  const h = box.max.y - box.min.y;
+  const dist = 2.6;
+  const renderer = new WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+
+  let yaw = -0.55, pitch = 0.30;
+  const place = () => {
+    const r = Math.max(1, canvas.clientWidth);
+    renderer.setSize(r, r, false);
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
+    camera.position.set(
+      Math.sin(yaw) * Math.cos(pitch) * dist,
+      h * 0.55 + Math.sin(pitch) * dist,
+      Math.cos(yaw) * Math.cos(pitch) * dist,
+    );
+    camera.lookAt(new Vector3(0, h * 0.45, 0));
+    renderer.render(scene, camera);
+  };
+
+  // 끌어서 돌린다. **보는 각도를 만든 쪽이 정하면 안 된다** — 그게 이 페이지의 요지다
+  let dragging = false, lx = 0, ly = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    yaw -= (e.clientX - lx) * 0.011;
+    pitch = Math.max(-0.2, Math.min(1.35, pitch + (e.clientY - ly) * 0.008));
+    lx = e.clientX; ly = e.clientY;
+    place();
+  });
+  for (const ev of ['pointerup', 'pointercancel']) {
+    canvas.addEventListener(ev, () => { dragging = false; });
+  }
+  addEventListener('resize', place);
+  place();
+}
+</script>
+</body>
+</html>
