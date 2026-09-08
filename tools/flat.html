@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>셰이딩 비교 — 매끈 / 각진</title>
+<style>
+  :root { color-scheme: dark }
+  html, body { margin: 0; background: #14130f; color: #f2ede1;
+    font: 15px/1.55 -apple-system, "Apple SD Gothic Neo", sans-serif; }
+  body { padding: 22px 22px 60px }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.01em }
+  .sub { margin: 0 0 6px; font-size: 13px; color: #9c968a }
+  .how { margin: 0 0 18px; font-size: 13px; color: #c8a24a }
+  .grid { display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); }
+  .cell { background: #201e19; border: 1px solid #35322a; border-radius: 10px; padding: 12px }
+  .cell header { font-size: 15px; margin-bottom: 9px; display: flex; align-items: center; gap: 8px }
+  .cell header b { display: inline-block; min-width: 22px; height: 22px; line-height: 22px;
+    text-align: center; background: #c8a24a; color: #1a1813; border-radius: 5px; font-size: 13px }
+  .cell header .cm { margin-left: auto; font-size: 12px; color: #8d8677 }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+  .pane { display: flex; flex-direction: column; gap: 5px }
+  canvas { width: 100%; aspect-ratio: 1; background: #a89e84; border-radius: 6px;
+    display: block; cursor: grab }
+  canvas:active { cursor: grabbing }
+  figcaption { font-size: 11px; color: #8d8677 }
+  figcaption b { color: #c8a24a }
+</style>
+</head>
+<body>
+<h1>셰이딩 비교</h1>
+<p class="sub">같은 형상을 재질만 바꿔 나란히 놓았다.
+<b>왼쪽 = 지금(매끈)</b>, <b>오른쪽 = 각진 저면</b>. 형상은 한 줄도 안 바뀌었다.</p>
+<p class="how">어느 쪽이든 <b>끌면 같이 돌아간다.</b> 왼쪽/오른쪽만 말씀해 주세요.</p>
+<div class="grid" id="grid"></div>
+
+<script type="module">
+/**
+ * **셰이딩만 바꿔 나란히 본다.**
+ *
+ * 「지점토 같다」·「형이상학적이다」의 원인 하나가 재질이다 — 146종이 재질 하나
+ * (무광 램버트 + 매끈한 법선)를 공유해서 캐러멜도 고양이도 나무도 도기도 같은
+ * 밀랍으로 보인다. `flatShading` 은 면마다 법선을 새로 잡아 **면이 딱딱 보이게** 한다.
+ * 원작 카타마리의 실제 룩이기도 하다.
+ *
+ * 이건 146종 전부의 인상을 바꾸는 결정이라 **혼자 정하지 않고 나란히 보여준다.**
+ * 형상은 한 줄도 안 바꾼다 — 바뀌는 건 재질 한 줄뿐이다.
+ *
+ *   ?only=고양이,캐러멜      (없으면 아래 기본 일곱 — 유기체·각진 것·도기·나무를 섞었다)
+ */
+import {
+  Scene, PerspectiveCamera, WebGLRenderer, Mesh, MeshLambertMaterial,
+  HemisphereLight, DirectionalLight, Color, PlaneGeometry, Vector3, Box3,
+} from '/node_modules/three/build/three.module.js';
+import { buildShapeGeometries } from '/src/world/shapes.ts';
+import { SHAPE_IDS, SHAPE_COLOR, PALETTE } from '/src/world/generation.ts';
+import { buildPrintAtlas } from '/src/world/atlas.ts';
+
+const q = new URLSearchParams(location.search);
+/** 기본 일곱 — 유기체 둘 · 자른 조각 · 각진 것 · 도기 · 나무 가구 · 인쇄 있는 것 */
+const DEFAULT = ['고양이', '달팽이', '캐러멜', '주사위', '찻잔', '텔레비전', '사과'];
+const names = (q.get('only')?.split(',') ?? DEFAULT)
+  .map((n) => n.trim()).filter((n) => SHAPE_IDS.includes(n));
+
+const atlas = buildPrintAtlas();
+const geos = buildShapeGeometries();
+const grid = document.getElementById('grid');
+
+names.forEach((name, i) => {
+  const cell = document.createElement('figure');
+  cell.className = 'cell';
+  cell.style.margin = '0';
+  cell.innerHTML = `
+    <header><b>${i + 1}</b> ${name}</header>
+    <div class="pair">
+      <div class="pane"><canvas></canvas><figcaption>지금 — <b>매끈</b></figcaption></div>
+      <div class="pane"><canvas></canvas><figcaption>바꾸면 — <b>각진 저면</b></figcaption></div>
+    </div>`;
+  grid.appendChild(cell);
+  const [a, b] = cell.querySelectorAll('canvas');
+  // **두 칸이 같은 각도를 공유한다.** 각도가 다르면 셰이딩이 아니라 각도를 비교하게 된다
+  const view = { yaw: -0.55, pitch: 0.30, draw: [] };
+  mount(a, name, false, view);
+  mount(b, name, true, view);
+});
+
+function mount(canvas, name, flat, view) {
+  const scene = new Scene();
+  scene.background = new Color(0xa89e84);
+  // ── Game.ts 와 «같은 숫자» ──
+  scene.add(new HemisphereLight(0xffffff, 0x3a3524, 0.42));
+  const sun = new DirectionalLight(0xfff2d8, 2.35);
+  sun.position.set(1, 2.2, 1.4);
+  sun.castShadow = true;
+  Object.assign(sun.shadow.camera,
+    { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 10 });
+  sun.shadow.mapSize.set(1024, 1024);
+  scene.add(sun);
+
+  const floor = new Mesh(new PlaneGeometry(8, 8), new MeshLambertMaterial({ color: 0xa89e84 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const geo = geos[SHAPE_IDS.indexOf(name)];
+  // **여기 한 줄이 이 페이지의 전부다.** 나머지는 두 칸이 완전히 같다
+  const mat = new MeshLambertMaterial({
+    color: PALETTE[(SHAPE_COLOR[name] ?? [0])[0]], vertexColors: true, map: atlas, flatShading: flat,
+  });
+  const mesh = new Mesh(geo, mat);
+  mesh.scale.setScalar(0.9);
+  mesh.castShadow = true;
+  const box = new Box3().setFromObject(mesh);
+  mesh.position.y = -box.min.y;
+  scene.add(mesh);
+
+  const camera = new PerspectiveCamera(34, 1, 0.05, 60);
+  const h = box.max.y - box.min.y;
+  const dist = 2.6;
+  const renderer = new WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+
+  const draw = () => {
+    const r = Math.max(1, canvas.clientWidth);
+    renderer.setSize(r, r, false);
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
+    camera.position.set(
+      Math.sin(view.yaw) * Math.cos(view.pitch) * dist,
+      h * 0.55 + Math.sin(view.pitch) * dist,
+      Math.cos(view.yaw) * Math.cos(view.pitch) * dist,
+    );
+    camera.lookAt(new Vector3(0, h * 0.45, 0));
+    renderer.render(scene, camera);
+  };
+  view.draw.push(draw);
+  const redraw = () => { for (const d of view.draw) d(); };
+
+  let dragging = false, lx = 0, ly = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    view.yaw -= (e.clientX - lx) * 0.011;
+    view.pitch = Math.max(-0.2, Math.min(1.35, view.pitch + (e.clientY - ly) * 0.008));
+    lx = e.clientX; ly = e.clientY;
+    redraw();
+  });
+  for (const ev of ['pointerup', 'pointercancel']) {
+    canvas.addEventListener(ev, () => { dragging = false; });
+  }
+  addEventListener('resize', redraw);
+  draw();
+}
+</script>
+</body>
+</html>
