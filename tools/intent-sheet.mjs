@@ -30,10 +30,8 @@ const OUT_DIR = join(ROOT, '.design-bounce', 'sample');
 const TMP_DIR = join(ROOT, '.design-bounce', '.tmp');
 const SHOT = join(HERE, 'shot.mjs');
 const BASE = process.env['VIEW_BASE'] ?? 'http://localhost:5174';
-/** `shot.mjs` 가 쓰는 크롬 프로필. 좀비를 잡을 때 이 경로로 찾는다 */
-const PROFILE = '/tmp/cdp-shot-profile';
-/** `shot.mjs` 가 여는 CDP 포트. 좀비가 이걸 물고 있으면 다음 촬영이 통째로 죽는다 */
-const CDP_PORT = 9333;
+/** 촬영용 크롬만 죽이는 스크립트. 이름이 아니라 프로필 경로로 고른다 */
+const REAP = join(HERE, 'reap-shot-chrome.sh');
 
 /** 칸 크기. 사진과 렌더가 «나란히» 보여야 다른 점이 보인다 — 위아래로 쌓으면 안 된다 */
 const PHOTO = 300;
@@ -63,29 +61,19 @@ function findViewer() {
 /**
  * 좀비 크롬이 포트를 물고 있으면 다음 촬영이 통째로 매달린다.
  *
- * **프로세스 이름이 아니라 «프로필 경로»로 잡는다.** 처음엔 `Chrome for Testing` 으로
- * 찾았는데 `shot.mjs` 는 일반 `Google Chrome` 을 띄운다 — 하나도 안 죽었고,
- * 살아 있는 크롬이 프로필 디렉토리를 물고 있어서 지우기가 실패하고
- * 그다음 촬영이 전부 죽었다. `--user-data-dir` 인자로 찾으면 정확히 그놈만 잡힌다.
+ * **`--user-data-dir` 인자로만 고른다.** 한때 `pkill -f "Google Chrome"` 을 썼고
+ * **사용자가 쓰던 브라우저를 통째로 죽였다.** 이 도구가 띄우는 크롬은 프로필 경로가
+ * `/tmp/cdp-shot-profile` 로 고정이므로 그 인자를 가진 프로세스만 정확히 고를 수 있다.
+ *
+ * 9333 포트를 **촬영용이 아닌** 프로세스가 물고 있으면 스크립트가 죽이지 않고
+ * exit 2 로 멈춘다. 그때는 촬영을 시작해 봐야 전부 실패하므로 여기서 멈추고 알린다.
  */
 function reapChrome() {
-  // 프로필 경로로 잡는다 — 이 도구가 띄운 크롬만 정확히 걸린다
   try {
-    execFileSync('pkill', ['-9', '-f', PROFILE], { stdio: 'ignore' });
-  } catch { /* 죽일 게 없으면 pkill 이 1을 반환한다 — 정상 */ }
-  /**
-   * **포트도 따로 비운다.** 프로필 경로만으로 부족했다 — 다른 경로로 띄워진
-   * 크롬이 9333 을 물고 있으면 `shot.mjs` 가 «CDP 엔드포인트를 못 찾았다»로 죽는다.
-   * 남의 크롬을 죽이는 게 아니라 이 포트를 쓰는 놈만 죽인다.
-   */
-  try {
-    execFileSync('bash', ['-c', `lsof -ti :${CDP_PORT} | xargs -r kill -9`], { stdio: 'ignore' });
-  } catch { /* 물고 있는 게 없으면 정상 */ }
-  // 프로세스가 파일 핸들을 놓을 틈을 준다. 안 기다리면 지우기가 실패한다
-  try {
-    execFileSync('sleep', ['0.6'], { stdio: 'ignore' });
-  } catch { /* 무시 */ }
-  rmSync(PROFILE, { recursive: true, force: true });
+    execFileSync('bash', [REAP], { stdio: ['ignore', 'ignore', 'pipe'] });
+  } catch (e) {
+    if (e.status === 2) throw new Error(String(e.stderr).trim());
+  }
 }
 
 /**

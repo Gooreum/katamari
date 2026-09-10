@@ -36,8 +36,18 @@ const chrome = spawn(CHROME, [
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** 크롬이 먼저 죽으면 30초를 다 기다리지 않고 바로 알린다 */
+let chromeExit = null;
+chrome.on('exit', (code) => { chromeExit = code; });
+
+/**
+ * **30초까지 기다린다.** 예전엔 10초(250ms × 40)였는데, 프로필을 지우고 새로 뜨는
+ * 헤드리스 크롬이 이 기계에서 CDP 를 열기까지 **9.3~12.6초** 걸렸다(2026-09-10 세 번 잼).
+ * 경계에 걸려서 첫 촬영이 자주 「못 찾았다」로 죽었고, 세 번 연속 죽으면 시트가 통째로 날아갔다.
+ */
 async function targets() {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 120; i++) {
+    if (chromeExit !== null) throw new Error(`크롬이 CDP 를 열기 전에 끝났다 (exit ${chromeExit})`);
     try {
       const r = await fetch('http://127.0.0.1:9333/json/list');
       const list = await r.json();
