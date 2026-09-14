@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdRooms } from './generation';
 import {
-  assemble, DARK, hollow, INK, invert, METAL, part, SEG, soft, warp, WHITE, WOOD, WRAP,
+  assemble, DARK, hollow, INK, invert, METAL, part, SEG, soft, warp, WHITE, WOOD,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -228,71 +228,113 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   // ─── 아이 방 ─────────────────────────────────────────────────
 
   /**
-   * 책상 (100cm). 상판 · 다리 넷 · 서랍 하나.
-   * **밑이 뚫린다** — `underPass` 로 상판만 충돌을 잡아서 작은 공이 밑을 지나간다.
-   */
-  책상: () => assemble([
-    part(soft(1.00, 0.045, 0.55, 0.30), WOOD, [0, 0.53, 0], undefined, TILE.WOOD_C),             // 상판
-    part(new TorusGeometry(0.02, 0.012, 4, 6), WOOD, [0, 0.53, 0], LIE_Z),
-    // 서랍 — 상판 밑 오른쪽. 손잡이가 서랍을 서랍으로 만든다
-    part(soft(0.34, 0.10, 0.50, 0.20), WHITE, [0.30, 0.45, 0]),
-    part(new CylinderGeometry(0.03, 0.03, 0.05, 7), METAL, [0.30, 0.45, 0.27], LIE_Z, TILE.WOOD_C),
-    // 다리 넷
-    ...([[0.45, 0.24], [-0.45, 0.24], [0.45, -0.24], [-0.45, -0.24]] as const).map(
-      ([x, z]) => part(soft(0.05, 0.51, 0.05, 0.30), WOOD, [x, 0.255, z])),
-    // 뒤 가로대 — 다리 넷이 허공에 꽂힌 막대로 안 보이게
-    part(soft(0.90, 0.04, 0.03, 0.35), WOOD, [0, 0.14, -0.24]),
-  ]),
-
-  /**
-   * 이불 (190cm) — 깔아둔 요.
+   * 책상(학습 책상) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/책상/` (1969 구로가네 철제 학습 책상 앞 · 옆 · 아래)
    *
-   * **상자로 만들면 매트리스가 아니라 콘크리트다.** 방석과 같은 수법을 쓴다 —
-   * 모따기를 최대로 주고 «눌린 구»로 부픔을 넣는다. 그 위에 접힌 이불과 베개가
-   * 얹혀야 「자는 자리」로 읽힌다.
+   * 앞의 것은 상판에 다리 넷과 작은 서랍 하나였다. 사진은 쇼와 아이 방의 학습 책상이다:
+   *   ① 상판 뒤에 올라앉아 **전체 높이의 0.56** 을 차지하는 위 선반 — 형광등 갓과 민트색 뒤판
+   *   ② 상판 너비의 **0.38** 을 차지하고 바닥에서 떠 있는(책상면 높이의 0.30 틈) **오른쪽 서랍통 3단**
+   *   ③ 너비 0.06 두께의 얇은 가운데 서랍 아래로 책상면 높이의 **0.86** 이 트인 무릎 자리
+   *   ④ 나뭇결 갈색 상판 · 회베이지 철판 몸통 · 바닥에 누운 발 위에 선 기둥 다리
+   * 위 선반까지 합친 높이가 최장축이 돼 책상 폭이 0.7m 로 작아진다. `size` 는 흡수 판정과
+   * 성장 곡선에 들어가는 값이라 그대로 뒀다. 밑 통과 높이는 무릎 자리(0.86 × 0.46 = 0.40)로 맞췄다.
+   * 치수는 책상 폭 = 1 로 쓴다(앞 +z).
    */
-  이불: () => assemble([
-    // 요 — 천이니 짜임 인쇄를 문다(민짜 흰 판은 「바닥」이지 「이불」이 아니다)
-    part(soft(1.00, 0.05, 0.68, 0.45), WHITE, [0, 0.025, 0], undefined, TILE.CLOTH),
-    part(new SphereGeometry(0.5, 20, 13).scale(0.94, 0.055, 0.62), WHITE, [0, 0.04, 0],
-      undefined, TILE.CLOTH),
-    /**
-     * 걷어놓은 이불 — **요와 «다른 색»이어야 두 장으로 읽힌다.** `PAPER` 는
-     * 대비가 0.05 라 화면에서 한 장짜리 흰 매트였다. 덮는 이불은 늘 무늬가 다르다.
-     */
-    part(soft(0.56, 0.07, 0.62, 0.45), [0.52, 0.56, 0.66], [0.20, 0.085, 0.01],
-      undefined, TILE.CLOTH),
-    part(new SphereGeometry(0.5, 20, 13).scale(0.52, 0.05, 0.58), [0.52, 0.56, 0.66],
-      [0.20, 0.10, 0.01]),
-    // 베개 — 머리맡. 요보다 밝아야 «얹힌 것»으로 보인다
-    part(new SphereGeometry(0.5, 20, 13).scale(0.30, 0.075, 0.40), WRAP, [-0.36, 0.075, 0]),
-    // 베개 시접. 세그먼트를 넉넉히 줬다가 이불이 844삼각형으로 상한(800)을 넘었다 —
-    // 눌린 구 셋과 이 링이 합쳐서 대부분이었다
-    part(new TorusGeometry(0.19, 0.018, 4, 12).scale(0.75, 1, 1), INK,
-      [-0.36, 0.06, 0], LIE_Z, TILE.CLOTH),
-  ]),
+  책상: () => {
+    const W = 1, D = 0.56, TOP = 0.66, HUTCH = 0.77;
+    const STEEL: RGB = [0.87, 0.78, 0.82], MINT: RGB = [0.88, 1.15, 1.20], WOODTOP: RGB = [0.76, 0.83, 1.25];
+    const PED_W = 0.38 * W, PED_BOT = 0.30 * TOP;
+    return assemble([
+      // ④ 상판
+      part(soft(W, 0.026, D, 0.3), WOODTOP, [0, TOP - 0.013, 0], undefined, TILE.WOOD_C),
+      // ③ 가운데 얇은 서랍
+      part(soft(W * 0.47, 0.06, D * 0.9, 0.2), STEEL, [-W * 0.18, TOP - 0.056, 0]),
+      // ② 오른쪽 서랍통 3단 — 바닥에서 떠 있다
+      part(soft(PED_W, TOP - 0.03 - PED_BOT, D * 0.92, 0.1), STEEL, [W / 2 - PED_W / 2 - 0.02, PED_BOT + (TOP - 0.03 - PED_BOT) / 2, 0], undefined, TILE.PANEL),
+      ...([0.62, 0.40, 0.14] as const).map((f) =>
+        part(new BoxGeometry(PED_W * 0.4, 0.02, 0.02), [0.62, 0.52, 0.55], [W / 2 - PED_W / 2 - 0.02, PED_BOT + (TOP - PED_BOT) * f + 0.02, D * 0.47])),
+      // ④ 왼쪽 기둥 다리 + 바닥에 누운 발, 서랍통 밑 다리
+      part(new BoxGeometry(0.04, TOP - 0.06, 0.04), STEEL, [-W / 2 + 0.08, (TOP - 0.06) / 2, 0]),
+      part(new BoxGeometry(0.05, 0.03, D * 0.9), STEEL, [-W / 2 + 0.08, 0.015, 0]),
+      part(new BoxGeometry(0.05, PED_BOT, 0.04), STEEL, [W / 2 - 0.05, PED_BOT / 2, D * 0.35]),
+      part(new BoxGeometry(0.05, PED_BOT, 0.04), STEEL, [W / 2 - 0.05, PED_BOT / 2, -D * 0.35]),
+      part(new BoxGeometry(W * 0.62, 0.025, 0.03), STEEL, [-W * 0.12, 0.05, -D * 0.4]),
+      // ① 위 선반 — 옆판 둘 · 민트 뒤판 · 선반 · 형광등 갓
+      ...([1, -1] as const).map((s) => part(new BoxGeometry(0.03, HUTCH, D * 0.42), STEEL, [s * (W / 2 - 0.03), TOP + HUTCH / 2, -D * 0.29])),
+      part(new BoxGeometry(W - 0.08, HUTCH * 0.55, 0.012), MINT, [0, TOP + HUTCH * 0.30, -D * 0.49]),
+      part(new BoxGeometry(W - 0.06, 0.025, D * 0.42), STEEL, [0, TOP + HUTCH * 0.62, -D * 0.29]),
+      part(new BoxGeometry(W - 0.06, 0.025, D * 0.42), STEEL, [0, TOP + HUTCH - 0.012, -D * 0.29]),
+      part(new BoxGeometry(W - 0.12, 0.04, 0.06), [0.95, 0.92, 0.88], [0, TOP + HUTCH * 0.58, -D * 0.10]),
+    ]);
+  },
 
   /**
-   * 장난감 상자 (50cm). **뚜껑이 열려 있고 장난감이 삐져나와야** 장난감 상자다.
-   * 닫힌 상자는 그냥 상자다.
+   * 이불 — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/이불/` (다다미방에 깐 요 · 이불 · 베개)
+   *
+   * 앞의 것은 요 한 장에 작은 이불과 베개를 얹은 것이었다. 사진과 대보니:
+   *   ① 요는 **청록 무늬 얇은 요 두 장**을 겹치고 흰 시트로 쌌다 — 옆면이 층진다
+   *   ② 이불이 **요보다 1.35배 넓어** 가장자리가 다다미로 흘러내린다. 흰 홑청 가운데
+   *      폭 0.57 창으로 **붉은 꽃무늬 겉감**이 보인다
+   *   ③ 이불을 머리맡에서 **뒤로 반 접어 올려** 요 한 장의 3배 두께 덩어리가 된다
+   *   ④ 머리맡에 요 폭의 0.57 인 흰 베개가 가로로 놓인다
+   * 치수는 요 길이 = 1 로 쓴다(머리맡 −x).
    */
-  '장난감 상자': () => assemble([
-    part(soft(1.00, 0.60, 1.00, 0.12), WHITE, [0, 0.30, 0], undefined, TILE.CARDBOARD),
-    // 파인 안쪽 — 뚜껑이 열려 있으니 속이 보인다
-    part(invert(new BoxGeometry(0.88, 0.50, 0.88)), [0.42, 0.46, 0.52], [0, 0.36, 0]),
-    part(new BoxGeometry(0.88, 0.04, 0.88), [0.42, 0.46, 0.52], [0, 0.13, 0]),
-    /**
-     * **비뚤게 덮인 뚜껑.** 처음엔 뒤로 젖혀 세웠는데, 그러면 뚜껑이 −z 로
-     * 뻗어나가 형태의 «깊이»가 1.57 이 되고 그게 최장축이 된다 —
-     * `normalize()` 가 거기 맞추면서 상자 폭이 0.50 목표에 0.32 로 쪼그라들었다.
-     * 살짝 어긋나게 덮으면 벌어진 틈으로 장난감이 보이고 bbox 는 몸통 그대로다.
-     */
-    part(new BoxGeometry(1.04, 0.05, 0.96), WHITE, [0, 0.655, -0.06], [0.13, 0.10, 0]),
-    // 삐져나온 장난감 셋
-    part(new SphereGeometry(0.18, 12, 8), [0.90, 0.35, 0.30], [0.22, 0.66, 0.10], undefined, TILE.WOOD_C),
-    part(new BoxGeometry(0.20, 0.20, 0.20), [0.30, 0.55, 0.85], [-0.20, 0.64, -0.06], [0, 0.5, 0.3]),
-    part(new CylinderGeometry(0.09, 0.09, 0.24, 10), [0.95, 0.80, 0.25], [-0.02, 0.66, 0.24], LIE_X),
-  ]),
+  이불: () => {
+    const L = 1, W = 0.5, T = 0.03;
+    const TEAL: RGB = [0.45, 0.78, 0.72], SHEET: RGB = [1.05, 1.06, 1.10], RED: RGB = [0.78, 0.30, 0.28];
+    const CW = W * 1.35;
+    return assemble([
+      // ① 요 두 장 + 흰 시트
+      part(soft(L, T, W, 0.45), TEAL, [0, T / 2, 0], undefined, TILE.CLOTH),
+      part(soft(L * 0.99, T, W * 0.99, 0.45), TEAL, [0, T * 1.5, 0], undefined, TILE.CLOTH),
+      part(soft(L * 0.99, 0.008, W * 0.99, 0.3), SHEET, [0, T * 2 + 0.004, 0]),
+      // ② 이불 — 발치 절반을 덮고 가장자리가 다다미로 흘러내린다
+      part(warp(new BoxGeometry(L * 0.55, 0.035, CW, 4, 1, 6), (x, y, z) =>
+        [x, y - 0.05 * Math.max(0, Math.abs(z) / (CW / 2) - 0.72) / 0.28, z]), SHEET, [L * 0.2, T * 2 + 0.03, 0]),
+      part(new BoxGeometry(L * 0.40, 0.004, CW * 0.57), RED, [L * 0.2, T * 2 + 0.05, 0], undefined, TILE.CLOTH),
+      // ③ 반 접어 올린 덩어리 — 요 한 장의 3배 두께
+      part(new CylinderGeometry(0.06, 0.06, CW * 0.95, 12).scale(1.3, 1, 1), SHEET, [-L * 0.08, T * 2 + 0.06, 0], [Math.PI / 2, 0, 0]),
+      // ④ 베개 — 머리맡에 가로로
+      part(new SphereGeometry(0.5, 12, 8).scale(0.16, 0.07, W * 0.57), [1.1, 1.1, 1.12], [-L * 0.38, T * 2 + 0.03, 0]),
+    ]);
+  },
+
+  /**
+   * 장난감 상자 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/장난감 상자/` (1976 산리오 등나무 장난감 상자, 52.5 × 37 × 38cm)
+   *
+   * 앞의 것은 골판지 상자에 비뚤게 덮인 뚜껑이었다. 사진과 대보니:
+   *   ① 너비 : 높이 : 깊이 = **1 : 0.70 : 0.72**
+   *   ② **새빨간 인쇄 뚜껑**과 **흰 엮음 몸통**(사이로 나무색 살이 비친다), 안은 초록 판
+   *   ③ 양옆에서 앞뒤로 둥글게 넘어가며 뚜껑 위로 솟은 **굽힌 나무 손잡이**
+   *   ④ 작은 나무 발 넷 · 뚜껑 앞 가운데 동그란 나무 꼭지
+   * 사진은 뚜껑을 똑바로 세웠지만 그러면 높이가 최장축이 돼 상자가 쪼그라든다(예전 기록).
+   * **32° 만 열어** 속의 장난감이 보이게 했다. 장난감은 다른 장난감 상자 사진(`toys.jpg`)을 따랐다.
+   */
+  '장난감 상자': () => {
+    const W = 1, H = 0.70, D = 0.72, FEET = 0.05, LID_A = 0.56;
+    const WEAVE: RGB = [1.08, 1.10, 1.12], WOODEN: RGB = [0.95, 0.70, 0.40], RED: RGB = [0.82, 0.27, 0.27];
+    const top = FEET + H * 0.92;
+    return assemble([
+      // ② 흰 엮음 몸통 — 짚 짜임 인쇄, 안은 초록
+      part(new BoxGeometry(W, H * 0.92, D), WEAVE, [0, FEET + H * 0.46, 0], undefined, TILE.STRAW),
+      part(invert(new BoxGeometry(W - 0.06, H * 0.8, D - 0.06)), [0.30, 0.62, 0.20], [0, FEET + H * 0.52, 0]),
+      part(new BoxGeometry(W - 0.06, 0.01, D - 0.06), [0.30, 0.62, 0.20], [0, FEET + H * 0.12, 0]),
+      // 안에 든 장난감 — 테 위로 조금 솟는다
+      part(new SphereGeometry(0.13, 10, 7), [1.1, 0.45, 0.35], [0.22, top + 0.02, 0.10]),
+      part(new BoxGeometry(0.16, 0.16, 0.16), [0.35, 0.60, 1.05], [-0.20, top, -0.02], [0, 0.5, 0.3]),
+      part(new CylinderGeometry(0.06, 0.06, 0.24, 8), [1.1, 0.95, 0.35], [-0.02, top + 0.02, 0.16], [0, 0, Math.PI / 2]),
+      // ② 빨간 뚜껑 — 뒤 경첩에서 32° 들렸다. 안쪽 면은 초록
+      part(new BoxGeometry(W + 0.02, 0.04, D + 0.02).translate(0, 0, (D + 0.02) / 2), RED,
+        [0, top + 0.02, -D / 2], [-LID_A, 0, 0], TILE.CARDBOARD),
+      // ③ 굽힌 나무 손잡이 — 양옆
+      ...([1, -1] as const).map((s) =>
+        part(new TorusGeometry(D * 0.42, 0.018, 4, 12, Math.PI), WOODEN, [s * (W / 2 + 0.02), top - D * 0.28, 0], [0, Math.PI / 2, 0])),
+      // ④ 나무 발 넷
+      ...([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).map(([sx, sz]) =>
+        part(new CylinderGeometry(0.03, 0.035, FEET, 8), WOODEN, [sx * (W / 2 - 0.06), FEET / 2, sz * (D / 2 - 0.06)])),
+    ]);
+  },
 
   // ─── 부엌 ────────────────────────────────────────────────────
 

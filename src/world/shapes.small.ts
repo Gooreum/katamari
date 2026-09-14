@@ -257,13 +257,32 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     ]);
   },
 
-  압핀: () => assemble([
-    // 손잡이가 위로 솟은 압핀. 압정과 실루엣이 달라야 둘 다 두는 의미가 있다
-    part(new CylinderGeometry(0.26, 0.30, 0.34, 20), WHITE, [0, 0.72, 0]),
-    part(new CylinderGeometry(0.34, 0.34, 0.12, 20), WHITE, [0, 0.50, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 0.40, 8), PIN, [0, 0.24, 0]),
-    part(new ConeGeometry(0.05, 0.10, 8), PIN, [0, 0.045, 0], [Math.PI, 0, 0]),
-  ]),
+  /**
+   * 압핀 — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/압핀/` (소닉 画鋲 치수표 · 5mm 모눈)
+   *
+   * 앞의 것은 원기둥 손잡이 둘을 포갠 것이었다. 치수표의 체스형 압핀과 대보니:
+   *   ① 손잡이가 전체 길이의 **0.55**, 바늘이 **0.45**
+   *   ② 위는 좁은 납작 머리판(밑단의 0.77), 아래는 **넓게 퍼진 종 모양 치마**
+   *      (지름 = 손잡이 높이의 0.75), 그 사이 기둥은 밑단의 0.44 굵기
+   *   ③ 반들거리는 원색 플라스틱 한 가지와 가느다란 은색 바늘
+   * 치수는 전체 길이 = 1 로 쓴다(바늘 끝이 바닥).
+   */
+  압핀: () => {
+    const NEEDLE = 0.45, HANDLE = 0.55, SKIRT_R = 0.75 * HANDLE / 2, TOP_R = SKIRT_R * 0.77, POST_R = SKIRT_R * 0.44;
+    return assemble([
+      // ③ 바늘 — 끝이 뾰족하다
+      part(new ConeGeometry(0.018, NEEDLE * 0.25, 6), PIN, [0, NEEDLE * 0.125, 0], [Math.PI, 0, 0]),
+      part(new CylinderGeometry(0.018, 0.018, NEEDLE * 0.75, 6), PIN, [0, NEEDLE * 0.25 + NEEDLE * 0.375, 0]),
+      // ② 종 모양 치마 — 아래가 넓다
+      part(new CylinderGeometry(POST_R * 1.1, SKIRT_R, HANDLE * 0.25, 16), WHITE, [0, NEEDLE + HANDLE * 0.125, 0]),
+      // 기둥
+      part(new CylinderGeometry(POST_R * 0.92, POST_R, HANDLE * 0.55, 12), WHITE, [0, NEEDLE + HANDLE * 0.25 + HANDLE * 0.275, 0]),
+      // 납작 머리판
+      part(new CylinderGeometry(TOP_R, TOP_R, HANDLE * 0.12, 16), WHITE, [0, NEEDLE + HANDLE * 0.8 + HANDLE * 0.06, 0]),
+      part(new SphereGeometry(TOP_R, 16, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.25, 1), WHITE, [0, NEEDLE + HANDLE * 0.92, 0]),
+    ]);
+  },
+
 
   /**
    * 지우개 — **사진에서 잰 값으로 다시 만들었다.**

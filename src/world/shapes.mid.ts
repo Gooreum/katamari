@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdMid } from './generation';
 import {
-  assemble, evenProfile, hollow, invert, DARK, INK, METAL, part, pillow, SEG, WHITE, WOOD, WRAP, soft, taper, warp,
+  assemble, evenProfile, hollow, invert, DARK, INK, METAL, part, pillow, SEG, WHITE, WRAP, soft, taper, warp,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -311,18 +311,42 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     ]);
   },
 
-  연필깎이: () => assemble([
-    // 손잡이 달린 탁상형 (26.2cm). 원작 아이 방에 있다
-    // **몸통을 받침 «위»에 올린다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
-    part(soft(0.60, 0.46, 0.44, 0.18), WHITE, [0, 0.35, 0], undefined, TILE.SHARPENER),
-    part(soft(0.66, 0.12, 0.50, 0.3), INK, [0, 0.06, 0]),
-    // 연필 꽂는 구멍
-    part(new CylinderGeometry(0.09, 0.09, 0.10, 8), INK, [-0.32, 0.42, 0], LIE_X),
-    // 크랭크 손잡이
-    part(new CylinderGeometry(0.05, 0.05, 0.20, 8), METAL, [0.34, 0.42, 0], LIE_X),
-    part(soft(0.05, 0.30, 0.05, 0.3), METAL, [0.44, 0.50, 0]),
-    part(new CylinderGeometry(0.07, 0.07, 0.12, 8), WOOD, [0.44, 0.64, 0], LIE_X),
-  ]),
+  /**
+   * 연필깎이 — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/연필깎이/`
+   * (쇼와 レトロ コーリン NO.7000 파랑, 높이 14 · 앞뒤 13 · 가로 7.2cm)
+   *
+   * 앞의 것은 라벨 띠를 두른 네모 상자에 크랭크를 단 것이었다. 사진은 기계 모양이다:
+   *   ① 몸통 폭과 거의 같은(0.98) **둥근 놋쇠 앞 원판**, 한가운데 연필 구멍(원판 지름의 0.12, 높이 0.7)
+   *   ② 원판 위에 **귀처럼 솟은 물림쇠 손잡이 둘**
+   *   ③ 높이 0.38 굵기의 **가로 누운 파란 드럼**을 좁은 파란 다리(앞뒤의 0.43)가 받치고,
+   *      그 사이 높이 0.46 짜리 **투명 받침통**
+   *   ④ 뒤로 튀어나온 크림색 손잡이
+   * 치수는 높이 = 1 로 쓴다(앞 원판이 +z).
+   */
+  연필깎이: () => {
+    const BLUE: RGB = [0.22, 0.50, 1.05], BRASS: RGB = [0.78, 0.66, 0.44];
+    const W = 0.51, AXIS = 0.76, DRUM_R = 0.19, DEPTH = 0.65;
+    return assemble([
+      // 받침판
+      part(soft(W + 0.02, 0.10, DEPTH, 0.2), BLUE, [0, 0.05, 0]),
+      // ③ 좁은 다리 — 드럼과 받침판을 잇는 파란 기둥
+      part(soft(W * 0.9, AXIS - 0.1, DEPTH * 0.43, 0.2), BLUE, [0, 0.10 + (AXIS - 0.1) / 2, -DEPTH * 0.12]),
+      // 가로 누운 드럼 — 축이 앞뒤(z)
+      part(new CylinderGeometry(DRUM_R, DRUM_R, DEPTH * 0.72, 16), BLUE, [0, AXIS, 0], [Math.PI / 2, 0, 0]),
+      // 투명 받침통 — 앞쪽 다리 앞, 높이 0.46
+      part(new BoxGeometry(W * 0.86, 0.46, DEPTH * 0.40), [0.85, 0.92, 1.05], [0, 0.10 + 0.23, DEPTH * 0.22], undefined, TILE.GLASSY),
+      // ① 놋쇠 앞 원판 + 연필 구멍
+      part(new CylinderGeometry(W * 0.49, W * 0.49, 0.05, 20), BRASS, [0, AXIS, DEPTH * 0.36 + 0.025], [Math.PI / 2, 0, 0], TILE.METAL),
+      part(new CylinderGeometry(W * 0.06, W * 0.06, 0.012, 10), [0.10, 0.09, 0.08], [0, 0.70, DEPTH * 0.36 + 0.056], [Math.PI / 2, 0, 0]),
+      // ② 물림쇠 손잡이 둘
+      ...([1, -1] as const).map((s) =>
+        part(soft(0.07, 0.09, 0.06, 0.3), BRASS, [s * W * 0.22, AXIS + W * 0.49 + 0.03, DEPTH * 0.36])),
+      // ④ 뒤 크랭크 — 막대 + 크림색 손잡이
+      part(new CylinderGeometry(0.018, 0.018, 0.18, 6), [0.85, 0.85, 0.85], [0, AXIS - 0.08, -DEPTH * 0.36 - 0.02], [0.4, 0, 0]),
+      part(new CylinderGeometry(0.035, 0.035, 0.10, 8), [1.3, 1.25, 1.1], [0.05, AXIS - 0.17, -DEPTH * 0.43], [0, 0, Math.PI / 2]),
+    ]);
+  },
+
 
   /**
    * RC 컨트롤러 — **사진에서 잰 값으로 다시 만들었다.**

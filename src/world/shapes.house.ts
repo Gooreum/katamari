@@ -4,7 +4,8 @@ import {
 } from 'three';
 import type { ShapeIdHouse } from './generation';
 import {
-  assemble, hollow, DARK, GLASS, INK, METAL, part, soft, WHITE, WOOD, WRAP,
+  assemble, hollow, DARK, INK, METAL, part, soft, WHITE, WOOD, WRAP,
+  type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
@@ -182,64 +183,95 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   // ─── 아이 방 ─────────────────────────────────────────────────
 
+  /**
+   * 구슬 — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/구슬/` (파란 심 유리구슬)
+   *   ① 속이 비치는 **연한 회녹색 유리 공**
+   *   ② 한가운데를 약 30° 비스듬히 가로지르는 **파란 잎 모양 심** — 길이는 지름의 0.85
+   *   ③ 위쪽 1/4 에 비친 흐린 창 반사
+   * 머티리얼이 불투명이라 심을 «안에» 넣으면 안 보인다(예전 기록). 구 겉면에 인쇄로 그린다.
+   */
   구슬: () => assemble([
-    part(new SphereGeometry(0.5, 16, 10), GLASS, [0, 0.5, 0], undefined, TILE.GLASSY),
-    // 안에 든 꽈배기 심지. **구슬을 구슬로 만드는 건 이것이다** — 없으면 그냥 공이다
-    /**
-     * **안에 든 꽈배기 심지를 뺐다.** 머티리얼이 불투명이라 그 구는 바깥 구 «안»에
-     * 완전히 갇혀 있었다 — 화면에 한 픽셀도 안 나오면서 삼각형만 먹고 있었다.
-     * 「구슬을 구슬로 만드는 건 이것」이라고 적어놓고 실제로는 없는 것과 같았다.
-     * 유리 결은 `TILE.GLASSY` 인쇄가 낸다.
-     */
+    part(new SphereGeometry(0.5, 16, 10), [0.80, 0.90, 0.80], [0, 0.5, 0], undefined, TILE.MARBLE),
   ]),
 
+  /**
+   * 장난감 블록(積み木) — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/장난감 블록/`
+   *
+   * 앞의 것은 윗면에 돌기 넷이 달린 **조립 블록**이었다. 사진은 칠한 나무 쌓기나무다:
+   *   ① 정육면체 둘을 이어 붙인 **2 : 1 : 1** 직육면체
+   *   ② 모서리를 짧은 변의 0.03 만큼만 살짝 둥글린 도톰한 칠
+   *   ③ 한 가지 원색을 온통 칠했다 — 면마다 밝기가 뚜렷이 갈린다(조명이 낸다)
+   */
   '장난감 블록': () => assemble([
-    part(soft(0.98, 0.60, 0.98, 0.1), WHITE, [0, 0.30, 0], undefined, TILE.PLASTIC),
-    // 돌기 넷. 이게 없으면 그냥 정육면체다
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [0.24, 0.68, 0.24]),
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [-0.24, 0.68, 0.24]),
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [0.24, 0.68, -0.24]),
-    part(new CylinderGeometry(0.16, 0.16, 0.16, 14), WHITE, [-0.24, 0.68, -0.24]),
+    part(soft(1.0, 0.5, 0.5, 0.06), WHITE, [0, 0.25, 0], undefined, TILE.WOOD_F),
   ]),
 
+  /**
+   * 딱지(멘코) — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/딱지/` (쇼와 멘코 원형 · 네모)
+   *
+   * 앞의 것은 두꺼운 판에 접힌 결 둘을 얹은 «접는 딱지»였다. 사진의 멘코는 **얇게 찍은 판지**다:
+   *   ① 원판 — 네모 딱지 가로의 약 1.3 배 지름. 두께는 판지 한 장
+   *   ② 빨간 바탕에 노란 번개 테, **굵은 검은 윤곽의 인물 얼굴** 하나(인쇄)
+   *   ③ 가장자리를 두르는 무지 황갈색 판지 테
+   * 원형을 고른 건 같은 버킷의 화투(네모 패)와 실루엣으로도 갈리게 하려는 것이다.
+   */
   딱지: () => assemble([
-    // 종이를 접어 겹친 것. **같은 버킷에 화투가 있다** — 둘 다 납작한 패라
-    // 얇게 만들면 화면에서 구별이 안 된다(실제로 안 됐다). 딱지는 여러 겹을
-    // 접어 만드는 물건이니 **두껍게** 하고, 그 위에 대각선 결을 얹는다.
-    part(soft(0.94, 0.20, 0.94, 0.12), WHITE, [0, 0.10, 0], undefined, TILE.CARD),
-    // 접힌 대각선 결 둘. **`PAPER`(대비 0.05)로는 아래 판과 안 갈렸다.**
-    // 그리고 «같은 높이»면 겹치는 자리에서 위·아랫면이 같은 평면이라 z-fighting 이다
-    part(new BoxGeometry(0.92, 0.075, 0.34), WRAP, [0, 0.222, 0], [0, 0.79, 0]),
-    part(new BoxGeometry(0.92, 0.055, 0.34), WRAP, [0, 0.222, 0], [0, -0.79, 0]),
+    part(new CylinderGeometry(0.5, 0.5, 0.03, 24), WHITE, [0, 0.015, 0], undefined, TILE.MENKO),
+    part(new TorusGeometry(0.49, 0.012, 3, 24), [0.78, 0.62, 0.42], [0, 0.03, 0], [Math.PI / 2, 0, 0]),
   ]),
 
+  /**
+   * 공책(자포니카 학습장) — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/공책/` (1981·1986년판 표지)
+   *
+   * 앞의 것은 두께 0.09 에 철끈 고리 넷을 단 스프링 노트였다. 사진은 실로 꿰맨 얇은 학습장이다:
+   *   ① 가로 : 세로 = 1 : 1.41, 두께는 가로의 **0.017** — 얇은 판
+   *   ② 남색 표지에 흰 이중선 둥근 틀과 그 위 0.58 을 채운 **곤충 컬러 사진**, 위 로고 띠, 아래 이름 칸(인쇄)
+   * 철끈 고리는 사진에 없다 — 뺐다. 표지 인쇄가 색을 정하므로 팔레트는 흰색.
+   */
   공책: () => assemble([
-    part(soft(0.76, 0.09, 0.98, 0.12), WHITE, [0, 0.045, 0]),
-    // 속지 — 표지보다 «밝다». 표지가 어떤 색이든 종이는 희다
-    part(new BoxGeometry(0.70, 0.08, 0.92), WRAP, [0.02, 0.11, 0]),
-    part(new BoxGeometry(0.76, 0.04, 0.94), WHITE, [0, 0.17, 0], undefined, TILE.COVER),
-    // 등에 감은 철끈 — 공책과 그냥 종이 뭉치를 가르는 것. 길이를 표지보다 짧게
-    ...([-0.30, -0.10, 0.10, 0.30] as const).map((z) => part(
-      new TorusGeometry(0.055, 0.016, 6, 12), INK, [-0.34, 0.105, z], [0, Math.PI / 2, 0])),
+    part(new BoxGeometry(0.705, 0.024, 0.995), [1.35, 1.35, 1.30], [0.004, 0.012, 0], undefined, TILE.PAPER),
+    part(new BoxGeometry(0.71, 0.004, 1.0), WHITE, [0, 0.026, 0], undefined, TILE.JAPONICA),
+    part(new BoxGeometry(0.71, 0.004, 1.0), [0.20, 0.26, 0.55], [0, 0.002, 0]),
   ]),
 
-  곰인형: () => assemble([
-    // 배가 둥글고 팔다리가 짧다. 곰인형은 곰이 아니라 **인형** 비율이다
-    part(new SphereGeometry(0.5, 16, 10).scale(0.66, 0.86, 0.60), WHITE, [0, 0.40, 0], undefined, TILE.CLOTH),
-    part(new SphereGeometry(0.28, 16, 10), WHITE, [0.02, 0.90, 0]),
-    part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, 0.19]),
-    part(new SphereGeometry(0.11, 6, 4), WHITE, [-0.06, 1.10, -0.19]),
-    // 주둥이 + 코 + 눈. 얼굴이 없으면 눈사람이다
-    // 주둥이 — `PAPER`(대비 0.07)면 얼굴이 통째로 뭉친다. 곰인형 주둥이는 늘 «밝다»
-    part(new SphereGeometry(0.14, 12, 8).scale(1, 0.72, 0.90), WRAP, [0.22, 0.85, 0],
-      undefined, TILE.CLOTH),
-    part(new SphereGeometry(0.05, 6, 4), DARK, [0.33, 0.88, 0]),
-    part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, 0.11]),
-    part(new SphereGeometry(0.038, 6, 4), DARK, [0.19, 0.99, -0.11]),
-    // 팔 둘 · 다리 둘
-    part(new SphereGeometry(0.13, 12, 8), WHITE, [0.02, 0.52, 0.32]),
-    part(new SphereGeometry(0.13, 12, 8), WHITE, [0.02, 0.52, -0.32]),
-    part(new SphereGeometry(0.15, 12, 8), WHITE, [0.15, 0.14, 0.19]),
-    part(new SphereGeometry(0.15, 12, 8), WHITE, [0.15, 0.14, -0.19]),
-  ]),
+  /**
+   * 곰인형 — **사진에서 잰 값으로 다시 만들었다.** 근거: `.design-bounce/ref/곰인형/` (앉은 갈색 곰인형 정면)
+   *
+   * 앞의 것은 몸통 구 위에 작은 머리를 올린 «곰»이었다. 사진은 인형 비율이다:
+   *   ① **머리가 전체 높이의 0.4**, 위 두 모서리에 머리 너비 0.34 짜리 반원 귀
+   *   ② 머리 아래쪽 38% 에 머리 너비 0.46 짜리 **크림색 주둥이**와 짙은 갈색 코
+   *   ③ 앞으로 뻗은 두 다리 끝에서 정면을 보는 **크림색 발바닥**(갈색 점 셋)
+   *   ④ 목의 체크무늬 리본
+   * 치수는 앉은 높이 = 1 로 쓴다(얼굴이 +x).
+   */
+  곰인형: () => {
+    const CREAM: RGB = [1.25, 1.18, 1.02], BROWN: RGB = [0.30, 0.18, 0.12];
+    const HEAD_Y = 0.78, HR = 0.215;
+    return assemble([
+      // 몸통 — 아래가 넓은 배 모양
+      part(new SphereGeometry(0.5, 14, 9).scale(0.46, 0.52, 0.52), WHITE, [0, 0.33, 0], undefined, TILE.CLOTH),
+      // ① 머리 · 귀
+      part(new SphereGeometry(HR, 14, 9).scale(0.95, 0.92, 1.0), WHITE, [0.02, HEAD_Y, 0], undefined, TILE.CLOTH),
+      ...([1, -1] as const).flatMap((s) => [
+        part(new SphereGeometry(0.075, 10, 6).scale(0.6, 1, 1), WHITE, [0.0, HEAD_Y + 0.17, s * 0.17]),
+        part(new SphereGeometry(0.048, 8, 5).scale(0.5, 1, 1), CREAM, [0.03, HEAD_Y + 0.165, s * 0.165]),
+      ]),
+      // ② 주둥이 · 코 · 눈
+      part(new SphereGeometry(0.10, 10, 7).scale(0.7, 0.78, 1.0), CREAM, [0.19, HEAD_Y - 0.05, 0]),
+      part(new SphereGeometry(0.03, 6, 4).scale(0.8, 0.7, 1.1), BROWN, [0.265, HEAD_Y - 0.02, 0]),
+      ...([1, -1] as const).map((s) => part(new SphereGeometry(0.022, 6, 4), [0.12, 0.08, 0.06], [0.19, HEAD_Y + 0.04, s * 0.085])),
+      // ④ 목 리본 — 체크무늬
+      part(new BoxGeometry(0.05, 0.05, 0.14), [1.0, 0.35, 0.30], [0.19, HEAD_Y - 0.19, 0], undefined, TILE.CLOTH),
+      // 팔 둘 — 옆으로 벌어져 앞을 향한다
+      ...([1, -1] as const).map((s) =>
+        part(new SphereGeometry(0.09, 10, 6).scale(1.0, 1.5, 0.9), WHITE, [0.06, 0.40, s * 0.24], [s * 0.4, 0, 0], TILE.CLOTH)),
+      // ③ 다리 둘 — 앞으로 뻗고 끝에 크림색 발바닥
+      ...([1, -1] as const).flatMap((s) => [
+        part(new SphereGeometry(0.11, 10, 7).scale(1.6, 0.95, 1.0), WHITE, [0.15, 0.10, s * 0.14], undefined, TILE.CLOTH),
+        part(new CylinderGeometry(0.075, 0.075, 0.01, 12), CREAM, [0.325, 0.10, s * 0.14], [0, 0, Math.PI / 2]),
+        ...([[0.035, 0.0], [-0.02, 0.03], [-0.02, -0.03]] as const).map(([dy, dz]) =>
+          part(new CylinderGeometry(0.017, 0.017, 0.008, 6), BROWN, [0.332, 0.10 + dy, s * 0.14 + dz], [0, 0, Math.PI / 2])),
+      ]),
+    ]);
+  },
 };

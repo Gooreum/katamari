@@ -187,6 +187,12 @@ export const TILE = {
   PAPERSTACK: 49,
   /** 슬리퍼 겉감 — 짙은 남색 바탕에 빨강 다섯 잎 꽃 · 노랑 두 쪽 꽃 · 흰 꽃 */
   SLIPPER: 50,
+  /** 구슬 — 연한 회녹색 유리 위를 30° 비스듬히 가로지르는 파란 잎 모양 심, 위쪽 흐린 창 반사 */
+  MARBLE: 51,
+  /** 딱지(원형 멘코) — 빨간 바탕 · 노란 번개 테 · 굵은 검은 윤곽의 인물 얼굴. 원판 뚜껑면 방사 */
+  MENKO: 52,
+  /** 공책(자포니카 학습장) 표지 — 남색 바탕 · 흰 이중선 둥근 틀 · 곤충 사진 · 위 로고 띠 · 아래 이름 칸 */
+  JAPONICA: 53,
 } as const;
 
 /**
@@ -1375,6 +1381,80 @@ export function buildPrintAtlas(): CanvasTexture {
     }
     cx.fillStyle = '#3aa048';
     for (const [x, y] of [[54, 40], [62, 110], [112, 112]] as const) { cx.beginPath(); cx.ellipse(x, y, 6, 3, 0.5, 0, Math.PI * 2); cx.fill(); }
+  });
+
+  /**
+   * 구슬 — `ref/구슬/`. 구면 uv(u 둘레 · v 극→극)에 감긴다. 파란 잎 모양 심은 둘레 절반(u 0.25~0.75)을
+   * 가로지르며 v 가운데를 30° 기울어 지난다 — 구 앞에서 보면 공 한가운데를 비스듬히 가로지른다.
+   */
+  at(TILE.MARBLE, () => {
+    cx.fillStyle = '#e9efe6';
+    cx.fillRect(0, 0, CELL, CELL);
+    cx.save();
+    cx.translate(64, 64); cx.rotate(-0.52);
+    const leaf = cx.createLinearGradient(-40, 0, 40, 0);
+    leaf.addColorStop(0, '#2b54b8'); leaf.addColorStop(0.5, '#3f76d8'); leaf.addColorStop(1, '#2b54b8');
+    cx.fillStyle = leaf;
+    cx.beginPath(); cx.ellipse(0, 0, 40, 6, 0, 0, Math.PI * 2); cx.fill();
+    cx.restore();
+    // 위쪽 1/4 의 흐린 창 반사
+    cx.fillStyle = 'rgba(255,255,255,0.8)';
+    cx.fillRect(40, 18, 18, 8); cx.fillRect(62, 18, 10, 8);
+  });
+
+  /**
+   * 딱지(원형 멘코) — `ref/딱지/round.jpg`. 원판 뚜껑면에 방사로 찍힌다(칸 가운데 = 원판 가운데).
+   * 빨간 바탕이 원 면적의 0.43, 노란 번개 테, 굵은 검은 윤곽의 큰 얼굴 하나.
+   */
+  at(TILE.MENKO, () => {
+    const c = CELL / 2;
+    cx.fillStyle = '#e0452a'; cx.fillRect(0, 0, CELL, CELL);
+    // 노란 번개 테 — 톱니 별
+    cx.fillStyle = '#f2cf2e';
+    cx.beginPath();
+    for (let k = 0; k < 28; k++) {
+      const a = (k / 28) * Math.PI * 2, r = k % 2 ? 40 : 54;
+      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
+      if (k) cx.lineTo(x, y); else cx.moveTo(x, y);
+    }
+    cx.closePath(); cx.fill();
+    // 인물 — 흰 옷 어깨 · 살색 얼굴 · 모자 · 굵은 검은 윤곽
+    cx.lineWidth = 3; cx.strokeStyle = '#1a1512';
+    cx.fillStyle = '#f2ece0'; cx.beginPath(); cx.ellipse(c, c + 38, 36, 22, 0, Math.PI, 0); cx.fill(); cx.stroke();
+    cx.fillStyle = '#f1c39b'; cx.beginPath(); cx.arc(c, c + 2, 22, 0, Math.PI * 2); cx.fill(); cx.stroke();
+    cx.fillStyle = '#f2ece0'; cx.beginPath(); cx.ellipse(c, c - 16, 23, 12, 0, Math.PI, 0); cx.fill(); cx.stroke();
+    cx.fillStyle = '#2d5d8a'; cx.fillRect(c - 22, c - 17, 44, 6);
+    cx.fillStyle = '#1a1512';
+    cx.beginPath(); cx.arc(c - 8, c + 1, 2.6, 0, Math.PI * 2); cx.arc(c + 8, c + 1, 2.6, 0, Math.PI * 2); cx.fill();
+    cx.fillRect(c - 6, c + 12, 12, 2.5);
+  });
+
+  /**
+   * 공책(자포니카 학습장) 표지 — `ref/공책/` (1981년판). 윗면에 감기므로 상하를 뒤집어 그린다.
+   *   ① 짙은 남색 바탕 ② 위 0.18 에 짙은 띠와 흰 로고 줄 ③ 흰 이중선 둥근 틀(너비 0.86 · 높이 0.78)
+   *   ④ 그 안 위쪽 0.58 을 채운 거의 정사각형 곤충 사진 ⑤ 사진 아래 흰 이름 칸(0.16)
+   */
+  at(TILE.JAPONICA, () => {
+    const X = (f: number): number => f * CELL;
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    cx.fillStyle = '#1d2f6e'; cx.fillRect(0, 0, CELL, CELL);
+    // ② 로고 줄
+    cx.fillStyle = '#f4f1e8';
+    for (let k = 0; k < 7; k++) cx.fillRect(X(0.14 + k * 0.1), X(0.07), X(0.06), X(0.07));
+    // ③ 흰 이중선 틀
+    cx.strokeStyle = '#f4f1e8'; cx.lineWidth = 2;
+    cx.strokeRect(X(0.07), X(0.19), X(0.86), X(0.78));
+    cx.strokeRect(X(0.09), X(0.21), X(0.82), X(0.74));
+    // ④ 곤충 사진 — 초록 잎 바탕에 갈색 딱정벌레
+    cx.fillStyle = '#5c9a3a'; cx.fillRect(X(0.10), X(0.22), X(0.80), X(0.58));
+    cx.fillStyle = '#7fbf4d'; cx.beginPath(); cx.ellipse(X(0.4), X(0.45), X(0.3), X(0.12), 0.5, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#5a3218'; cx.beginPath(); cx.ellipse(X(0.52), X(0.52), X(0.13), X(0.18), -0.3, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#2a1608'; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(X(0.52), X(0.36)); cx.lineTo(X(0.52), X(0.70)); cx.stroke();
+    // ⑤ 이름 칸
+    cx.fillStyle = '#f4f1e8'; cx.fillRect(X(0.12), X(0.81), X(0.76), X(0.13));
+    cx.restore();
   });
 
   const tex = new CanvasTexture(cv);
