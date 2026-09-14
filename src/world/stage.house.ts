@@ -284,32 +284,32 @@ export const HOUSE_SPOTS: readonly RoomPlacement[] = [
   // 맨 위 칸은 천장까지 0.172m 뿐이라 더 낮게 잡았다.
 
   // 밥상 위 — 차 마시는 자리. 이 방에서 제일 눈에 띄는 면이다
-  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.070, sizeMax: 0.130, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.325, only: ['찻잔', '귤', '재떨이'] , arrange: 'row' },
+  { id: 'surf-table', rect: [0.42, 0.12, 1.08, 0.78], sizeMin: 0.070, sizeMax: 0.130, count: 18, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.320, only: ['찻잔', '귤', '재떨이'] , arrange: 'row' },
   // TV장 위
-  { id: 'surf-tv-stand', rect: [-2.50, -1.20, -2.20, -0.50], sizeMin: 0.120, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.445, only: ['비디오테이프', '탁상시계'] },
+  { id: 'surf-tv-stand', rect: [-2.50, -1.20, -2.20, -0.50], sizeMin: 0.120, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.455, only: ['비디오테이프', '탁상시계'] },
   // TV장 «가운데 칸» — 앞이 뚫린 수납칸이다. 형상에는 있는데 여태 비어 있었다.
   // **`'stack'`** — 다 본 테이프는 쌓아두지 흩어놓지 않는다
-  { id: 'surf-tv-shelf', rect: [-2.52, -1.25, -2.18, -0.45], sizeMin: 0.170, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.218, only: ['비디오테이프'] , arrange: 'stack' },
+  { id: 'surf-tv-shelf', rect: [-2.52, -1.25, -2.18, -0.45], sizeMin: 0.170, sizeMax: 0.190, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.235, only: ['비디오테이프'] , arrange: 'stack' },
   // 텔레비전 «위» — 브라운관 위에 액자와 시계를 올려두는 그 자리
-  { id: 'surf-tv-top', rect: [-2.45, -1.00, -2.21, -0.70], sizeMin: 0.120, sizeMax: 0.200, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.760, only: ['액자', '탁상시계'] },
-  // 서랍장 위 — 전화기 자리
-  { id: 'surf-chest', rect: [-2.55, 1.00, -2.22, 1.70], sizeMin: 0.220, sizeMax: 0.300, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 1.00, only: ['전화기', '액자'] , arrange: 'row' },
+  { id: 'surf-tv-top', rect: [-2.45, -1.00, -2.21, -0.70], sizeMin: 0.120, sizeMax: 0.200, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.770, only: ['액자', '탁상시계'] },
+  // 서랍장 위 — 전화기 자리. 윗면 0.970 = 사진 기준 서랍장(높이 0.98 / 최장축 윗판 1.006) × size 1.00
+  { id: 'surf-chest', rect: [-2.51, 1.00, -2.18, 1.70], sizeMin: 0.220, sizeMax: 0.300, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.970, only: ['전화기', '액자'] , arrange: 'row' },
   // 책장 아래 칸 — 책이 꽂혀 있어야 책장이다. 여태 세 권이었다.
   // **`'row'` 로 줄 세운다.** 68×23cm 칸에 12권을 난수로 뿌리면
   // 꽂힌 게 아니라 «쏟아진» 것으로 보인다 — 그게 「배치 기준을 모르겠다」의 정체다
-  { id: 'surf-shelf-low', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.332, only: ['책', '신문'] , arrange: 'row' },
-  { id: 'surf-shelf-mid', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.605, only: ['책'] , arrange: 'row' },
+  { id: 'surf-shelf-low', rect: [1.80, -2.12, 2.46, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.089, only: ['책', '신문'] , arrange: 'row' },
+  { id: 'surf-shelf-mid', rect: [1.80, -2.12, 2.46, -1.89], sizeMin: 0.170, sizeMax: 0.250, count: 12, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.431, only: ['책'] , arrange: 'row' },
   // 맨 위 칸 — 천장까지 0.172m 라 낮은 것만.
   // **`'lean'`** — 화투는 두께 7.6%라 눕히면 공 눈높이에서 «선»이다. 세워서 면을 보인다
-  { id: 'surf-shelf-high', rect: [1.95, -2.12, 2.61, -1.89], sizeMin: 0.100, sizeMax: 0.160, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.878, only: ['책', '화투'] , arrange: 'lean' },
+  { id: 'surf-shelf-high', rect: [1.80, -2.12, 2.46, -1.89], sizeMin: 0.100, sizeMax: 0.160, count: 10, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.746, only: ['책', '화투'] , arrange: 'lean' },
   // 신문더미 위
-  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.180, sizeMax: 0.260, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.145, only: ['신문', '찌라시'] , arrange: 'row' },
+  { id: 'surf-papers', rect: [-2.52, -2.08, -2.28, -1.82], sizeMin: 0.180, sizeMax: 0.260, count: 8, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.132, only: ['신문', '찌라시'] , arrange: 'row' },
   // 화분대 위
   { id: 'surf-plant', rect: [2.30, 1.02, 2.46, 1.18], sizeMin: 0.070, sizeMax: 0.120, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.55, only: ['찻잔', '귤'] },
   // 방석더미 위.
   // **0.196 → 0.185.** 곡면 세그먼트를 올리면서(구 10×5 → 16×10) 눌린 구의
   // 상단이 내려갔다 — 물건이 1.1cm 떠 있었다. 검사가 잡았다
-  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.030, sizeMax: 0.100, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.185, only: ['껌', '사탕'] },
+  { id: 'surf-cushions', rect: [2.30, 1.67, 2.46, 1.83], sizeMin: 0.030, sizeMax: 0.100, count: 6, openAt: 0, labels: ROOM_TABLES['living']!, align: true, y: 0.389, only: ['껌', '사탕'] },
 
   // ── 복도 40 ─────────────────────────────────────────────
   // 신발장 «앞». 신발장 발자국은 x −0.82~−0.52 라 자리가 그걸 통째로 덮고 있었다 —
@@ -723,12 +723,16 @@ export const LIVING_PROPS: readonly StageProp[] = [
   // **다리 사이가 18cm 비어 있다.** 형상에서 측판·뒷판이 선반 밑면에서 끊기므로
   // 그 아래에 있는 건 얇은 다리 넷뿐이다 — 밥상(0.24) 과 같은 규약이다
   { label: 'TV장', x: -2.35, z: -0.85, size: 1.00, rotY: Math.PI / 2, underPass: 0.18 },
-  { label: '텔레비전', x: -2.33, z: -0.85, size: 0.55, rotY: Math.PI / 2, y: 0.42 },
+  // TV장 윗면이 0.445 → 0.455 (사진 기준 TV장) — TV 와 그 위 자리를 같이 1cm 올렸다
+  { label: '텔레비전', x: -2.33, z: -0.85, size: 0.55, rotY: Math.PI / 2, y: 0.43 },
   // 서랍장. 서벽 콘센트(z=0.7)를 안 가리게 z 1.35 에 둔다
-  { label: '서랍장', x: -2.38, z: 1.35, size: 1.00, rotY: Math.PI / 2 },
+  // 사진 기준으로 서랍장 깊이가 0.558 이 되면서 뒤가 서벽(안쪽 면 −2.63)을 3cm 파고들어 4cm 앞으로 뺐다
+  { label: '서랍장', x: -2.34, z: 1.35, size: 1.00, rotY: Math.PI / 2 },
 
   // ── 북벽 — 장지문 폭(x −1.8~1.8) 밖의 민벽 ──────────────
-  { label: '책장', x: 2.28, z: -2.00, size: 1.05 },
+  // 사진 기준 책장은 선반이 높이의 0.085 · 0.41 · 0.71(× 1.05 = 0.089 · 0.431 · 0.746)이고
+  // 폭이 0.984m 라 x 2.28 에 두면 동벽(안쪽 면 2.63)을 뚫는다 — 2.13 으로 당기고 선반 자리도 옮겼다
+  { label: '책장', x: 2.13, z: -2.00, size: 1.05 },
   // 북벽 콘센트(x=−2.05)를 안 가리게 x −2.40 에서 끊는다
   { label: '신문더미', x: -2.40, z: -1.95, size: 0.45 },
 
@@ -741,7 +745,8 @@ export const LIVING_PROPS: readonly StageProp[] = [
   // 다리 셋짜리 스탠드. 아래 선반(y 0.26)까지는 비어 있다
   // 0.44 는 거짓말이었다 — 실측하니 가운데가 막히는 높이가 14cm 다(아래 선반 다리).
   // 형상을 다시 만드는 Phase 5 에서 이 값을 다시 잰다
-  { label: '화분대', x: 2.38, z: 1.10, size: 0.55, underPass: 0.14 },
+  // 아래 선반이 높이의 0.14(사진)로 내려와 밑 통과 높이를 선반 밑(0.07)으로 낮췄다
+  { label: '화분대', x: 2.38, z: 1.10, size: 0.55, underPass: 0.07 },
   { label: '방석더미', x: 2.38, z: 1.75, size: 0.50 },
 
   // ── 벽에 걸린 것 ────────────────────────────────────────
@@ -780,7 +785,7 @@ export const HOUSE_PROPS: readonly StageProp[] = [
   // ── 복도 (2.2 × 9.4m) ───────────────────────────────────
   // 지나다니는 통로다. **양쪽 벽에만 붙이고 가운데는 끝까지 비운다.**
   { label: '신발장', x: -0.86, z: -2.73, size: 0.80, rotY: Math.PI / 2 },
-  { label: '우산꽂이', x: 0.94, z: -2.41, size: 0.48 },
+  { label: '우산꽂이', x: 0.92, z: -2.41, size: 0.48 },   // 사진 기준 우산이 6° 기울어 벽에서 2cm 뗐다
   // 9.4m 복도에 가구 둘이면 북쪽 절반이 텅 빈다. 끝에 등 하나를 세운다
   // x −0.74 → −0.735. 스탠드 갓 테를 굵히면서 발판이 1mm 넓어져 복도 벽 안쪽 면
   // (−1.030)을 1mm 넘었다 — `rooms.mts` 가 잡았다
@@ -822,7 +827,7 @@ export const HOUSE_PROPS: readonly StageProp[] = [
   // ── 툇마루 ──────────────────────────────────────────────
   // 폭 1.2m 짜리 **통로**다. 한 점만 둔다 — 두 점이면 뒷마당 가는 길이 막힌다.
   // 거실 화분대와 **같은 형상을 나눠 쓴다**
-  { label: '화분대', x: -2.25, z: 2.65, size: 0.42, underPass: 0.11 },   // 위와 같은 이유
+  { label: '화분대', x: -2.25, z: 2.65, size: 0.42, underPass: 0.05 },   // 위와 같은 이유
 
   /**
    * ── 뒷마당 — 일본식 정원 ────────────────────────────────

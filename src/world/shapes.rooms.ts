@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdRooms } from './generation';
 import {
-  assemble, DARK, hollow, INK, invert, METAL, part, SEG, soft, WHITE, WOOD, WRAP,
+  assemble, DARK, hollow, INK, invert, METAL, part, SEG, soft, warp, WHITE, WOOD, WRAP,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -148,46 +148,82 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 신발장 (80cm). **칸이 뚫려 있고 거기 신발이 있어야 신발장이다.**
    * 통짜면 그냥 낮은 궤짝이다.
    */
-  신발장: () => assemble([
-    part(soft(1.00, 0.03, 0.38, 0.35), WOOD, [0, 0.67, 0], undefined, TILE.WOOD_C),              // 상판
-    part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [-0.48, 0.34, 0], undefined, TILE.WOOD_C),
-    part(soft(0.04, 0.66, 0.38, 0.30), WHITE, [0.48, 0.34, 0], undefined, TILE.WOOD_C),
-    // 뒷판 — 칸 «안»의 그늘. `PAPER`(대비 0.04)로는 칸이 안 보인다
-    part(new BoxGeometry(0.94, 0.60, 0.03), [0.22, 0.19, 0.16], [0, 0.34, -0.186],
-      undefined, TILE.WOOD_F),
-    // 칸 셋 — 이게 신발장의 정체다
-    ...([0.20, 0.40] as const).map((y) =>
-      part(soft(0.92, 0.025, 0.36, 0.30), WOOD, [0, y, 0])),
-    // 신발 둘. 아래 칸에 들어가 있다
-    // 신발 둘 — **뒷판(그늘)이 몸통이라 어두운 신발은 거기 파묻힌다.**
-    // 현관에 나와 있는 건 대개 밝은 실내화다
-    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), [1.35, 1.30, 1.18],
-      [-0.22, 0.07, 0], undefined, TILE.CLOTH),
-    part(new SphereGeometry(0.5, 20, 13).scale(0.22, 0.11, 0.34), [1.35, 1.30, 1.18],
-      [0.14, 0.07, 0.02]),
-    part(soft(0.60, 0.05, 0.34, 0.35), WOOD, [0, 0.03, 0]),              // 굽
-  ]),
+  /**
+   * 신발장 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/신발장/` (쇼와 짙은 나무 下駄箱, 폭 910 × 깊이 380 × 높이 1000mm)
+   *
+   * 앞의 것은 칸 셋이 트인 선반에 실내화 둘이었다. 사진은 문 달린 장이다:
+   *   ① 허리 높이의 **짙은 초콜릿색 나무 상자** — 폭 : 높이 : 깊이 = 1 : 1.1 : 0.42
+   *   ② 높이의 **0.74** 를 차지하는 여닫이문 두 짝, 맞닿는 선 좌우에 둥근 손잡이
+   *   ③ 문짝 안에 **윗변이 아치로 솟은 볼록 판자**
+   *   ④ 문 아래 둥근 손잡이 달린 **얕은 서랍 둘**(높이의 0.12), 좌우로 조금 나온 천판
+   * 치수는 폭 = 1 로 쓴다(앞 +z).
+   */
+  신발장: () => {
+    const W = 1, H = 1.1, D = 0.42;
+    const CHOCO: RGB = [0.30, 0.25, 0.30];   // 거의 검은 초콜릿 — 밝으면 「붉은 중간 갈색」
+    const PANEL: RGB = [0.36, 0.30, 0.36];   // 판자는 같은 색에 한 톤만 — 따로 칠하면 사진과 다르다
+    const doorBot = 0.13 * H + 0.12 * H, doorTop = doorBot + 0.74 * H * 0.93;
+    const doorH = doorTop - doorBot, doorW = W / 2 - 0.05;
+    return assemble([
+      part(soft(W, H - 0.03 * H - 0.05, D, 0.05), CHOCO, [0, 0.05 + (H - 0.03 * H - 0.05) / 2, 0], undefined, TILE.WOOD_C),
+      // ④ 천판 — 좌우로 폭의 0.02 나온다
+      part(soft(W + 0.04, 0.03 * H, D + 0.02, 0.2), CHOCO, [0, H - 0.015 * H, 0.01], undefined, TILE.WOOD_C),
+      // 받침
+      part(new BoxGeometry(W - 0.06, 0.05, D - 0.04), [0.30, 0.26, 0.30], [0, 0.025, 0]),
+      // ② 문 두 짝 + ③ 아치 판자 + 손잡이
+      ...([1, -1] as const).flatMap((s) => {
+        const cx = s * (doorW / 2 + 0.01);
+        return [
+          part(new BoxGeometry(doorW, doorH, 0.015), CHOCO, [cx, (doorBot + doorTop) / 2, D / 2 + 0.008], undefined, TILE.WOOD_C),
+          // ③ 윗변이 아치로 솟은 볼록 판자 — 판 하나의 윗변 정점을 휘어 올린다
+          part(warp(new BoxGeometry(doorW * 0.64, doorH * 0.78, 0.025, 8, 1, 1), (x, y, z) =>
+            [x, y > 0 ? y + doorH * 0.07 * Math.cos((x / (doorW * 0.32)) * Math.PI / 2) : y, z]),
+            PANEL, [cx, doorBot + doorH * 0.44, D / 2 + 0.02]),
+          part(new SphereGeometry(0.022, 8, 5), [0.40, 0.30, 0.26], [s * 0.045, (doorBot + doorTop) / 2, D / 2 + 0.03]),
+          // ④ 서랍 + 손잡이
+          part(new BoxGeometry(doorW, 0.11 * H, 0.015), CHOCO, [cx, 0.13 * H + 0.06 * H, D / 2 + 0.008], undefined, TILE.WOOD_C),
+          part(new SphereGeometry(0.02, 8, 5), [0.40, 0.30, 0.26], [cx, 0.13 * H + 0.06 * H, D / 2 + 0.028]),
+        ];
+      }),
+    ]);
+  },
 
   /**
-   * 우산꽂이 (48cm). **파인 통에 우산이 꽂혀 있어야** 우산꽂이다.
-   * 통짜 원기둥은 쓰레기통이고, 우산이 없으면 화분이다.
+   * 우산꽂이 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/우산꽂이/` (신라쿠야키 도자기 우산꽂이, 지름 235 × 높이 445mm)
+   *
+   * 앞의 것은 푸른 플라스틱 통에 우산 둘을 곧게 꽂은 것이었다. 사진과 대보니:
+   *   ① 높이가 지름의 **1.9배**인 곧은 **도자기 원통** — 짙은 청회색 얼룩 유약
+   *   ② 몸통보다 **1.1배 넓게 말려 나온** 두툼한 입구 테
+   *   ③ 위에서 높이의 0.28~0.41 사이를 두르는 **가는 음각 테 4줄**
+   *   ④ 입구 뒤쪽에 기대 비죽 솟은 **접은 흰 우산 한 개**
+   * 우산을 크게 기울이면 발자국이 넓어져 복도(1.8m)를 먹는다(예전 기록) — 6° 만 기울인다.
+   * 치수는 지름 = 1 로 쓴다.
    */
-  우산꽂이: () => assemble([
-    ...hollow(0.21, 0.19, 0.86, 0.03, 0.05, 14, WHITE, [0.32, 0.40, 0.44], TILE.PLASTIC),
-    // 우산 둘 — 손잡이가 밖으로 나와야 우산이다
-    // **우산을 세워서 꽂는다.** 처음엔 기울기를 0.10 rad 로 줬더니 손잡이가
-    // 벌어져서 발판이 0.20m 통에 0.35m 가 됐다 — 복도 폭이 1.8m 라 그만큼이 아깝다
-    // **통 위로 충분히 나와야 우산이다.** 처음엔 통(0.86)에 우산 1.00 이라
-    // 0.14 만 나왔고 화면에서 그냥 «병»으로 보였다. 통 높이의 절반을 넘겨 뺀다
-    part(new CylinderGeometry(0.032, 0.032, 1.30, 8), [0.24, 0.28, 0.50],
-      [0.05, 0.67, 0.02], [0.02, 0, 0.02], TILE.PLASTIC),
-    part(new TorusGeometry(0.05, 0.018, 5, 10, Math.PI), [0.24, 0.28, 0.50],
-      [0.10, 1.31, 0.02], [Math.PI / 2, 0, 0]),
-    part(new CylinderGeometry(0.028, 0.028, 1.16, 8), [0.72, 0.34, 0.30],
-      [-0.05, 0.60, -0.03], [-0.02, 0, -0.02]),
-    part(new TorusGeometry(0.045, 0.016, 5, 10, Math.PI), [0.72, 0.34, 0.30],
-      [-0.10, 1.17, -0.03], [Math.PI / 2, 0, 0]),
-  ]),
+  우산꽂이: () => {
+    const H = 1.9, R = 0.5;
+    const GLAZE: RGB = [0.62, 0.78, 0.88];   // 푸른 슬레이트빛 — 밝은 회색 팔레트에 곱한다
+    return assemble([
+      ...hollow(R, R * 0.98, H, 0.05, 0.08, 20, GLAZE, [0.55, 0.62, 0.62], TILE.STONE),
+      // ② 말려 나온 입구 테
+      part(new TorusGeometry(R * 1.02, 0.05, 6, 20), GLAZE, [0, H - 0.02, 0], [Math.PI / 2, 0, 0], TILE.STONE),
+      // ③ 음각 테 넷 — 몸통보다 짙은 가는 고리
+      ...[0.28, 0.325, 0.37, 0.41].map((f) =>
+        part(new TorusGeometry(R + 0.003, 0.008, 3, 20), [0.55, 0.62, 0.62], [0, H * (1 - f), 0], [Math.PI / 2, 0, 0])),
+      /**
+       * ④ 접은 우산 — 입구 뒤쪽에 기대 6° 기운다. 원뿔 막대 하나는 판정자가 「연필꽂이에 꽂힌 막대」로 봤다.
+       * 우산을 우산으로 만드는 건 **접힌 천의 주름(골 여덟)과 묶음 띠, 그리고 J 자로 굽은 손잡이**다.
+       */
+      part(warp(new CylinderGeometry(0.075, 0.13, 1.10, 16, 1), (x, y, z) => {
+        const a = Math.atan2(z, x), k = 1 - 0.18 * Math.abs(Math.sin(4 * a));
+        return [x * k, y, z * k];
+      }), [1.30, 1.30, 1.28], [0.12, H - 0.10, -0.26], [0.10, 0, -0.06]),
+      part(new CylinderGeometry(0.105, 0.105, 0.05, 10), [0.35, 0.40, 0.75], [0.105, H + 0.05, -0.23], [0.10, 0, -0.06]),
+      part(new CylinderGeometry(0.022, 0.022, 0.26, 6), [0.30, 0.22, 0.18], [0.16, H + 0.56, -0.21], [0.10, 0, -0.06]),
+      part(new TorusGeometry(0.075, 0.024, 5, 10, Math.PI), [0.30, 0.22, 0.18], [0.24, H + 0.69, -0.20], [0, 0, 0]),
+    ]);
+  },
 
   // ─── 아이 방 ─────────────────────────────────────────────────
 

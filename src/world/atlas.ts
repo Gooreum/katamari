@@ -35,12 +35,13 @@ import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three';
  * `tileUv()`·`cell()` 이 전부 `GRID` 에서 파생되므로 기존 칸 번호를 그대로 두고
  * **호출부를 한 줄도 안 고친다** — 칸의 «위치»만 재배치된다.
  *
- * 896px 은 2의 거듭제곱이 아니지만 **밉맵도 반복도 안 쓴다**(아래 `generateMipmaps`,
- * `wrapS` 미설정 참고). 그 둘이 NPOT 제약의 전부라 WebGL2 에서 문제가 없다.
+ * **8 × 8 = 64칸으로 늘렸다(2026-09-10).** 사진 기준 전수 작업에서 휴지통 꽃무늬·
+ * 전화기 다이얼처럼 «인쇄가 곧 단서»인 물건이 계속 나오는데 49칸 중 빈 칸이 다섯이었다.
+ * 위와 같은 이유로 칸 번호는 그대로다. 1024px 은 2의 거듭제곱이기도 하다.
  */
-const GRID = 7;
+const GRID = 8;
 const CELL = 128;                        // 한 칸 128px
-const SIZE = GRID * CELL;                // 640px
+const SIZE = GRID * CELL;                // 1024px
 
 export const TILE = {
   /** 순백. 기본값 — 이걸 쓰면 텍스처가 없는 것과 같다 */
@@ -167,6 +168,25 @@ export const TILE = {
   GOLF: 42,
   /** 캐러멜 알맹이 — 잘릴 때 눌린 가로 자국. 거의 흰색이라 팔레트 색이 그대로 나온다 */
   TOFFEE: 43,
+
+  /**
+   * ── 사진 기준 전수 작업에서 생긴 칸 (2026-09-10~) ─────────────
+   * 근거는 전부 `.design-bounce/ref/<대상>/intent.md` 에 있다.
+   */
+  /** 휴지통 — 70년대 꽃무늬 플라스틱 통. 크림 바탕에 주황·노랑 큰 꽃, 위 물결 테, 아래 크림 띠 */
+  BIN_FLORAL: 44,
+  /** 전화기 다이얼 — 흰 숫자 테 · 투명 구멍판 · 가운데 노란 딱지. 원판 뚜껑면에 방사로 찍힌다 */
+  PHONE_DIAL: 45,
+  /** 방석 겉감 — 흰 점 흩뿌림. 정점색을 1 넘게 주면 점이 «본체보다 밝게» 나온다 */
+  ZABUTON: 46,
+  /** 사과 껍질 — 노란 연두 바탕에 벽돌빛 빨강 세로 줄이 81%. 돌림면에 감긴다(v=0 이 밑) */
+  APPLE: 47,
+  /** 나사산 — 사선 줄. 원기둥 옆면에 감기면 나선처럼 보인다. 나사·전구 꼭지쇠 */
+  THREAD: 48,
+  /** 쌓인 종이 옆면 — 가로 층 줄이 촘촘하고 가끔 빨간 광고면 줄. 신문더미 */
+  PAPERSTACK: 49,
+  /** 슬리퍼 겉감 — 짙은 남색 바탕에 빨강 다섯 잎 꽃 · 노랑 두 쪽 꽃 · 흰 꽃 */
+  SLIPPER: 50,
 } as const;
 
 /**
@@ -242,35 +262,117 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillRect(0, CELL - 14, CELL, 14);
   });
 
-  // ── 신문 ── 활자 덩어리. 읽히지 않아도 "인쇄면"으로 읽힌다.
+  /**
+   * 신문 — `ref/신문/` (1980-09-14 毎日新聞 1면 + 1978~79년 접힌 신문 더미).
+   * **반으로 접어 위 절반만 보이는 1면**을 그린다. 윗면이라 캔버스 위쪽이 +z(신문 윗가장자리)다.
+   * 반쪽 면 기준으로 옮긴 비율:
+   *   ① 오른쪽 위에 세로 제호 상자 — 가로의 0.09 · 세로의 0.36(전지 0.18)
+   *   ② 그 왼쪽 검은 바탕 흰 글자 세로 제목 띠 — 가로의 0.08 · 세로의 0.62(전지 0.31)
+   *   ③ 나머지는 세로쓰기 활자 단 — 가로 괘선으로 단이 나뉘고, 사진 몇 장만 검게 박힌다
+   *   ④ 종이는 누렇게 바랜 크림색(177,160,130) — 흰색이 아니다
+   */
   at(TILE.NEWSPAPER, () => {
-    cx.fillStyle = '#efe9dc';
+    // 윗면 uv 는 캔버스 위쪽을 앞(+z)으로 보내는 «상하 반전»이다 — 뒤집어 그려야 앞에서 글자가 바로 읽힌다.
+    // (부품을 180° 돌리면 이번엔 좌우가 뒤집힌다. 실제로 그랬다)
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    // 흰 바탕에 **빽빽한 먹** — 규칙적인 세로 막대는 「블라인드」로 읽혔다(판정자).
+    // 단마다 활자 굵기와 길이를 흔들고, 제목 상자·사진을 불규칙하게 박는다
+    cx.fillStyle = '#f4f3ef';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#2b2b2b';
-    cx.fillRect(10, 10, 108, 12);                  // 제호
-    cx.fillStyle = '#7a7770';
-    for (let row = 0; row < 9; row++) {
-      const y = 32 + row * 10;
-      // 3단 조판. 줄 길이를 결정적으로 흔들어 활자처럼 보이게 한다
-      for (let col = 0; col < 3; col++) {
-        const x = 10 + col * 37;
-        const w = 22 + ((row * 7 + col * 13) % 12);
-        cx.fillRect(x, y, w, 3);
+    for (let tier = 0; tier < 5; tier++) {
+      const y0 = 4 + tier * 24;
+      // 활자는 끊어진 점 — 이어진 세로선은 「바코드」로 읽혔다(판정자). 한 글자 = 한 점
+      for (let x = 3; x < CELL - 24; x += 1.6) {
+        for (let y = y0 + 1; y < y0 + 20; y += 1.6) {
+          if ((x * 7 + y * 13 + tier) % 9 === 0) continue;
+          const g = 60 + ((x * 13 + y * 7) % 60);
+          cx.fillStyle = `rgb(${g},${g},${g - 4})`;
+          cx.fillRect(x, y, 1, 1);
+        }
       }
+      cx.fillStyle = '#2d2b28';
+      cx.fillRect(3, y0 + 22, CELL - 26, 0.8);
     }
+    // 가로 제목 상자 둘 · 사진 둘 — 불규칙한 자리
+    cx.fillStyle = '#efece4'; cx.fillRect(6, 5, 46, 16); cx.fillRect(30, 53, 36, 14);
+    cx.fillStyle = '#1e1c1a'; cx.fillRect(8, 8, 42, 9); cx.fillRect(32, 56, 32, 7);
+    cx.fillStyle = '#4a4744'; cx.fillRect(60, 28, 22, 20); cx.fillRect(10, 80, 26, 20);
+    cx.fillStyle = '#8a8580'; cx.fillRect(63, 31, 16, 14); cx.fillRect(13, 83, 20, 14);
+    // ② 검은 세로 제목 띠(흰 글자)
+    cx.fillStyle = '#1f1d1b';
+    cx.fillRect(CELL * 0.83 - 10, 4, CELL * 0.08, CELL * 0.62);
+    cx.fillStyle = '#efece4';
+    for (let y = 9; y < CELL * 0.6; y += 8) cx.fillRect(CELL * 0.83 - 8, y, CELL * 0.08 - 5, 5);
+    // ① 제호 상자 — 흰 바탕에 굵은 먹 글자
+    cx.fillStyle = '#faf8f2';
+    cx.fillRect(CELL * 0.91 - 2, 2, CELL * 0.09, CELL * 0.36);
+    // 제호 — 세로쓰기 굵은 먹 글자. 도형 막대로는 판정자가 「제호도 없다」고 했다
+    cx.fillStyle = '#16140f'; cx.font = 'bold 10px serif';
+    ['日', '報', '新', '聞'].forEach((ch, k) => cx.fillText(ch, CELL * 0.91, 12 + k * 11));
+    cx.restore();
   });
 
-  // ── 찌라시 ── 신문과 달리 색이 있고 큼직하다. 그게 전단이다.
+  /**
+   * 찌라시 — `ref/찌라시/` (1981년 サミットストア 개점 전단 + 1978년 2색 전단).
+   *   ① 위아래 가장자리를 가로지르는 초록 줄 두 가닥(상표색)
+   *   ② 왼쪽 위 노란 제목 상자(가로 0.11~0.53 · 세로 0.03~0.21)에 빨간 큰 글자
+   *   ③ 상품 사진(고기 · 생선 · 과일 덩어리) 사이사이의 빨간 가격 딱지
+   *   ④ 아래 1/4 에 파란 테두리 노란 상자 3칸(가로 0.41~0.90 · 세로 0.72~0.95)
+   *   ⑤ 오른쪽 끝 0.08 폭 세로 안내 띠
+   */
   at(TILE.FLYER, () => {
-    cx.fillStyle = '#fff8e6';
+    // 윗면 uv 가 상하 반전이라 뒤집어 그린다(신문과 같다)
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    const X = (f: number): number => f * CELL;
+    cx.fillStyle = '#fbfbf8';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#e04b32';
-    cx.fillRect(8, 12, 112, 26);
-    cx.fillStyle = '#2f6fb5';
-    cx.fillRect(8, 48, 60, 10);
-    cx.fillRect(8, 66, 84, 10);
-    cx.fillStyle = '#f2b21e';
-    cx.beginPath(); cx.arc(96, 92, 22, 0, Math.PI * 2); cx.fill();
+    // ③ 상품 사진 — 네모 사진 칸(고기 · 생선 · 과일 · 병)과 그 옆 빨간 가격 딱지(흰 숫자)
+    const photo = (x: number, y: number, w: number, h: number, c: string, c2: string): void => {
+      cx.fillStyle = c; cx.fillRect(X(x), X(y), X(w), X(h));
+      cx.fillStyle = c2; cx.fillRect(X(x + w * 0.2), X(y + h * 0.25), X(w * 0.55), X(h * 0.5));
+    };
+    photo(0.02, 0.27, 0.22, 0.14, '#8d98a2', '#c9d2d8');   // 생선
+    photo(0.30, 0.47, 0.26, 0.17, '#9a3a32', '#c7584a');   // 고기
+    photo(0.60, 0.26, 0.16, 0.16, '#c98a2e', '#e8c36a');   // 과자·병
+    photo(0.04, 0.70, 0.16, 0.14, '#6f9a3c', '#a9c95a');   // 과일
+    photo(0.62, 0.50, 0.20, 0.12, '#b0764a', '#d6a070');
+    photo(0.24, 0.37, 0.20, 0.10, '#7b8a99', '#aab6c0');
+    photo(0.58, 0.07, 0.30, 0.14, '#a4b6c8', '#dde5ea');   // 오른쪽 위 안내·그림
+    photo(0.24, 0.66, 0.14, 0.18, '#6d4a2c', '#9a6a3e');
+    photo(0.03, 0.47, 0.22, 0.20, '#c7553e', '#e08a62');
+    /**
+     * **가격은 글자로 찍는다.** 도형(흰 막대 셋)으로 흉내 냈더니 판정자가 「보드게임판」이라고 했다.
+     * 전단을 전단으로 만드는 건 큼직한 빨간 숫자다. 128px 칸에서도 굵은 숫자 세 자리는 읽힌다.
+     */
+    const price = (x: number, y: number, t: string, big = false): void => {
+      cx.font = `bold ${big ? 17 : 12}px sans-serif`;
+      cx.fillStyle = '#c42f2a'; cx.fillText(t, X(x), X(y));
+    };
+    price(0.25, 0.37, '268'); price(0.46, 0.33, '198'); price(0.19, 0.60, '380', true);
+    price(0.55, 0.47, '458', true); price(0.78, 0.42, '98'); price(0.36, 0.88, '100'); price(0.78, 0.26, '158');
+    // ② 제목 상자
+    cx.fillStyle = '#ddd05c'; cx.fillRect(X(0.11), X(0.03), X(0.42), X(0.18));
+    cx.strokeStyle = '#175e90'; cx.lineWidth = 1.5; cx.strokeRect(X(0.11), X(0.03), X(0.42), X(0.18));
+    cx.fillStyle = '#c42f2a'; cx.font = 'bold 13px sans-serif';
+    cx.fillText('本日10時', X(0.13), X(0.17));
+    // ④ 아래 3칸
+    for (let k = 0; k < 3; k++) {
+      const x0 = X(0.41 + k * 0.165);
+      cx.fillStyle = '#ddd05c'; cx.fillRect(x0, X(0.72), X(0.155), X(0.23));
+      cx.strokeStyle = '#175e90'; cx.lineWidth = 2; cx.strokeRect(x0, X(0.72), X(0.155), X(0.23));
+      cx.fillStyle = '#c42f2a'; cx.font = 'bold 11px sans-serif';
+      cx.fillText(['88', '98', '58'][k]!, x0 + 3, X(0.92));
+    }
+    // ⑤ 오른쪽 세로 안내 띠
+    cx.fillStyle = '#e8efe6'; cx.fillRect(X(0.92), 0, X(0.08), CELL);
+    cx.fillStyle = '#2f8f4a'; cx.fillRect(X(0.93), X(0.05), X(0.06), X(0.12));
+    // ① 초록 줄 두 가닥 — 위아래
+    cx.fillStyle = '#2f8f4a';
+    cx.fillRect(0, 0, CELL, 2.5); cx.fillRect(0, CELL - 2.5, CELL, 2.5);
+    cx.fillRect(0, 4, CELL, 1); cx.fillRect(0, CELL - 5, CELL, 1);
+    cx.restore();
   });
 
   /**
@@ -409,16 +511,21 @@ export function buildPrintAtlas(): CanvasTexture {
   });
 
   // ── 지우개 ── 종이 띠. 정점색 계수로는 원리상 못 만들던 바로 그 부품이다.
+  /**
+   * 지우개 슬리브 — `ref/지우개/` (톰보 MONO).
+   * 윗면에 감긴다 — u 가 긴 변, v 가 폭. 폭을 가로지르는 3단 띠:
+   *   위 파랑 0.38 (흰 「MONO」 글자) · 가운데 크림 0.19 (검은 글자) · 아래 검정 0.43 (흰 글자)
+   */
   at(TILE.ERASER, () => {
-    cx.fillStyle = '#f4f1e8';
-    cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#2f6fb5';
-    cx.fillRect(0, 24, CELL, 80);
-    cx.fillStyle = '#f4f1e8';
-    cx.fillRect(0, 44, CELL, 6);
-    cx.fillRect(0, 78, CELL, 6);
-    cx.fillStyle = '#e58aa8';
-    cx.fillRect(20, 56, 88, 16);
+    const V = (f: number): number => f * CELL;
+    cx.fillStyle = '#2d4fb0'; cx.fillRect(0, 0, CELL, V(0.38));
+    cx.fillStyle = '#efe9d2'; cx.fillRect(0, V(0.38), CELL, V(0.19));
+    cx.fillStyle = '#1c1b1a'; cx.fillRect(0, V(0.57), CELL, V(0.43));
+    cx.fillStyle = '#efe9d2';
+    for (let k = 0; k < 4; k++) cx.fillRect(V(0.34 + k * 0.09), V(0.12), V(0.06), V(0.12));   // MONO
+    for (let k = 0; k < 11; k++) cx.fillRect(V(0.22 + k * 0.055), V(0.74), V(0.035), V(0.07)); // PLASTIC ERASER
+    cx.fillStyle = '#1c1b1a';
+    for (let k = 0; k < 13; k++) cx.fillRect(V(0.16 + k * 0.055), V(0.43), V(0.04), V(0.09)); // Tombow PENCIL'S
   });
 
   // ── 우유팩 ── 흰 바탕 + 위아래 색 띠 + 소 얼룩. 이 셋이면 우유팩으로 읽힌다.
@@ -456,30 +563,84 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.beginPath(); cx.arc(84, 62, 9, 0, Math.PI * 2); cx.fill();
   });
 
-  // ── 접시 ── 청색 테두리. 흰 원반을 접시로 만드는 건 이 띠 하나다.
+  /**
+   * 접시 앞면 — `ref/접시/` (쇼와 錦花 중간 접시, 지름 16.5cm).
+   * 윗면 돌림면에 감긴다 — v 가 입술(0)에서 가운데(1)로 간다. 윤곽 점이 여섯이라
+   * v 0.2 마다 한 점: 입술 r .50 · 테 안쪽 .44 · 우묵 시작 .395 · .34 · .20 · 가운데.
+   *   ① 입술에 금선 두 줄(바깥에서 지름의 0.01 · 0.03 안쪽)
+   *   ② 넓은 흰 테(지름의 0.106)
+   *   ③ 가운데 붉은 두 줄 원(지름 0.65 · 0.57) 과 그 사이 금·붉은 물결 띠
+   *   ④ 원 안에 주황 국화·모란과 남청·청록 잎
+   */
   at(TILE.PLATE, () => {
-    cx.fillStyle = '#fbfaf6';
+    const V = (f: number): number => f * CELL;
+    cx.fillStyle = '#f1f5f5';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#2f6fb5';
-    cx.fillRect(0, 14, CELL, 7);
-    cx.fillRect(0, 106, CELL, 7);
-    // 테두리 문양 — 점선이라야 손그림 도자기로 읽힌다
-    cx.fillStyle = '#4f8fd0';
-    for (let k = 4; k < CELL; k += 16) cx.fillRect(k, 28, 8, 5);
-    cx.fillStyle = '#3fbfc4';
-    cx.beginPath(); cx.arc(64, 68, 13, 0, Math.PI * 2); cx.fill();
+    // ① 금선 두 줄
+    cx.fillStyle = '#4a3222';
+    cx.fillRect(0, V(0.005), CELL, 2);
+    cx.fillStyle = '#c9a85e';
+    cx.fillRect(0, V(0.07), CELL, 1.5);
+    // ③ 붉은 두 줄 원(r .325 → v .62, r .285 → v .68) 과 물결
+    cx.fillStyle = '#8a2a18';
+    cx.fillRect(0, V(0.62), CELL, 2); cx.fillRect(0, V(0.68), CELL, 2);
+    cx.fillStyle = '#c9a85e';
+    for (let k = 0; k < CELL; k += 8) { cx.beginPath(); cx.arc(k + 4, V(0.65), 2.5, Math.PI, 0); cx.fill(); }
+    // ④ 꽃과 잎 — 원 안(v .70~1)
+    for (let i = 0; i < 12; i++) {
+      const x = (i + 0.5) * (CELL / 12), y = V(0.76 + (i % 3) * 0.07);
+      cx.fillStyle = i % 2 ? '#385959' : '#63907f';
+      cx.beginPath(); cx.ellipse(x + 4, y + 4, 4, 3, 0.6, 0, Math.PI * 2); cx.fill();
+      cx.fillStyle = '#b8683f';
+      cx.beginPath(); cx.arc(x, y, 3.6, 0, Math.PI * 2); cx.fill();
+    }
   });
 
-  // ── 찻잔 ── 몸통을 두르는 청색 띠.
+  /**
+   * 찻잔 — `ref/찻잔/` (회백색 유노미에 남색 붓무늬).
+   * 몸통 옆면(돌림면)에 감기므로 위아래를 뒤집어 그린다 — y=0 이 입이다.
+   * 둘레가 높이의 2.4배라 잎을 가로로 2.4분의 1로 눌러 그린다.
+   *   ① 입 테두리에 가는 검은 선
+   *   ② 입에서 늘어진 짙은 남색 줄기 — 끝이 높이의 0.83 까지, 잎 덩어리는 위 0.42 까지
+   *   ③ 아래 0.17 은 무늬 없는 흰 바탕
+   */
   at(TILE.TEACUP, () => {
-    cx.fillStyle = '#fbfaf6';
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    // 회색 기 도는 흰 바탕 — 누런 크림이면 판정자가 「누런 크림색」이라고 한다
+    cx.fillStyle = '#e3e5e3';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#2f6fb5';
-    cx.fillRect(0, 40, CELL, 18);
-    cx.fillStyle = '#fbfaf6';
-    for (let k = 0; k < CELL; k += 20) cx.fillRect(k, 40, 8, 18);
-    cx.fillStyle = '#3fbfc4';
-    cx.fillRect(0, 74, CELL, 6);
+    const SQ = 1 / 2.4, N = 7, STEM_END = CELL * 0.83, LEAF_END = CELL * 0.42;
+    for (let k = 0; k < N; k++) {
+      const x0 = (k + 0.5) * (CELL / N);
+      // 옅은 하늘빛 물결 줄기 — 줄기 사이로 번진다
+      cx.strokeStyle = 'rgba(110,150,205,0.55)'; cx.lineWidth = 3;
+      cx.beginPath();
+      for (let y = 6; y < STEM_END; y += 3) {
+        const x = x0 + CELL / N / 2 + Math.sin(y * 0.22 + k) * 2.4;
+        if (y === 6) cx.moveTo(x, y); else cx.lineTo(x, y);
+      }
+      cx.stroke();
+      // 가는 남색 줄기 — 입에서 0.83 까지
+      cx.strokeStyle = '#26356a'; cx.lineWidth = 1.4;
+      cx.beginPath();
+      for (let y = 2; y < STEM_END - (k % 3) * 6; y += 3) {
+        const x = x0 + Math.sin(y * 0.16 + k * 1.7) * 2.0;
+        if (y === 2) cx.moveTo(x, y); else cx.lineTo(x, y);
+      }
+      cx.stroke();
+      // 쉼표꼴 잎 — 위 0.42 안에만, 줄기 양옆으로 번갈아
+      cx.fillStyle = '#22325f';
+      for (let y = 6, i = 0; y < LEAF_END; y += 10, i++) {
+        const side = i % 2 ? 1 : -1;
+        cx.beginPath();
+        cx.ellipse(x0 + side * 2.6, y, 6 * SQ, 4.2, side * 0.6, 0, Math.PI * 2);
+        cx.fill();
+      }
+    }
+    cx.fillStyle = '#141412';
+    cx.fillRect(0, 0, CELL, 2.5);
+    cx.restore();
   });
 
   // ── 연필깎이 ── 라벨 띠 + 눈금. 회색 상자를 기계로 만든다.
@@ -496,22 +657,49 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.beginPath(); cx.arc(100, 47, 8, 0, Math.PI * 2); cx.fill();
   });
 
-  // ── RC 컨트롤러 ── 버튼판. 검은 판 위의 표시가 조종기를 조종기로 만든다.
+  /**
+   * RC 컨트롤러 앞면 — `ref/RC 컨트롤러/` (닛코 상자형 송신기 1982 · 1989).
+   * 앞면(+z)에 찍힌다. 앞면 uv 는 위아래가 뒤집혀 들어오므로 뒤집어 그린다(y=0 이 윗변).
+   * 면이 1 : 0.85 라 원은 세로로 1/0.85 늘여 그린다.
+   *   ① 좌우 원형 스틱 우물 — 지름 = 가로의 0.34, 중심 높이 = 위에서 0.42
+   *   ② 가운데 세로 칸 — 빨간 전원 램프와 스위치
+   *   ③ 아래 흰 상표판 — 가로 0.84 · 세로 0.24, 윗변이 위에서 0.73
+   *   ④ 윗변 오른쪽 작은 주파수 딱지
+   */
   at(TILE.RC, () => {
-    cx.fillStyle = '#3a3936';
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    const X = (f: number): number => f * CELL;
+    cx.fillStyle = '#383836';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#f5c22b';
-    cx.fillRect(10, 12, CELL - 20, 10);
-    cx.fillStyle = '#c9ccd1';
-    cx.fillRect(16, 40, 40, 40);
-    cx.fillRect(72, 40, 40, 40);
-    cx.fillStyle = '#3a3936';
-    cx.fillRect(32, 46, 8, 28);                  // 십자 표시
-    cx.fillRect(22, 56, 28, 8);
-    cx.fillStyle = '#e0483c';
-    cx.beginPath(); cx.arc(92, 60, 11, 0, Math.PI * 2); cx.fill();
-    cx.fillStyle = '#8fcf3a';
-    cx.fillRect(16, 96, 96, 8);
+    cx.fillStyle = '#2e2e2c';
+    cx.fillRect(0, 0, CELL, X(0.20));
+    // ① 좌우 조작부가 서로 다르다(1989 사진) — 왼쪽은 흰 판 위 세로 슬롯 레버, 오른쪽은 네모 홈 안 스틱
+    cx.fillStyle = '#dcd8cc'; cx.fillRect(X(0.08), X(0.28), X(0.28), X(0.30));
+    cx.fillStyle = '#1a1a19'; cx.fillRect(X(0.20), X(0.30), X(0.04), X(0.26));
+    cx.fillStyle = '#3a3a38'; cx.fillRect(X(0.18), X(0.40), X(0.08), X(0.05));
+    cx.fillStyle = '#1e1e1d'; cx.fillRect(X(0.62), X(0.27), X(0.30), X(0.32));
+    cx.strokeStyle = '#111110'; cx.lineWidth = 2; cx.strokeRect(X(0.62), X(0.27), X(0.30), X(0.32));
+    // ② 가운데 세로 칸
+    cx.fillStyle = '#2a2a29'; cx.fillRect(X(0.45), X(0.20), X(0.10), X(0.50));
+    cx.fillStyle = '#d23a2a'; cx.beginPath(); cx.arc(X(0.50), X(0.33), 3, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#9a9894'; cx.fillRect(X(0.48), X(0.50), X(0.04), X(0.08));
+    // ④ 주파수 딱지
+    cx.fillStyle = '#dcd8cc'; cx.fillRect(X(0.59), X(0.04), X(0.10), X(0.12));
+    cx.fillStyle = '#b0483e'; cx.fillRect(X(0.61), X(0.08), X(0.06), X(0.03));
+    // ③ 흰 상표판 — 굵은 상표 글자 한 줄(띄엄띄엄 획), 아래 잔 글자 두 줄, 오른쪽 끝 빨간 칸
+    cx.fillStyle = '#e6e2d6'; cx.fillRect(X(0.06), X(0.66), X(0.88), X(0.30));
+    cx.fillStyle = '#b0483e'; cx.fillRect(X(0.84), X(0.66), X(0.10), X(0.30));
+    cx.fillStyle = '#232220';
+    for (let k = 0; k < 8; k++) {
+      const x = X(0.12 + k * 0.085);
+      cx.fillRect(x, X(0.765), X(0.012), X(0.07)); cx.fillRect(x, X(0.765), X(0.05), X(0.012));
+      cx.fillRect(x, X(0.823), X(0.05), X(0.012)); cx.fillRect(x + X(0.04), X(0.765), X(0.012), X(0.07));
+    }
+    cx.fillRect(X(0.12), X(0.875), X(0.16), X(0.045));
+    cx.fillRect(X(0.38), X(0.868), X(0.42), X(0.022));
+    cx.fillRect(X(0.38), X(0.905), X(0.42), X(0.022));
+    cx.restore();
   });
 
   // ── 책 표지 ── 제목 띠와 글줄. 민짜 판때기와 책을 가르는 건 이것뿐이다.
@@ -532,41 +720,90 @@ export function buildPrintAtlas(): CanvasTexture {
   });
 
   // ── 비디오테이프 라벨 ── 손글씨 줄과 릴 구멍. 90년대 거실의 물건이다.
+  /**
+   * 비디오테이프 윗면 — `ref/비디오테이프/` (1981년 무렵 VHS, 창 있는 면 정면).
+   * 윗면 한 장을 통째로 그린다. u 가 긴 변(x), v 가 짧은 변(z)이다.
+   * 칸은 정사각형인데 면은 1 : 0.554 라 **세로(v)가 0.554배로 눌린다** — 원은 세로로 1/0.554 늘여 그린다.
+   *   ① 짧은 변을 가로지르며: 뚜껑 쪽 띠 0.092 · 격자 띠 0.19 · 가운데 판 0.51 · 격자 띠 0.21
+   *   ② 가운데 판 안, 양 끝에 **창 둘**(긴 변의 0.22 씩, 끝에서 0.03) — 흰 릴 허브와 감긴 갈색 테이프
+   *   ③ 두 창 사이 **라벨 자리**(긴 변의 0.43) — 이 개체는 라벨이 없어 빈 판이다
+   */
   at(TILE.VIDEO, () => {
-    cx.fillStyle = '#2e2c2a';
+    const V = (f: number): number => f * CELL, SQ = 0.554;
+    cx.fillStyle = '#474745';
     cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#e9e4d6';                     // 라벨 종이
-    cx.fillRect(12, 10, CELL - 24, 46);
-    cx.fillStyle = '#3a5f8a';                     // 손글씨 세 줄
-    cx.fillRect(20, 20, 70, 6);
-    cx.fillRect(20, 32, 88, 5);
-    cx.fillRect(20, 42, 44, 5);
-    cx.fillStyle = '#1a1918';                     // 릴 창
-    cx.fillRect(20, 72, 88, 34);
-    cx.fillStyle = '#5c5854';
-    cx.beginPath(); cx.arc(42, 89, 13, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(86, 89, 13, 0, Math.PI * 2); cx.fill();
+    // ① 격자 띠 — 잔 격자
+    cx.fillStyle = 'rgba(30,30,30,0.35)';
+    for (let k = 0; k < CELL; k += 3) {
+      cx.fillRect(k, 0, 1, CELL);
+      cx.fillRect(0, k, CELL, 1);
+    }
+    cx.fillStyle = '#383836';
+    cx.fillRect(0, 0, CELL, V(0.092));                      // 뚜껑 쪽 띠
+    cx.fillStyle = '#e8e6e0';                                // 흰 글씨 한 줄과 화살표
+    for (let k = 0; k < 9; k++) cx.fillRect(V(0.10 + k * 0.05), V(0.035), V(0.03), V(0.025));
+    cx.beginPath(); cx.moveTo(V(0.70), V(0.02)); cx.lineTo(V(0.76), V(0.046)); cx.lineTo(V(0.70), V(0.072)); cx.fill();
+    const P0 = V(0.282), P1 = V(0.792);
+    cx.fillStyle = '#5d5b56';
+    cx.fillRect(0, P0, CELL, P1 - P0);                      // 가운데 판
+    // ② 창 둘
+    const mid = (P0 + P1) / 2, wh = V(0.50);   // 창 폭 = 짧은 변의 0.47 — 조금 넉넉히
+    for (const [u0, u1] of [[0.025, 0.265], [0.735, 0.975]] as const) {
+      // 릴 허브는 창 안쪽 가장자리(라벨 쪽)에 치우친다(사진)
+      const x0 = V(u0), x1 = V(u1), cxw = u0 < 0.5 ? x1 - V(0.07) : x0 + V(0.07);
+      // 투명 창 — 검정에 묻히지 않게 연기빛 회색. 창이 이 물건에서 가장 눈에 띈다(사진)
+      cx.fillStyle = '#8a8e95';
+      cx.fillRect(x0, mid - wh / 2, x1 - x0, wh);
+      cx.fillStyle = 'rgba(255,255,255,0.35)';
+      cx.fillRect(x0 + 2, mid - wh / 2 + 2, (x1 - x0) * 0.3, wh - 4);
+      // 감긴 테이프 — 짙은 갈색 원판
+      cx.fillStyle = '#6e5d52';
+      cx.beginPath(); cx.ellipse(cxw, mid, V(0.10), V(0.10) / SQ, 0, 0, Math.PI * 2); cx.fill();
+      // 흰 릴 허브
+      cx.fillStyle = '#f2f1ec';
+      cx.beginPath(); cx.ellipse(cxw, mid, V(0.055), V(0.055) / SQ, 0, 0, Math.PI * 2); cx.fill();
+      cx.fillStyle = '#232427';
+      cx.beginPath(); cx.ellipse(cxw, mid, V(0.015), V(0.015) / SQ, 0, 0, Math.PI * 2); cx.fill();
+    }
+    // ③ 라벨 자리 — 살짝 파인 빈 판
+    cx.strokeStyle = '#3e3d3a'; cx.lineWidth = 2;
+    cx.strokeRect(V(0.285), mid - wh / 2, V(0.43), wh);
   });
 
   // ── 시계 문자판 ── 눈금 열둘과 바늘 둘. **이게 없으면 그냥 원통이다.**
+  /**
+   * 탁상시계 문자판 — `ref/탁상시계/` (세이코샤 1915 자명종).
+   * 원판 뚜껑면에 방사로 찍힌다 — 칸 가운데가 문자판 가운데, 반지름 64 가 문자판 테두리.
+   *   ① 아이보리 바탕에 검은 로마 숫자 — 이 해상도에서는 굵은 획 묶음으로 낸다
+   *   ② 12시 쪽 알람 보조판(앞면 지름의 0.25 → 문자판 반지름의 0.30),
+   *      6시 쪽 초침 보조판(0.20 → 0.24)
+   *   ③ 검은 바늘 둘
+   */
   at(TILE.CLOCK, () => {
-    cx.fillStyle = '#f6efdd';
+    const c = CELL / 2, R = CELL / 2;
+    cx.fillStyle = '#f8f5ea';
     cx.fillRect(0, 0, CELL, CELL);
-    const cxp = 64, cyp = 64;
-    cx.fillStyle = '#2a2724';
+    cx.fillStyle = '#26231f';
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2;
-      const long = i % 3 === 0;
-      const r0 = long ? 40 : 45, r1 = 52;
+      const strokes = [2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3][i]!;   // 획 수로 로마 숫자의 폭을 흉내
       cx.save();
-      cx.translate(cxp + Math.sin(a) * (r0 + r1) / 2, cyp - Math.cos(a) * (r0 + r1) / 2);
-      cx.fillRect(-(long ? 5 : 3), -(r1 - r0) / 2, long ? 10 : 6, r1 - r0);
+      cx.translate(c + Math.sin(a) * R * 0.78, c - Math.cos(a) * R * 0.78);
+      cx.rotate(a);
+      for (let k = 0; k < strokes; k++) cx.fillRect(-strokes * 2 + k * 4, -6, 2.4, 12);
       cx.restore();
     }
-    cx.fillRect(cxp - 4, cyp - 34, 8, 36);        // 긴바늘 — 12시
-    cx.fillRect(cxp - 2, cyp - 3, 28, 7);         // 짧은바늘 — 3시
-    cx.fillStyle = '#c0392b';
-    cx.beginPath(); cx.arc(cxp, cyp, 6, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#26231f'; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.arc(c, c, R * 0.93, 0, Math.PI * 2); cx.stroke();
+    // ② 보조판 둘
+    cx.beginPath(); cx.arc(c, c - R * 0.40, R * 0.30, 0, Math.PI * 2); cx.stroke();
+    cx.beginPath(); cx.arc(c, c + R * 0.42, R * 0.24, 0, Math.PI * 2); cx.stroke();
+    // ③ 바늘 — 10시 10분
+    cx.lineWidth = 4; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(c, c); cx.lineTo(c - R * 0.42, c - R * 0.24); cx.stroke();
+    cx.beginPath(); cx.moveTo(c, c); cx.lineTo(c + R * 0.60, c - R * 0.34); cx.stroke();
+    cx.fillStyle = '#26231f';
+    cx.beginPath(); cx.arc(c, c, 5, 0, Math.PI * 2); cx.fill();
   });
 
   // ── 액자 속 사진 ── 산과 해. 「그림이 들어 있다」만 읽히면 된다.
@@ -920,6 +1157,224 @@ export function buildPrintAtlas(): CanvasTexture {
         cx.beginPath(); cx.arc(x, y - 1.2, 2.2, 0, Math.PI * 2); cx.fill();
       }
     }
+  });
+
+  /**
+   * 휴지통 꽃무늬 — `ref/휴지통/` (70년대 サンコープラスチック 꽃무늬 통).
+   *
+   * 원기둥 옆면에 감기므로 **위아래를 뒤집어 그린다**(y=0 이 통의 위 — 건전지와 같다).
+   * 그리고 **가로로 2.6배 늘어난다** — 통 둘레(평균 지름 × π)가 높이의 2.6배다.
+   * 그래서 꽃을 가로로 2.6분의 1로 눌러 그려야 통 위에서 둥근 꽃이 된다.
+   *   ① 위 0.08 은 크림색 테, 그 밑단이 한 바퀴 12칸 물결로 0.13 까지 늘어진다
+   *   ② 아래 0.07 은 크림색 띠
+   *   ③ 사이는 크림 바탕에 주황빛 빨강 · 노랑 큰 꽃과 연두 잎이 빽빽하다
+   */
+  at(TILE.BIN_FLORAL, () => {
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    const SQ = 1 / 2.6;
+    cx.fillStyle = '#f6f3d8';
+    cx.fillRect(0, 0, CELL, CELL);
+    const flower = (x: number, y: number, r: number, petal: string, eye: string): void => {
+      // 짙은 갈색 윤곽 — 사진의 꽃마다 있다. 없으면 「흐릿한 얼룩」으로 읽힌다(판정자)
+      cx.fillStyle = '#703720';
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        cx.beginPath();
+        cx.ellipse(x + Math.cos(a) * r * 0.55 * SQ, y + Math.sin(a) * r * 0.55, r * 0.5 * SQ + 0.8, r * 0.5 + 0.8, 0, 0, Math.PI * 2);
+        cx.fill();
+      }
+      cx.fillStyle = petal;
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        cx.beginPath();
+        cx.ellipse(x + Math.cos(a) * r * 0.55 * SQ, y + Math.sin(a) * r * 0.55, r * 0.5 * SQ, r * 0.5, 0, 0, Math.PI * 2);
+        cx.fill();
+      }
+      cx.fillStyle = eye;
+      cx.beginPath(); cx.ellipse(x, y, r * 0.38 * SQ, r * 0.38, 0, 0, Math.PI * 2); cx.fill();
+    };
+    const leaf = (x: number, y: number): void => {
+      cx.fillStyle = '#9ccb5a';
+      cx.beginPath(); cx.ellipse(x, y, 5 * SQ, 3, 0.5, 0, Math.PI * 2); cx.fill();
+    };
+    for (let i = 0; i < 40; i++) leaf(rnd(i * 17 + 5, CELL), 14 + rnd(i * 29 + 11, 100));
+    // 큰 꽃 — 빈틈없이. 사진은 꽃이 표면의 80% 넘게 덮는다(판정자: 렌더는 30%)
+    for (let row = 0; row < 4; row++) {
+      for (let c = 0; c < 4; c++) {
+        const x = (c + (row % 2) * 0.5) * (CELL / 4) + 4;
+        flower(x % CELL, 22 + row * 25, 19, ['#d8543a', '#e8653f', '#ecc54e', '#f07a50'][(row + c) % 4]!, row % 2 ? '#e2692f' : '#ecc54e');
+      }
+    }
+    // 작은 꽃 — 빈자리를 메운다
+    for (let i = 0; i < 30; i++) {
+      flower(rnd(i * 41 + 7, CELL), 16 + rnd(i * 13 + 3, 96), 10,
+        i % 3 === 0 ? '#f0c84a' : i % 3 === 1 ? '#f48a78' : '#e8653f', i % 2 ? '#e2692f' : '#f0c84a');
+    }
+    // ① 위 테 + 물결 밑단 — 12칸
+    cx.fillStyle = '#f2eed2';
+    cx.fillRect(0, 0, CELL, 10);
+    const W = CELL / 12;
+    for (let k = 0; k < 12; k++) {
+      cx.beginPath(); cx.arc(k * W + W / 2, 10, W / 2, 0, Math.PI); cx.fill();
+    }
+    // ② 아래 크림 띠 — 받침
+    cx.fillRect(0, CELL - 12, CELL, 12);
+    cx.restore();
+  });
+
+  /**
+   * 전화기 다이얼 — `ref/전화기/` (전전공사 600형).
+   *
+   * 원판 뚜껑면의 uv 는 원을 칸 전체에 방사로 편다 — 칸 가운데가 원판 가운데다.
+   * 잰 비율(몸통 밑 폭 기준): 숫자 테 바깥 0.755 · 투명 구멍판 0.60 · 노란 딱지 = 구멍판의 0.51.
+   * 원판 지름을 숫자 테 바깥으로 잡으므로 칸 반지름 64 = 0.755 다.
+   */
+  at(TILE.PHONE_DIAL, () => {
+    const R = CELL / 2, c = CELL / 2;
+    cx.fillStyle = '#1c1b1a';
+    cx.fillRect(0, 0, CELL, CELL);
+    // 흰 숫자 — 1시에서 시작해 반시계로 10개. 글자는 이 해상도에서 뭉개지므로 짧은 획으로
+    cx.fillStyle = '#f2f0ea';
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 3 - (k / 12) * Math.PI * 2;
+      cx.fillRect(c + Math.cos(a) * R * 0.9 - 2, c + Math.sin(a) * R * 0.9 - 3, 4, 6);
+    }
+    // 투명 구멍판 — 뒤의 검정이 비치는 옅은 회청
+    const plate = R * (0.60 / 0.755);
+    // 투명 구멍판 너머로 검은 몸통이 비친다 — 회색 판은 「몸통과 따로 논다」로 읽혔다(판정자)
+    cx.fillStyle = '#2c3034';
+    cx.beginPath(); cx.arc(c, c, plate, 0, Math.PI * 2); cx.fill();
+    // 손가락 구멍 10개 — 흰 점이 밑에 보인다
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 3 - (k / 12) * Math.PI * 2;
+      const hx = c + Math.cos(a) * plate * 0.74, hy = c + Math.sin(a) * plate * 0.74;
+      cx.fillStyle = '#2a2b2d';
+      cx.beginPath(); cx.arc(hx, hy, plate * 0.17, 0, Math.PI * 2); cx.fill();
+      cx.fillStyle = '#e8e6e0';
+      cx.beginPath(); cx.arc(hx, hy, 1.6, 0, Math.PI * 2); cx.fill();
+    }
+    // 가운데 노란 딱지 — 구멍판의 0.51
+    cx.fillStyle = '#e9c948';
+    cx.beginPath(); cx.arc(c, c, plate * 0.51 * 0.8, 0, Math.PI * 2); cx.fill();
+    // 은색 손가락 멈추개 — 4~5시 방향
+    cx.fillStyle = '#c9ccd1';
+    cx.fillRect(c + plate * 0.78, c + plate * 0.52, 7, 4);
+  });
+
+  /**
+   * 방석 겉감 — `ref/방석/` (장밋빛 바탕에 크림색 잔꽃).
+   *
+   * 크림색 꽃을 «본체보다 밝게» 내야 하는데 텍스처는 곱하기라 1.0 을 못 넘는다.
+   * 그래서 **바탕을 0.78 로 깔고 점을 1.0 으로 둔다.** 정점색을 1.28 로 주면
+   * 바탕은 팔레트 색 그대로, 점만 28% 밝아진다 — 어느 팔레트 색에도 먹는다.
+   */
+  at(TILE.ZABUTON, () => {
+    cx.fillStyle = '#c7c7c7';
+    cx.fillRect(0, 0, CELL, CELL);
+    // 잔꽃 — 한 줄에 40 개쯤 빽빽이(사진). 크게 성기면 판정자가 「큰 꽃이 드문드문」이라고 한다
+    // 잔꽃 — 네 잎 십자(3px). 2px 네모는 「분홍 네모 점」으로 읽혔다(판정자)
+    cx.fillStyle = '#fff6e6';
+    for (let r = 0; r < 20; r++) {
+      for (let c = 0; c < 20; c++) {
+        const x = Math.round(c * 6.4 + (r % 2) * 3.2 + rnd(r * 31 + c, 1.5)), y = Math.round(r * 6.4 + rnd(c * 17 + r, 1.5));
+        cx.fillRect(x, y - 1, 1, 3); cx.fillRect(x - 1, y, 3, 1);
+      }
+    }
+  });
+
+  /**
+   * 사과 껍질 — `ref/사과/` (후지 사과).
+   * 빨강은 한 면이 아니라 **꼭지에서 바닥으로 내려가는 가는 세로 줄이 촘촘히 겹친 결**이다.
+   * 노란 연두가 약 19% — 한쪽 옆구리(u 0.12~0.34)에서 줄이 성겨 드러난다.
+   * 돌림면 uv 는 v=0 이 밑이라 캔버스 위쪽이 사과 밑이다. 줄은 세로라 뒤집을 필요가 없다.
+   */
+  at(TILE.APPLE, () => {
+    cx.fillStyle = '#bfc050';
+    cx.fillRect(0, 0, CELL, CELL);
+    // 붉은 바탕 — 한쪽 옆구리(u 0.10~0.36)만 비워 노란 연두가 드러나게 한다. 경계는 부드럽게
+    for (let x = 0; x < CELL; x++) {
+      const u = x / CELL;
+      const d = Math.min(Math.abs(u - 0.23), 1 - Math.abs(u - 0.23));
+      const a = Math.min(0.94, Math.max(0.08, (d - 0.10) * 5));
+      cx.fillStyle = `rgba(150,22,48,${a.toFixed(3)})`;
+      cx.fillRect(x, 0, 1, CELL);
+    }
+    // 세로 줄 — 옅고 불규칙하게. 또렷하면 골진 호박이 된다
+    for (let i = 0; i < 180; i++) {
+      const x = rnd(i * 31 + 3, CELL);
+      const y0 = rnd(i * 17 + 5, CELL * 0.5), len = CELL * 0.3 + rnd(i * 13, CELL * 0.6);
+      cx.fillStyle = i % 2 ? 'rgba(150,40,34,0.18)' : 'rgba(210,150,70,0.14)';
+      cx.fillRect(x, y0, 0.8 + rnd(i * 7, 1.6), len);
+    }
+    // 어깨(캔버스 아래쪽 = 사과 위쪽)는 분홍빛 빨강으로 조금 짙다
+    cx.fillStyle = 'rgba(150,50,60,0.22)';
+    cx.fillRect(0, CELL * 0.75, CELL, CELL * 0.25);
+    // 껍질 숨구멍 — 옅은 노란 점
+    cx.fillStyle = 'rgba(235,220,120,0.7)';
+    for (let i = 0; i < 60; i++) cx.fillRect(rnd(i * 41 + 9, CELL), rnd(i * 23 + 1, CELL), 1, 1);
+  });
+
+  /**
+   * 나사산 — 사선 줄. 원기둥에 감으면 u(둘레)를 따라 비스듬히 올라가 나선으로 읽힌다.
+   * 재질 칸 규약대로 흰 바탕에 회색 줄이다(팔레트 색을 그대로 통과시킨다).
+   */
+  at(TILE.THREAD, () => {
+    base();
+    for (let k = -CELL; k < CELL * 2; k += 11) {
+      cx.strokeStyle = 'rgba(70,74,82,0.55)'; cx.lineWidth = 4;
+      cx.beginPath(); cx.moveTo(k, 0); cx.lineTo(k + CELL * 0.35, CELL); cx.stroke();
+      cx.strokeStyle = 'rgba(255,255,255,0.8)'; cx.lineWidth = 2;
+      cx.beginPath(); cx.moveTo(k + 5, 0); cx.lineTo(k + 5 + CELL * 0.35, CELL); cx.stroke();
+    }
+  });
+
+  /**
+   * 쌓인 신문 옆면 — `ref/신문더미/`. 한 부 두께가 묶음 너비의 0.026 이라 칸 높이에 12 층.
+   * 층마다 밝기를 흔들고, 두 층에 하나꼴로 빨간 광고면 줄(104,52,48)을 끼운다.
+   */
+  at(TILE.PAPERSTACK, () => {
+    cx.fillStyle = '#e8e6df';
+    cx.fillRect(0, 0, CELL, CELL);
+    const L = CELL / 12;
+    for (let i = 0; i < 12; i++) {
+      const g = 200 + ((i * 37) % 40);
+      cx.fillStyle = `rgb(${g},${g - 2},${g - 8})`;
+      cx.fillRect(0, i * L + 1, CELL, L - 2);
+      cx.fillStyle = '#7c7870';
+      cx.fillRect(0, i * L, CELL, 1);
+      if (i % 3 === 1) { cx.fillStyle = '#a4453c'; cx.fillRect(0, i * L + L * 0.45, CELL, 2); }
+      // 접힌 층 사이로 보이는 컬러 지면 조각 — 사진 옆면은 흰 바탕에 빨강·파랑·주황 조각이 촘촘하다
+      for (let k = 0; k < 4; k++) {
+        cx.fillStyle = ['#c0453a', '#3c62a8', '#d88a3a', '#2a2826'][(i + k) % 4]!;
+        cx.fillRect(rnd(i * 29 + k * 13, CELL - 12), i * L + 2, 6 + rnd(i + k * 7, 10), L - 4);
+      }
+    }
+  });
+
+  /**
+   * 슬리퍼 겉감 — `ref/슬리퍼/` (쇼와 꽃무늬 천 슬리퍼). 짙은 남색(6,33,140) 바탕에
+   * 덮개 폭 절반만 한 빨간 다섯 잎 꽃, 노란 두 쪽 꽃, 작은 흰 꽃, 초록 잎.
+   */
+  at(TILE.SLIPPER, () => {
+    cx.fillStyle = '#0d2590';
+    cx.fillRect(0, 0, CELL, CELL);
+    const five = (x: number, y: number, r: number, c: string, eye: string): void => {
+      cx.fillStyle = c;
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2;
+        cx.beginPath(); cx.arc(x + Math.cos(a) * r * 0.6, y + Math.sin(a) * r * 0.6, r * 0.5, 0, Math.PI * 2); cx.fill();
+      }
+      cx.fillStyle = eye; cx.beginPath(); cx.arc(x, y, r * 0.35, 0, Math.PI * 2); cx.fill();
+    };
+    five(30, 34, 20, '#d0204a', '#f2c81e'); five(96, 92, 20, '#d0204a', '#f2c81e');
+    five(90, 26, 9, '#ffffff', '#f07a2a'); five(26, 100, 9, '#ffffff', '#f07a2a');
+    cx.fillStyle = '#f2c81e';
+    for (const [x, y] of [[70, 60], [20, 70], [110, 58]] as const) {
+      cx.beginPath(); cx.arc(x - 6, y, 8, 0, Math.PI * 2); cx.arc(x + 6, y, 8, 0, Math.PI * 2); cx.fill();
+    }
+    cx.fillStyle = '#3aa048';
+    for (const [x, y] of [[54, 40], [62, 110], [112, 112]] as const) { cx.beginPath(); cx.ellipse(x, y, 6, 3, 0.5, 0, Math.PI * 2); cx.fill(); }
   });
 
   const tex = new CanvasTexture(cv);

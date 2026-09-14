@@ -462,6 +462,72 @@ export function hollow(
 }
 
 /**
+ * 정점을 옮기고 법선을 다시 잰다. 상자를 «휘는» 데 쓴다 — 방석의 오목한 변,
+ * 전화기의 위가 좁은 몸통처럼 기본 도형으로는 안 나오는 윤곽.
+ * `BoxGeometry`·`soft()` 는 면마다 정점이 따로라 모서리 음영은 그대로 남는다.
+ */
+export function warp(geo: BufferGeometry, fn: (x: number, y: number, z: number) => readonly [number, number, number]): BufferGeometry {
+  const p = geo.attributes['position']!;
+  for (let i = 0; i < p.count; i++) {
+    const [x, y, z] = fn(p.getX(i), p.getY(i), p.getZ(i));
+    p.setXYZ(i, x, y, z);
+  }
+  p.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * 위로 갈수록 좁아지는 상자. 바닥(y = −h/2)은 그대로, 윗면은 가로 `sx`·깊이 `sz` 배로
+ * 줄이고 `dz` 만큼 앞뒤로 민다 — 앞면이 비스듬히 눕고 뒷면은 서게 된다.
+ */
+export function taper(geo: BufferGeometry, h: number, sx: number, sz: number, dz: number): BufferGeometry {
+  return warp(geo, (x, y, z) => {
+    const t = y / h + 0.5;
+    return [x * (1 + (sx - 1) * t), y, z * (1 + (sz - 1) * t) + dz * t];
+  });
+}
+
+/**
+ * 돌림면 윤곽을 **길이 기준으로 고르게** 다시 뽑는다.
+ *
+ * `LatheGeometry` 는 uv 의 v 를 «윤곽 점 순번»으로 매긴다(j / (점 수 − 1)). 점 간격이 고르지
+ * 않으면 인쇄가 늘거나 준다 — 찻잔 위 42% 에 그린 잎이 몸통 70% 로 늘어나
+ * 판정자가 「잎이 위아래를 빽빽이 덮는다」고 했다. 같은 간격으로 뽑으면 v 가 곧 길이 비율이다.
+ */
+export function evenProfile(pts: readonly (readonly [number, number])[], n: number): [number, number][] {
+  const seg: number[] = [0];
+  for (let i = 1; i < pts.length; i++) {
+    seg.push(seg[i - 1]! + Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]));
+  }
+  const total = seg[seg.length - 1]!;
+  const out: [number, number][] = [];
+  for (let k = 0; k < n; k++) {
+    const d = (k / (n - 1)) * total;
+    let i = 1;
+    while (i < seg.length - 1 && seg[i]! < d) i++;
+    const t = (d - seg[i - 1]!) / Math.max(1e-9, seg[i]! - seg[i - 1]!);
+    out.push([pts[i - 1]![0] + (pts[i]![0] - pts[i - 1]![0]) * t, pts[i - 1]![1] + (pts[i]![1] - pts[i - 1]![1]) * t]);
+  }
+  return out;
+}
+
+/**
+ * 솜 방석 한 장 — 폭 1 × 1 정사각형, 바닥 y=0. `ref/방석/` 에서 잰 모양:
+ * 네 변이 안쪽으로 오목(허리 `waist`)하고, 두께는 모서리 → 변 한복판 → 가운데 순으로 부푼다.
+ * `dimple` 은 가운데 綴じ 매듭 자리의 파임 깊이. `seg` 는 윗면 격자 — 한 장이면 8, 더미면 4.
+ */
+export function pillow(corner: number, edgeMid: number, center: number, waist: number, dimple: number, seg: number): BufferGeometry {
+  return warp(new BoxGeometry(1, 1, 1, seg, 1, seg), (x, y, z) => {
+    const nx = x * 2, nz = z * 2;
+    const t = corner + (edgeMid - corner) * (1 - nx * nx * nz * nz)
+      + (center - edgeMid) * Math.cos(nx * Math.PI / 2) * Math.cos(nz * Math.PI / 2);
+    const d = y > 0 ? dimple * Math.exp(-(nx * nx + nz * nz) / 0.025) : 0;
+    return [x * (1 - (1 - waist) * (1 - nz * nz)), (y + 0.5) * t - d, z * (1 - (1 - waist) * (1 - nx * nx))];
+  });
+}
+
+/**
  * **곡면 최소 면 수 — 놓이는 크기가 정한다.**
  *
  * ## 왜 어중간한 면 수가 제일 나쁜가

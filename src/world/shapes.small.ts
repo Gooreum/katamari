@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdSmall } from './generation';
@@ -223,18 +223,39 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     part(soft(0.9, 0.9, 0.9, 0.12), WHITE, [0, 0.45, 0], undefined, TILE.DICE),
   ]),
 
-  나사: () => assemble([
-    /**
-     * 십자 머리 + 몸통. 나사산은 안 판다 — 3cm 에서 안 보인다.
-     * **십자의 두 번째 막대를 얇게 한다** — 같은 높이면 겹치는 자리에서
-     * 위·아랫면이 같은 평면이라 z-fighting 이 뜬다(자가 `1×2` 로 잡았다).
-     */
-    part(new CylinderGeometry(0.22, 0.20, 0.12, 14), WHITE, [0, 0.92, 0]),
-    part(new BoxGeometry(0.34, 0.06, 0.08), INK, [0, 0.965, 0]),
-    part(new BoxGeometry(0.08, 0.045, 0.34), INK, [0, 0.965, 0]),
-    part(new CylinderGeometry(0.09, 0.09, 0.76, 8), WHITE, [0, 0.50, 0]),
-    part(new ConeGeometry(0.09, 0.14, 8), WHITE, [0, 0.07, 0], [Math.PI, 0, 0]),
-  ]),
+  /**
+   * 나사 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/나사/` (둥근머리 십자 목재 나사 옆모습 + 규격표)
+   *
+   * 앞의 것은 **머리를 위로 하고 서 있는** 기둥에 납작한 원판 머리였다. 사진과 대보니:
+   *   ① 머리는 원판이 아니라 **반구 돔** — 지름이 몸통의 1.9배, 정면에 십자 홈
+   *   ② 머리 밑 0.30 은 **나사산 없는 매끈한 목**, 나머지 0.70 에 나사산 11~12 개,
+   *      끝 0.10 만 원뿔로 뾰족해진다
+   *   ③ 바닥에 굴러다니는 나사는 **옆으로 눕는다**
+   * 나사산은 부품으로 깎으면 삼각형이 폭증한다(길거리 규모에 62개) — 사선 줄 인쇄로 감는다.
+   * 치수는 전체 길이 = 1 로 쓴다(머리 −x, 끝 +x).
+   */
+  나사: () => {
+    const R = 0.071, HEAD_R = 0.135, HEAD_L = 0.18, Y = HEAD_R;
+    // 끝 원뿔을 길게(0.16) — 뭉툭하면 볼트다. 목재 나사는 끝이 송곳처럼 뾰족하다
+    const x0 = -0.5 + HEAD_L, neckEnd = x0 + 0.25, threadEnd = 0.34;
+    return assemble([
+      // ① 돔 머리 — 반구를 머리 길이만큼 늘여 −x 로 눕힌다
+      // 16면 — 10면이면 돔 가장자리가 「육각형 테두리」로 읽혀 볼트가 됐다(판정자)
+      part(new SphereGeometry(HEAD_R, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, HEAD_L / HEAD_R, 1),
+        WHITE, [x0, Y, 0], [0, 0, Math.PI / 2]),
+      part(new CircleGeometry(HEAD_R, 16), [0.8, 0.8, 0.8], [x0, Y, 0], [0, Math.PI / 2, 0]),
+      // 십자 홈 — 돔 앞면
+      // 십자 홈 — 돔 앞면에 «파인» 짙은 선. 두께를 두면 머리 밖으로 튀어나온 돌기가 된다(판정자)
+      part(new BoxGeometry(0.006, 0.15, 0.03), INK, [-0.497, Y, 0]),
+      part(new BoxGeometry(0.006, 0.03, 0.15), INK, [-0.497, Y, 0]),
+      // ② 매끈한 목 + 나사산 + 뾰족한 끝
+      part(new CylinderGeometry(R, R, neckEnd - x0, 10, 1, true), WHITE, [(x0 + neckEnd) / 2, Y, 0], [0, 0, Math.PI / 2]),
+      part(new CylinderGeometry(R * 1.04, R * 1.04, threadEnd - neckEnd, 10, 1, true), WHITE,
+        [(neckEnd + threadEnd) / 2, Y, 0], [0, 0, Math.PI / 2], TILE.THREAD),
+      part(new ConeGeometry(R * 1.04, 0.5 - threadEnd, 10, 1, true), WHITE, [(threadEnd + 0.5) / 2, Y, 0], CAP_X, TILE.THREAD),
+    ]);
+  },
 
   압핀: () => assemble([
     // 손잡이가 위로 솟은 압핀. 압정과 실루엣이 달라야 둘 다 두는 의미가 있다
@@ -244,13 +265,24 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     part(new ConeGeometry(0.05, 0.10, 8), PIN, [0, 0.045, 0], [Math.PI, 0, 0]),
   ]),
 
+  /**
+   * 지우개 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/지우개/` (톰보 MONO 플라스틱 지우개)
+   *
+   * 앞의 것은 길이 : 폭 : 두께 = 1 : 0.47 : 0.38 의 두툼한 덩어리에 옆으로 비낀 조각이 붙어 있었다.
+   *   ① 길이 : 폭 : 두께 = **1 : 0.39 : 0.2** — 납작하다
+   *   ② 한쪽 끝 **0.18 만 드러난 크림빛 고무**, 나머지 0.82 를 슬리브가 감싼다
+   *   ③ 슬리브의 가로 3단 띠 — 파랑 0.38 · 크림 0.19 · 검정 0.43 (인쇄)
+   */
   지우개: () => assemble([
-    // 모서리가 닳은 직육면체 + 종이 띠. 띠가 있어야 지우개로 읽힌다.
-    // **그 띠를 인쇄로 바꿨다** — PAPER 계수는 본체 대비 1.2:1 이라
-    // 「띠가 있어야 읽힌다」고 적어놓고 실제로는 안 보이고 있었다.
-    part(soft(0.94, 0.36, 0.44, 0.2), WHITE, [0, 0.18, 0]),
-    part(soft(0.52, 0.38, 0.46, 0.16), WHITE, [0.04, 0.18, 0], undefined, TILE.ERASER),
-    part(new BoxGeometry(0.20, 0.30, 0.40), WHITE, [-0.50, 0.15, 0], [0, 0, 0.22]),
+    part(soft(1.0, 0.20, 0.39, 0.18), [1.0, 0.98, 0.90], [0, 0.10, 0]),
+    // 슬리브 — 고무보다 아주 조금 크게 감싼다. 한쪽 끝(−x) 0.18 을 남긴다
+    // 슬리브 — 몸통은 무늬 없이, 3단 띠는 윗면 한 장에만. 모든 면에 감으면 옆면 띠가 뒤집혀 보였다(판정자).
+    // 긴 옆면은 띠가 넘어가는 색 — 앞(+z)은 검정, 뒤(−z)는 파랑
+    part(soft(0.82, 0.206, 0.396, 0.08), [0.95, 0.93, 0.85], [0.09, 0.10, 0]),
+    part(new BoxGeometry(0.80, 0.003, 0.39), WHITE, [0.09, 0.2045, 0], undefined, TILE.ERASER),
+    part(new BoxGeometry(0.80, 0.19, 0.003), [0.12, 0.12, 0.12], [0.09, 0.10, 0.1995]),
+    part(new BoxGeometry(0.80, 0.19, 0.003), [0.20, 0.32, 0.72], [0.09, 0.10, -0.1995]),
   ]),
 
   각설탕: () => assemble([
@@ -327,17 +359,31 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
 
   // ─── 버킷 2 (4~8cm) ──────────────────────────────────────────
 
-  크레용: () => assemble([
-    /**
-     * 몸통 + 종이 라벨 + 깎인 끝. 원작 크레용은 색이 곧 정체성이라
-     * `SHAPE_COLOR` 에 6색을 넣어뒀다 — 그래서 **라벨을 `PAPER` 로 두면 안 된다.**
-     * 여섯 색 중 밝은 것에서는 대비가 0.05 다. `WRAP` 이라야 어느 색에서도 흰 띠가 된다.
-     */
-    part(new CylinderGeometry(0.14, 0.14, 0.74, 14), WHITE, [-0.08, 0.14, 0], LIE_X),
-    part(new CylinderGeometry(0.158, 0.158, 0.46, 14), WRAP, [-0.14, 0.14, 0], LIE_X,
-      TILE.PAPER),
-    part(new ConeGeometry(0.14, 0.24, 10), WHITE, [0.41, 0.14, 0], CAP_X),
-  ]),
+  /**
+   * 크레용 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/크레용/` (사쿠라 Hi CRAY-PAS 50색)
+   *
+   * 앞의 것은 **끝이 원뿔로 뾰족하게 깎인** 연필꼴이었다. 사진과 대보니:
+   *   ① 길이 : 지름 = **1 : 0.163** 의 곧은 원기둥 — 끝은 뾰족하지 않고 **뭉툭하게 잘렸다**
+   *   ② 몸통 0.67 을 크라프트 종이가 감싸고, 끝에서 0.03 떨어져 **0.19 폭 올리브 띠**가 두른다
+   *   ③ 반대쪽 끝 **0.11 만** 크레파스 색이 드러난다
+   * 크레파스 색은 팔레트가 정한다(여섯 색). 종이는 팔레트 색에 곱해져 옅은 같은 계열로 나온다 —
+   * 팔레트에 무관한 크라프트색은 곱하기로는 못 만든다.
+   * 치수는 길이 = 1 로 쓴다(드러난 끝이 +x).
+   */
+  크레용: () => {
+    const R = 0.0815, Y = R;
+    return assemble([
+      // ③ 드러난 크레파스 — +x 끝 0.11. 모서리만 살짝 닳았다
+      part(new CylinderGeometry(R * 0.96, R * 0.96, 0.11, 12), WHITE, [0.445, Y, 0], LIE_X),
+      // ① 종이 — 0.67
+      part(new CylinderGeometry(R, R, 0.67, 12, 1, true), [1.55, 1.45, 1.30], [0.055, Y, 0], LIE_X, TILE.PAPER),
+      // ② 올리브 띠 — 0.19, −x 끝에서 0.03 떨어진다
+      part(new CylinderGeometry(R * 1.01, R * 1.01, 0.19, 12, 1, true), [0.78, 0.74, 0.40], [-0.375, Y, 0], LIE_X),
+      // −x 끝 0.03 드러난 크레파스 + 마구리
+      part(new CylinderGeometry(R * 0.96, R * 0.96, 0.03, 12), WHITE, [-0.485, Y, 0], LIE_X),
+    ]);
+  },
 
   /**
    * 캐러멜 (4.4cm) — **실물 사진을 보고 다시 만들었다.**

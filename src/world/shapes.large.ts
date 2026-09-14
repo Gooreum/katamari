@@ -1,9 +1,10 @@
 import {
-  BoxGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, INK, METAL, part, SEG, WHITE, WOOD, WRAP, soft, lip,
+import { assemble, DARK, INK, invert, part, SEG, WHITE, WOOD, WRAP, soft, lip, warp,
+  type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
@@ -206,43 +207,105 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
       part(soft(0.10, 0.13, 0.10, 0.3), WHITE, [x, 0.045, 0.18])),
   ]),
 
-  서랍장: () => assemble([
-    // 3단 나무 서랍장. 손잡이가 서랍을 서랍으로 만든다
-    part(soft(0.82, 0.94, 0.46, 0.1), WHITE, [0, 0.50, 0], undefined, TILE.WOOD_C),
-    part(soft(0.86, 0.06, 0.50, 0.35), WHITE, [0, 1.00, 0]),
-    for3Drawers(0.78),
-    for3Drawers(0.50),
-    for3Drawers(0.22),
-    part(soft(0.12, 0.10, 0.06, 0.3), WOOD, [0, 0.06, 0.22]),
-  ].flat()),
+  /**
+   * 서랍장 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/서랍장/` (古家具 3단 서랍장 정면, 가게 치수 630 × 630mm)
+   *
+   * 앞의 것은 폭 0.83 : 높이 1 의 세로로 긴 몸통에 서랍마다 은색 둥근 손잡이 둘이었다.
+   *   ① **폭과 높이가 같다**(1 : 0.98) — 낮고 네모나다
+   *   ② 서랍 셋의 높이가 위부터 전체의 0.28 · 0.25 · 0.24 로 거의 같다
+   *   ③ 손잡이는 서랍마다 **한가운데 하나**, 서랍 폭 0.21 짜리 가로 나무 막대. 금속이 아니다
+   *   ④ 맨 아래 **짙은 적갈색 걸레받이 띠**(0.066)와 받침 몰딩(0.047)
+   *   ⑤ 옆판·앞 기둥이 서랍 앞판보다 훨씬 짙다 — 서랍 묶음을 짙은 액자가 두른다
+   * 깊이는 사진이 비스듬해 못 쟀다. **예전 발자국 깊이(0.54)를 그대로 둔다** — 서벽에 붙어 서 있어서
+   * 깊어지면 벽을 파고든다. 윗면이 1.00 → 0.96 으로 내려가 `surf-chest` 높이를 같이 맞췄다.
+   * 색은 팔레트(나무 0x9a6b3f)에 곱하는 계수로, 사진의 RGB 를 팔레트로 나눠 잡았다.
+   */
+  서랍장: () => {
+    const W = 1, H = 0.98, D = 0.52;
+    const FRAME: RGB = [0.69, 0.49, 0.38];       // (106,52,24)
+    const FRONT: RGB = [1.34, 1.14, 1.12];       // 붉은 기 도는 호박색 소나무 — 1.46 계열은 게임 조명에서 누렇게 떴다
+    const PULL: RGB = [1.00, 0.72, 0.60];        // 앞판보다 확실히 짙은 갈색 — 사진 손잡이는 몸통 틀 색에 가깝다
+    const BASEBOARD: RGB = [0.96, 0.69, 0.57];   // (148,74,36)
+    // 아래부터 잰 높이 (전체 = 1)
+    const MOLD = 0.047, BOARD = 0.066, SEP3 = 0.016, DR3 = 0.2375, SEP2 = 0.025, DR2 = 0.25,
+      SEP1 = 0.019, DR1 = 0.278, TOP = 0.056;
+    const y3 = MOLD + BOARD + SEP3, y2 = y3 + DR3 + SEP2, y1 = y2 + DR2 + SEP1;
+    const drawers: [number, number][] = [[y3, DR3], [y2, DR2], [y1, DR1]];
+    return assemble([
+      // 몸통 — 짙은 옆판·기둥. 서랍 사이 칸막이가 이 색으로 보인다
+      part(soft(W, H * (1 - TOP), D, 0.04), FRAME, [0, H * (1 - TOP) / 2, 0], undefined, TILE.WOOD_C),
+      // 윗판 — 얇고 옆판과 거의 같은 선. 두껍게 튀어나오면 판정자가 「둥근 윗판이 크게 튀어나왔다」고 한다
+      part(soft(W + 0.006, H * TOP, D + 0.012, 0.12), [1.05, 0.86, 0.80], [0, H * (1 - TOP / 2), 0.006], undefined, TILE.WOOD_C),
+      // ④ 걸레받이 + 몰딩
+      part(new BoxGeometry(W - 0.05, H * BOARD, 0.012), BASEBOARD, [0, H * (MOLD + BOARD / 2), D / 2 + 0.006]),
+      part(soft(W + 0.01, H * MOLD, D + 0.01, 0.3), FRAME, [0, H * MOLD / 2, 0]),
+      // ② 서랍 앞판 셋 + ③ 가운데 나무 막대 손잡이
+      ...drawers.flatMap(([y, h]) => [
+        // 서랍 앞판 — 옆 기둥(폭의 0.05)과 칸막이 틀 «안»에 들어간다. 꽉 채우면 틀이 안 보인다
+        part(new BoxGeometry(W * 0.90, H * h * 0.94, 0.014), FRONT, [0, H * (y + h / 2), D / 2 + 0.007],
+          undefined, TILE.WOOD_C),
+        // ③ 손잡이 — 반원통 막대, 양 끝이 비스듬히 깎여 윗변이 아랫변보다 길다
+        part(warp(new CylinderGeometry(0.036, 0.036, W * 0.21, 10), (x, yy, z) => [x, yy * (x > 0 ? 1 : 0.72), z]),
+          PULL, [0, H * (y + h / 2), D / 2 + 0.02], [0, 0, Math.PI / 2]),
+      ]),
+      // 맨 아래 서랍의 열쇠 구멍
+      part(new BoxGeometry(0.012, 0.02, 0.006), INK, [0, H * (y3 + DR3 * 0.82), D / 2 + 0.015]),
+    ]);
+  },
 
   /**
-   * 갓 달린 스탠드. 갓과 가는 기둥이 실루엣이다.
+   * 스탠드 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/스탠드/` (ミツボシ 플로어 스탠드, 가게 치수 높이 155.5 · 폭 35.5cm)
    *
-   * **갓을 좁혔다 (지름 0.68 → 0.46).** 예전 갓은 «키의 57%» 였는데 실물 플로어
-   * 스탠드는 27% 쯤이다. 그 차이가 화면이 아니라 **충돌 상자**에서 터졌다 —
-   * 손배치 스탠드(size 1.20)의 AABB 가 0.83m 라
-   *   ① 거실 동벽 안쪽 면(x 2.63)을 **0.21m 뚫고** 나갔고
-   *   ② `spot-shelf-front`(책장 앞 책 10권)를 **통째로 덮어** 공이 못 닿았다.
-   * 둘 다 화면으로는 안 보이는 결함이고, `buildBlocked` 가 손배치 발판을 보게
-   * 되면서 처음 드러났다.
+   * 앞의 것은 **갓이 위아래로 뒤집혀 있었다** — `CylinderGeometry(0.23, 0.14, …)` 는
+   * 위 반지름을 먼저 받아서 위가 넓은 원뿔대가 됐고, 위아래 테는 아래가 넓은 갓에 맞춰져
+   * 있어서 아래 테가 허공에 떠 있었다. 그리고 갓 지름이 키의 0.46 으로 **두 배 넓었다.**
+   *   ① 갓은 **아래가 넓다** — 위 : 아래 : 높이 = 0.67 : 1 : 0.68, 아래 지름 = 키의 0.23
+   *   ② 가는 **나무 기둥**이 키의 0.73 — 굵기는 갓 아래 지름의 0.08, 가운데 금색 이음 링
+   *   ③ 받침은 **납작한 금색 원판** — 갓 아래 지름의 0.78
+   *   ④ 갓 위아래에 금갈색 가는 테
+   * 치수는 키 = 1 로 쓴다. 갓이 좁아져서 예전 충돌 상자 문제(아래 기록)는 더 멀어졌다.
+   *
+   * > 예전 기록: 갓 지름 0.68 일 때 손배치 스탠드(size 1.20)의 AABB 가 0.83m 라
+   * > 거실 동벽을 0.21m 뚫고 `spot-shelf-front` 를 덮었다.
    */
-  스탠드: () => assemble([
-    part(new CylinderGeometry(0.22, 0.22, 0.06, 20), WHITE, [0, 0.03, 0], undefined, TILE.CLOTH),
-    part(new CylinderGeometry(0.035, 0.035, 0.62, 10), METAL, [0, 0.35, 0]),
-    part(new CylinderGeometry(0.23, 0.14, 0.36, 20), WHITE, [0, 0.82, 0], undefined, TILE.CLOTH),
-    // 갓 안쪽 — 밝게 둬야 불이 켜진 것처럼 보인다
-    // 갓 «안». 불이 켜져 있으니 바깥보다 훨씬 밝아야 한다 — `[1,0.95,0.75]` 는
-    // 갓 천과 대비가 0.04 라 그냥 같은 색이었다
-    // 갓 «안» — 바닥면이 갓 아래 테와 같은 평면이면 z-fighting 이다. 살짝 위로
-    part(new CylinderGeometry(0.20, 0.12, 0.04, 20), WRAP, [0, 0.685, 0]),
-    part(new SphereGeometry(0.09, 14, 9), WRAP, [0, 0.72, 0], undefined, TILE.METAL),
-    // 갓 위아래 테. **갓의 윤곽을 그리는 건 천이 아니라 이 테다** —
-    // 원뿔대 하나만 있으면 옆에서 사다리꼴 색면으로 보인다.
-    // `PAPER`(대비 0.05)를 짙은 쪽으로 바꿔야 그 윤곽이 실제로 그려진다
-    part(new TorusGeometry(0.228, 0.018, 6, 20), [0.52, 0.48, 0.42], [0, 0.64, 0], LIE_Z),
-    part(new TorusGeometry(0.138, 0.016, 6, 14), [0.52, 0.48, 0.42], [0, 1.00, 0], LIE_Z),
-  ]),
+  스탠드: () => {
+    const SHADE: RGB = [1.00, 0.94, 0.74];   // 상아색 천 — 불빛이 비쳐 따뜻하다
+    const WOODEN: RGB = [0.50, 0.27, 0.04];  // 꿀색 나무 기둥
+    const BRASS: RGB = [0.98, 0.78, 0.26];   // 번쩍이는 황동 — 0.62 계열은 「회갈색」으로 읽혔다
+    const TRIM: RGB = [0.70, 0.62, 0.31];    // 금갈색 테 (170,151,75)
+    const R_BOT = 0.1126, R_TOP = 0.0754, S_BOT = 0.826, S_TOP = 0.979;
+    const S_H = S_TOP - S_BOT, S_Y = (S_TOP + S_BOT) / 2;
+    /**
+     * **삼각형을 아낀다.** 스탠드는 길거리 규모 씬에 210개 깔려서 형태 하나 +100 이 씬 +21,000 이다.
+     * 1cm 도 안 되는 부품(이음 링 · 꼭대기 고리 · 고무 테)은 이 크기에서 안 보이므로 뺐고,
+     * 테는 단면 3각, 갓은 16면이다.
+     */
+    return assemble([
+      // ③ 받침 — 납작한 금색 원판
+      part(new CylinderGeometry(0.085, 0.087, 0.027, 16), BRASS, [0, 0.0135, 0]),
+      // 기둥 가운데 금색 이음 링 — 210개가 깔려 받침 위 링은 뺐다
+      part(new TorusGeometry(0.0105, 0.0035, 3, 10), BRASS, [0, 0.424, 0], LIE_Z),
+      // 받침 위 항아리 모양 발목
+      part(new CylinderGeometry(0.009, 0.013, 0.038, 8, 1, true), WOODEN, [0, 0.046, 0]),
+      // ② 나무 기둥 + 갓 밑 황동 대롱
+      part(new CylinderGeometry(0.0093, 0.0093, 0.69, 8, 1, true), WOODEN, [0, 0.065 + 0.345, 0], undefined, TILE.WOOD_F),
+      part(new CylinderGeometry(0.0068, 0.0068, 0.08, 6, 1, true), BRASS, [0, 0.79, 0]),
+      // 전구 — 갓 안에서 켜져 있다
+      part(new SphereGeometry(0.03, 8, 5), WRAP, [0, 0.85, 0]),
+      // ① 갓 — 아래가 넓은 원뿔대. 위 반지름을 «먼저» 쓴다
+      // 천 결 인쇄는 뺐다 — 격자로 읽혀 판정자가 「바구니」라고 했다
+      part(new CylinderGeometry(R_TOP, R_BOT, S_H, 16, 1, true), SHADE, [0, S_Y, 0]),
+      // 갓 안쪽 — 불이 켜져 밝다. 안을 보게 뒤집는다
+      part(invert(new CylinderGeometry(R_TOP - 0.002, R_BOT - 0.002, S_H, 16, 1, true)), WRAP, [0, S_Y, 0]),
+      // 갓 윗면 — 천을 덮은 원판(윗면만)
+      part(new CircleGeometry(R_TOP, 16), SHADE, [0, S_TOP, 0], [-Math.PI / 2, 0, 0]),
+      // ④ 위아래 테 — 넓은 쪽이 아래
+      part(new TorusGeometry(R_BOT, 0.0035, 3, 16), TRIM, [0, S_BOT, 0], LIE_Z),
+      part(new TorusGeometry(R_TOP, 0.003, 3, 16), TRIM, [0, S_TOP, 0], LIE_Z),
+    ]);
+  },
 
   물뿌리개: () => assemble([
     // 뒷마당 것. 긴 주둥이와 장미꼭지가 실루엣의 전부다
@@ -259,17 +322,3 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     part(new TorusGeometry(0.16, 0.04, 4, 10, Math.PI), WHITE, [0, 0.74, 0], [0, Math.PI / 2, 0]),
   ]),
 };
-
-/**
- * 서랍 한 단 — 앞판 + 손잡이 둘.
- *
- * 세 단이 같은 구성이라 함수로 뺀다. `assemble` 은 평평한 배열을 받으므로
- * 호출부에서 `.flat()` 한다.
- */
-function for3Drawers(y: number) {
-  return [
-    part(new BoxGeometry(0.70, 0.24, 0.03), WOOD, [0, y, 0.235]),
-    part(new CylinderGeometry(0.045, 0.045, 0.06, 14), METAL, [0.18, y, 0.27], LIE_Z),
-    part(new CylinderGeometry(0.045, 0.045, 0.06, 14), METAL, [-0.18, y, 0.27], LIE_Z),
-  ];
-}
