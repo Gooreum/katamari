@@ -17,6 +17,7 @@
     "shapecheck": "tsx tools/shapecheck.ts",
     "roadcheck": "tsx tools/roadcheck.ts",
     "placecheck": "tsx tools/placecheck.ts",
+    "housecheck": "tsx tools/housecheck.ts",
     "handling": "tsx tools/handling.ts",
     "spawncheck": "tsx tools/spawncheck.ts",
     "shot": "node tools/shot.mjs"
