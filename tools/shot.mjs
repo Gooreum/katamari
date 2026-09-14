@@ -15,8 +15,11 @@ const [, , url, out, waitMs = '4000', w = '1280', h = '800', js = ''] = process.
  * 포트 9333을 물고 있으면 `Page.captureScreenshot` 이 매달린 채로 프로세스가
  * 남고, 이걸 부르는 e2e 스위트가 통째로 잠긴다 (실제로 20분 넘게 잠겼다).
  * 대기시간 + 여유의 3배를 넘기면 실패로 죽는다. 조용히 매달리는 것보다 낫다.
+ *
+ * 기계가 붐비면 페이지를 짓는 데만 100초를 넘긴다(2026-09-14, 다른 작업의 jest 7개로 부하 평균 40).
+ * 그때는 `SHOT_TIMEOUT_MS` 로 늘린다. 조용히 매달리는 걸 막는 선이지 속도 기준이 아니다.
  */
-const HARD_TIMEOUT = Number(waitMs) * 3 + 90_000;
+const HARD_TIMEOUT = Number(process.env['SHOT_TIMEOUT_MS']) || Number(waitMs) * 3 + 90_000;
 const killer = setTimeout(() => {
   console.error(`shot.mjs 타임아웃 (${HARD_TIMEOUT}ms) — CDP가 응답하지 않습니다`);
   process.exit(2);
