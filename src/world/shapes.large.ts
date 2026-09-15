@@ -21,6 +21,13 @@ const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
  * 7종뿐이라 종당 부품을 넉넉히 쓴다 — 이 크기에서는 실루엣만으로 안 되고
  * 다리·서랍·손잡이가 보여야 가구로 읽힌다.
  */
+/**
+ * **고양이만 면 수를 한 단 낮춘다.** 거리 장면에 고양이가 170마리라 한 마리 2080 삼각형이
+ * 씬 예산(200만)의 18% 를 먹었다(2026-09-16, 여유 3%). 몸통 20 → 16, 머리·다리 14 → 11,
+ * 작은 부품 10 → 8. 모양을 정하는 비율 · 위치는 한 글자도 안 바꿨다.
+ */
+const CAT_SEG = { BIG: 16, MID: 11, SMALL: 8 } as const;
+
 export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
   /**
    * 고양이 — **앉은 자세로 다시 세웠다.**
@@ -55,19 +62,19 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
      * 몸통 하나 — 아래가 무겁고 위가 좁은 «달걀». 이것 하나가 앉은 자세의
      * 실루엣 대부분을 만든다. 부품을 늘리는 대신 이걸 키웠다.
      */
-    part(new SphereGeometry(0.27, SEG.BIG, 11).scale(0.96, 1.42, 0.98), WHITE, [-0.03, 0.44, 0]),
+    part(new SphereGeometry(0.27, CAT_SEG.BIG, 11).scale(0.96, 1.42, 0.98), WHITE, [-0.03, 0.44, 0]),
     // 엉덩이 — 몸통 아래에 «반쯤 파묻어» 뒤로 퍼지게 한다. 경계가 안 생긴다
-    part(new SphereGeometry(0.275, SEG.MID, 10).scale(1.02, 0.74, 1.06), WHITE, [-0.135, 0.225, 0]),
+    part(new SphereGeometry(0.275, CAT_SEG.MID, 10).scale(1.02, 0.74, 1.06), WHITE, [-0.135, 0.225, 0]),
     // 가슴 — 앞으로 부푼다. 앞다리가 여기서 내려온다
-    part(new SphereGeometry(0.185, SEG.MID, 9).scale(0.92, 1.15, 0.88), WHITE, [0.115, 0.40, 0]),
+    part(new SphereGeometry(0.185, CAT_SEG.MID, 9).scale(0.92, 1.15, 0.88), WHITE, [0.115, 0.40, 0]),
     /**
      * 머리 — **몸통에 박는다.** 몸통 꼭대기가 y 0.82, 머리 중심이 0.90, 반지름 0.205 라
      * 아래 절반이 몸통 안에 들어간다. 목을 따로 두지 않는 이유가 이것이다.
      */
-    part(new SphereGeometry(0.205, SEG.MID, 9).scale(1.0, 0.96, 1.02), WHITE, [0.055, 0.905, 0]),
+    part(new SphereGeometry(0.205, CAT_SEG.MID, 9).scale(1.0, 0.96, 1.02), WHITE, [0.055, 0.905, 0]),
     // 볼 — 고양이 얼굴은 정수리보다 아래가 넓다. 매끈한 공은 인형이다
     ...([1, -1] as const).map((k) =>
-      part(new SphereGeometry(0.105, SEG.SMALL, 6).scale(1.0, 0.82, 0.92), WHITE,
+      part(new SphereGeometry(0.105, CAT_SEG.SMALL, 6).scale(1.0, 0.82, 0.92), WHITE,
         [0.105, 0.845, k * 0.115])),
     /**
      * 귀 — **납작한 삼각형.** 정원뿔을 세우면 화면에서 «뿔»이고 실제로 그렇게 보였다.
@@ -96,7 +103,7 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
      *   ② 눈을 키우고 **흰 테**를 두른다. 살구색 얼굴에 검은 점만 있으면 얼룩이다
      *   ③ 코 밑에 **입선**을 넣는다. 코 하나로는 얼굴 «가운데»가 안 잡힌다
      */
-    part(new SphereGeometry(0.098, SEG.SMALL, 7).scale(1.20, 0.68, 1.24), [0.66, 0.57, 0.53],
+    part(new SphereGeometry(0.098, CAT_SEG.SMALL, 7).scale(1.20, 0.68, 1.24), [0.66, 0.57, 0.53],
       [0.208, 0.850, 0]),
     part(new SphereGeometry(0.040, SEG.TINY, 5).scale(1.15, 0.85, 1.0), [0.94, 0.46, 0.52],
       [0.268, 0.878, 0]),
@@ -114,8 +121,8 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
      * 이 세로선이 「앉았다」를 만든다.
      */
     ...([0.082, -0.082] as const).flatMap((z) => [
-      part(new CylinderGeometry(0.056, 0.066, 0.40, SEG.SMALL), WHITE, [0.175, 0.20, z]),
-      part(new SphereGeometry(0.072, SEG.SMALL, 6).scale(1.25, 0.62, 0.86), WHITE,
+      part(new CylinderGeometry(0.056, 0.066, 0.40, CAT_SEG.SMALL), WHITE, [0.175, 0.20, z]),
+      part(new SphereGeometry(0.072, CAT_SEG.SMALL, 6).scale(1.25, 0.62, 0.86), WHITE,
         [0.212, 0.038, z]),
     ]),
     // 꼬리 — 몸통을 감아 앞발 옆으로 돌아 나온다. 사진에서 본 것
