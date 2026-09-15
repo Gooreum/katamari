@@ -566,7 +566,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     const KW = 1 - TW - 0.008, KX = 0.5 - KW / 2, KD = 0.42, KZ = TD / 2 - KD / 2, KH = TH * 0.98;
     return assemble([
       // ① 깊은 통
-      ...basin(TW, TD, TH - 0.02, WALL, [0.74, 0.86, 0.88], AQUA, TILE.CERAMIC)
+      // 도기 인쇄는 뺐다 — 옆면에 「얼룩무늬」로 찍혔다(트랙 D)
+      ...basin(TW, TD, TH - 0.02, WALL, [0.74, 0.86, 0.88], AQUA)
         .map((q) => part(q.geo, q.rgb, [TX, 0, 0], undefined, q.tile)),
       // 말린 테 — 띠 넷(판 한 장이면 통을 덮어 궤짝이 된다)
       part(soft(TW + 0.02, 0.04, 0.05, 0.45), RIM, [TX, TH - 0.02, TD / 2 - 0.015]),
@@ -575,8 +576,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       // 수면 — 테에서 한 뼘 아래
       part(new BoxGeometry(TW - WALL * 2 - 0.012, 0.012, TD - WALL * 2 - 0.012), [0.55, 0.78, 0.95], [TX, TH * 0.74, 0], undefined, TILE.WATER),
       // ③ 뚜껑 판 두 장 — 왼쪽 0.6, 위 판은 조금 비껴
-      part(new BoxGeometry(TW * 0.6, 0.044, TD + 0.02), [0.70, 0.74, 0.72], [-0.5 + TW * 0.3, TH + 0.024, 0]),
-      part(new BoxGeometry(TW * 0.5, 0.044, TD + 0.02), [0.76, 0.80, 0.78], [-0.5 + TW * 0.25 + 0.02, TH + 0.068, 0]),
+      part(new BoxGeometry(TW * 0.6, 0.03, TD + 0.02), [0.70, 0.74, 0.72], [-0.5 + TW * 0.3, TH + 0.017, 0]),
+      part(new BoxGeometry(TW * 0.45, 0.03, TD + 0.02), [0.80, 0.84, 0.82], [-0.5 + TW * 0.25 + 0.05, TH + 0.047, 0]),
       // ② 가마 — 몸통 · 검은 조작 띠 · 점화 창 · 윗면 홈판 · ⊓ 급탕관
       part(new BoxGeometry(KW, KH, KD), [0.60, 0.60, 0.56], [KX, KH / 2, KZ]),
       part(new BoxGeometry(KW + 0.004, KH * 0.11, 0.006), [0.07, 0.07, 0.07], [KX, KH * (1 - 0.055), TD / 2 + 0.003]),
@@ -607,16 +608,19 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     // ② 그릇 — 발(아래) → 테(위)로 넓어지는 타원 기둥. 아래가 뒤로 물러나 앞면이 기운다
     const bowl = warp(new CylinderGeometry(1, 1, RIM_Y, 16, 3), (x, y, z) => {
       const t = y / RIM_Y + 0.5;
-      const rx = 0.14 + (0.22 - 0.14) * t, rz = 0.235 + (0.29 - 0.235) * t, cz = 0.095 + (0.13 - 0.095) * t;
+      // 그릇 뒤가 탱크까지 닿게 중심을 뒤로 — 앞의 것은 그릇이 탱크와 떨어져 따로 섰다(트랙 D)
+      const rx = 0.14 + (0.22 - 0.14) * t, rz = 0.26 + (0.30 - 0.26) * t, cz = 0.04 + (0.10 - 0.04) * t;
       return [x * rx, y, z * rz + cz];
     });
     return assemble([
       part(bowl, IVORY, [0, RIM_Y / 2, 0], undefined, TILE.CERAMIC),
       // ③ 변좌 링 + 닫힌 뚜껑
-      part(new TorusGeometry(1, 0.1, 5, 18).scale(0.21, 0.29, 1), SEAT, [0, RIM_Y + 0.012, 0.13], [Math.PI / 2, 0, 0]),
-      part(new CylinderGeometry(1, 1, 0.022, 18).scale(0.205, 1, 0.28), SEAT, [0, RIM_Y + 0.036, 0.12]),
+      // 변좌 링 — 관 두께를 z 로도 눌러야 한다. 1 로 두었더니 세로 0.2 두께 벽이 되어 뚜껑을 삼키고
+      // 「윗면이 뚫린 원통」으로 읽혔다(트랙 D)
+      part(new TorusGeometry(1, 0.1, 5, 18).scale(0.21, 0.29, 0.22), SEAT, [0, RIM_Y + 0.012, 0.10], [Math.PI / 2, 0, 0]),
+      part(new CylinderGeometry(1, 1, 0.022, 18).scale(0.205, 1, 0.28), [1.0, 0.99, 0.95], [0, RIM_Y + 0.035, 0.10]),
       // 탱크 받침 — 그릇 뒤를 탱크 밑까지 잇는다
-      part(soft(0.30, 0.10, 0.20, 0.3), IVORY, [0, RIM_Y - 0.03, -0.20]),
+      part(soft(0.30, RIM_Y, 0.20, 0.3), IVORY, [0, RIM_Y / 2, -0.20]),
       // ① 탱크 몸통 + 넓은 뚜껑
       part(soft(0.52, 0.49, 0.26, 0.12), IVORY, [0, TANK_Y + 0.245, -0.29], undefined, TILE.CERAMIC),
       part(soft(0.54, 0.045, 0.275, 0.3), IVORY, [0, 0.9775, -0.29]),
@@ -639,11 +643,12 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    */
   세면대: () => {
     const W = 0.98, D = 0.59, BASE = 0.19, DOOR = 0.76, TOP = 1 - BASE - DOOR;
-    const GRAY: RGB = [0.78, 0.78, 0.74], BLACK: RGB = [0.12, 0.12, 0.13], BLUE: RGB = [0.52, 0.71, 0.93];
+    // 문 — 따뜻한 빛에서 누런 회갈색으로 떴다(트랙 D). 차가운 밝은 회색으로
+    const GRAY: RGB = [0.74, 0.76, 0.79], BLACK: RGB = [0.12, 0.12, 0.13], BLUE: RGB = [0.52, 0.71, 0.93];
     const BW = 0.645, BD = 0.50, BH = 0.25, CT = 0.035;
     return assemble([
       // ① 굽 — 조금 들어간 짙은 판
-      part(new BoxGeometry(W - 0.03, BASE, D - 0.04), [0.64, 0.61, 0.55], [0, BASE / 2, -0.02]),
+      part(new BoxGeometry(W - 0.03, BASE, D - 0.04), [0.62, 0.48, 0.34], [0, BASE / 2, -0.02]),
       // 몸통 + 문 두 짝 + 둥근 꼭지
       part(new BoxGeometry(W, DOOR + TOP - CT, D - 0.01), GRAY, [0, BASE + (DOOR + TOP - CT) / 2, -0.005]),
       ...([1, -1] as const).flatMap((k) => [

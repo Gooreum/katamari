@@ -221,6 +221,10 @@ export const TILE = {
   TOWEL: 63,
   /** 함석(아연 도금) — 회색 바탕에 밝은 결정 얼룩(스팽글)이 흩어진 판 */
   SPANGLE: 64,
+  /** 도토리 깍정이 — 회색빛 베이지에 짙은 갈색 점이 비늘처럼 줄지어 박힌 무늬 */
+  CUPULE: 65,
+  /** 벚꽃잎 — 거의 흰 몸에 밑동(u=0) 쪽 0.2 만 분홍, 밑동에서 퍼지는 옅은 잎맥 */
+  PETAL: 66,
 } as const;
 
 /**
@@ -1207,8 +1211,14 @@ export function buildPrintAtlas(): CanvasTexture {
       cx.fillStyle = 'rgba(120,120,110,0.10)';
       cx.fillRect(rnd(i * 53 + 7, CELL), rnd(i * 29 + i * i + 1, CELL), 2, 2);
     }
-    cx.fillStyle = '#444456';
-    cx.fillRect(0, 6, CELL, 2); cx.fillRect(0, CELL - 8, CELL, 2);
+    // 분홍 사선 줄무늬(main.jpg 파란 장미 수건) — 판정자가 「줄무늬가 없다」고 했다
+    cx.fillStyle = 'rgba(228,173,176,0.45)';
+    for (let k = -4; k < 8; k++) {
+      cx.beginPath(); cx.moveTo(k * 22, 0); cx.lineTo(k * 22 + 8, 0); cx.lineTo(k * 22 + 8 + CELL * 0.4, CELL); cx.lineTo(k * 22 + CELL * 0.4, CELL); cx.fill();
+    }
+    // 파란 실 — 검은 선으로 읽혀(트랙 D) 가늘고 옅은 파랑으로
+    cx.fillStyle = '#7080a8';
+    cx.fillRect(0, 7, CELL, 1); cx.fillRect(0, CELL - 8, CELL, 1);
     // 꽃 — 여섯 잎 + 가운데, 초록 잎 둘
     cx.fillStyle = '#5aa84e';
     cx.beginPath(); cx.ellipse(CELL * 0.38, CELL * 0.66, 16, 7, 0.6, 0, Math.PI * 2); cx.fill();
@@ -1226,9 +1236,9 @@ export function buildPrintAtlas(): CanvasTexture {
    * (165,170,168). 곱셈이라 바탕을 0.6 회색으로 칠하고 밝은 조각을 흰색으로 — 부품 계수가 전체 밝기를 정한다.
    */
   at(TILE.SPANGLE, () => {
-    cx.fillStyle = '#999999'; cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#c4c4c4'; cx.fillRect(0, 0, CELL, CELL);
     for (let i = 0; i < 60; i++) {
-      cx.fillStyle = i % 3 ? 'rgba(255,255,255,0.85)' : 'rgba(90,90,90,0.5)';
+      cx.fillStyle = i % 3 ? 'rgba(255,255,255,0.85)' : 'rgba(120,120,120,0.30)';
       const x = rnd(i * 61 + 11, CELL), y = rnd(i * 37 + i * i + 5, CELL);
       cx.beginPath();
       cx.moveTo(x, y); cx.lineTo(x + 4 + rnd(i * 7, 10), y + rnd(i * 3, 6));
@@ -1733,6 +1743,29 @@ export function buildPrintAtlas(): CanvasTexture {
     }
     cx.strokeStyle = '#eeeae2'; cx.lineWidth = 4;
     cx.beginPath(); cx.roundRect(9, 9, CELL - 18, CELL - 18, 12); cx.stroke();
+  });
+
+  /** 도토리 깍정이 — `ref/도토리/`. 바탕 (204,176,158) 에 비늘 끝 점 (80,68,65) 이 엇갈려 줄지어 박힌다 */
+  at(TILE.CUPULE, () => {
+    cx.fillStyle = '#ccb09e'; cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#504441';
+    for (let r = 0; r < 10; r++) for (let k = 0; k < 11; k++) {
+      cx.beginPath(); cx.ellipse((k + (r % 2) * 0.5) * CELL / 11, (r + 0.5) * CELL / 10, 2.6, 2, 0, 0, Math.PI * 2); cx.fill();
+    }
+  });
+
+  /**
+   * 벚꽃잎 — `ref/꽃잎/`. 몸 (233,231,229) 에 밑동 쪽 0.15~0.2 만 분홍 (187,140,162) 이 부채꼴로 옅어진다.
+   * 판 uv 의 u = 0 이 밑동이다. 부품 정점색은 흰색이라 이 칸의 색이 그대로 나온다.
+   */
+  at(TILE.PETAL, () => {
+    const g = cx.createLinearGradient(0, 0, CELL * 0.28, 0);
+    g.addColorStop(0, '#bb8ca2'); g.addColorStop(0.55, '#dcc3cf'); g.addColorStop(1, '#e9e7e5');
+    cx.fillStyle = g; cx.fillRect(0, 0, CELL, CELL);
+    cx.strokeStyle = 'rgba(170,165,165,0.35)'; cx.lineWidth = 1;
+    for (let k = -3; k <= 3; k++) {
+      cx.beginPath(); cx.moveTo(0, CELL / 2); cx.lineTo(CELL * 0.9, CELL / 2 + k * CELL * 0.11); cx.stroke();
+    }
   });
 
   const tex = new CanvasTexture(cv);

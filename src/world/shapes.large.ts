@@ -3,12 +3,11 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdLarge } from './generation';
-import { assemble, DARK, INK, invert, part, SEG, WHITE, WOOD, WRAP, soft, lip, warp,
+import { assemble, INK, invert, part, SEG, WHITE, WRAP, soft, warp,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
-const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
 
 /**
@@ -130,29 +129,80 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
       [Math.PI / 2, 0, 0.55]),
   ]),
 
-  의자: () => assemble([
-    // 등받이 있는 나무 의자. 다리 넷이 보여야 의자다
-    part(soft(0.62, 0.08, 0.58, 0.3), WHITE, [0, 0.52, 0], undefined, TILE.WOOD_C),
-    part(soft(0.62, 0.60, 0.08, 0.3), WHITE, [0, 0.82, -0.25], undefined, TILE.WOOD_C),
-    part(soft(0.52, 0.08, 0.06, 0.3), WHITE, [0, 0.66, -0.25]),
-    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [0.26, 0.26, 0.24]),
-    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [-0.26, 0.26, 0.24]),
-    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [0.26, 0.26, -0.24]),
-    part(soft(0.07, 0.52, 0.07, 0.3), WOOD, [-0.26, 0.26, -0.24]),
-  ]),
+  /**
+   * 의자(쇼와 식탁 의자) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/의자/` (빨간 비닐 좌판 · 등판 쇠파이프 의자 정면 · 뒤 3/4, 표기 W36 D43 H72 SH41 ·
+   * 松戸市立博物館 常盤平団地 재현 전시)
+   *
+   * 앞의 것은 두꺼운 나무 좌판 · 판 등받이 · 네모 나무 다리였다. 사진과 대보니:
+   *   ① 폭 : 깊이 : 높이 = **0.5 : 0.6 : 1**, 좌면 높이가 전체의 **0.57**
+   *   ② 좌판은 폭의 0.057 두께 **얇은 빨간 비닐**, 등판은 높이 : 폭 = 0.65 인 둥근 모서리 판이
+   *      좌판 위로 **틈(등판 폭의 0.30)을 두고 떠 있다** — 틈에는 쇠파이프 기둥 둘만
+   *   ③ 뒷다리와 등판 기둥이 **한 가닥 파이프**로 좌판 높이에서 「く」자로 꺾여 뒤로 젖혀진다
+   *   ④ 앞다리 사이 좌면 높이 0.69 에 가로 받침봉 하나, 파이프 굵기 약 1.9 cm 녹갈색
+   * 나무 팔레트(7)에 곱하면 빨간 비닐이 갈색이 된다 — 팔레트는 흰색. 치수는 높이 = 1 로 쓴다(앞 +z).
+   */
+  의자: () => {
+    const W = 0.5, D = 0.6, SEAT = 0.57, ST = 0.057 * W, R = 0.013, LEAN = 0.2;
+    const RED: RGB = [0.90, 0.19, 0.15], PIPE: RGB = [0.30, 0.20, 0.10];
+    const BACK_H = 0.65 * W * 0.9, GAP = 0.30 * W * 0.9;
+    const yBack = SEAT + ST + GAP + BACK_H / 2, zBack = -D / 2 + 0.02 - Math.tan(LEAN) * (GAP + BACK_H / 2);
+    const upH = GAP + BACK_H * 0.85;
+    return assemble([
+      // ② 얇은 비닐 좌판 + 처진 받침
+      part(soft(W, ST, D * 0.9, 0.45), RED, [0, SEAT + ST / 2, 0.02]),
+      part(new BoxGeometry(W * 0.8, 0.02, D * 0.7), [0.18, 0.14, 0.10], [0, SEAT - 0.012, 0.02]),
+      // 등판 — 뒤로 젖힌 둥근 판
+      part(soft(W * 0.9, BACK_H, 0.035, 0.45), RED, [0, yBack, zBack], [-LEAN, 0, 0]),
+      // 앞다리 둘 + ④ 가로 받침봉
+      ...([1, -1] as const).map((k) =>
+        part(new CylinderGeometry(R, R, SEAT, 6), PIPE, [k * (W / 2 - 0.05), SEAT / 2, D / 2 - 0.08])),
+      part(new CylinderGeometry(R * 0.9, R * 0.9, W - 0.1, 6), PIPE, [0, SEAT * 0.69, D / 2 - 0.08], [0, 0, Math.PI / 2]),
+      // ③ 뒷다리 + 등판 기둥 — 좌판 높이에서 꺾여 뒤로 젖혀진다
+      ...([1, -1] as const).flatMap((k) => [
+        part(new CylinderGeometry(R, R, SEAT, 6), PIPE, [k * (W / 2 - 0.05), SEAT / 2, -D / 2 + 0.04]),
+        part(new CylinderGeometry(R, R, upH, 6), PIPE,
+          [k * (W / 2 - 0.12), SEAT + upH / 2, -D / 2 + 0.03 - Math.tan(LEAN) * upH / 2], [-LEAN, 0, 0]),
+      ]),
+      // 발끝 흰 마개
+      ...([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).map(([kx, kz]) =>
+        part(new CylinderGeometry(R * 1.2, R * 1.2, 0.02, 6), [0.92, 0.90, 0.85], [kx * (W / 2 - 0.05), 0.01, kz > 0 ? D / 2 - 0.08 : -D / 2 + 0.04])),
+    ]);
+  },
 
-  스툴: () => assemble([
-    // 등받이 없는 둥근 걸상. 의자와 실루엣이 달라야 둘 다 두는 의미가 있다
-    part(new CylinderGeometry(0.34, 0.34, 0.10, 20), WHITE, [0, 0.55, 0], undefined, TILE.WOOD_C),
-    part(new CylinderGeometry(0.30, 0.30, 0.06, 20), WHITE, [0, 0.62, 0]),
-    part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [0.20, 0.26, 0.20], [0.06, 0, -0.06], TILE.WOOD_C),
-    part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [-0.20, 0.26, 0.20], [0.06, 0, 0.06]),
-    part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [0.20, 0.26, -0.20], [-0.06, 0, -0.06]),
-    part(new CylinderGeometry(0.05, 0.06, 0.52, 20), WOOD, [-0.20, 0.26, -0.20], [-0.06, 0, 0.06]),
-    // 가로대 — 다리만 넷이면 허공에 뜬 판으로 보인다
-    part(new CylinderGeometry(0.025, 0.025, 0.40, 14), WOOD, [0, 0.16, 0.20], LIE_X),
-    part(new CylinderGeometry(0.025, 0.025, 0.40, 14), WOOD, [0, 0.16, -0.20], LIE_X),
-  ]),
+  /**
+   * 스툴(쇼와 둥근 걸상) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/스툴/` (초록 비닐 좌판 · 검은 쇠다리 정측면 · 빨간 비닐 크롬 다리 표기 357 × 430 mm · 밑면)
+   *
+   * 앞의 것은 두꺼운 나무 원판에 벌어진 나무 다리 넷과 가로대 둘이었다. 사진과 대보니:
+   *   ① 좌판 지름 : 높이 = **1 : 1.2~1.4** — 앞의 것(1 : 0.95)보다 훨씬 높다
+   *   ② 좌판은 지름의 **0.1** 두께에 가장자리가 둥글게 말린 **비닐 쿠션**
+   *   ③ 다리는 벌어지지 않고 좌판 테두리 바로 안쪽에서 **곧게** 내려오는 가는 쇠파이프 넷(지름의 0.057),
+   *      위끝이 둥글게 굽어 좌판 밑에서 **X자**로 엇갈린다. 가로대는 없다
+   *   ④ 발끝의 밝은 마개(다리 굵기의 1.5배 높이)
+   * 팔레트는 초록 · 빨강 비닐(11 · 8). 치수는 높이 = 1 로 쓴다.
+   */
+  스툴: () => {
+    const H = 1, DIA = 1 / 1.3, SEAT_T = 0.1 * DIA, R = 0.057 * DIA / 2, LEGR = DIA / 2 - 0.035;
+    const LEGC: RGB = [0.10, 0.10, 0.11];
+    return assemble([
+      // ② 비닐 쿠션 — 원판 + 둥글게 말린 가장자리
+      part(new CylinderGeometry(DIA / 2 - SEAT_T / 2, DIA / 2 - SEAT_T / 2, SEAT_T, 14), [0.8, 0.53, 0.88], [0, H - SEAT_T / 2, 0]),
+      part(new TorusGeometry(DIA / 2 - SEAT_T / 2, SEAT_T / 2, 4, 14), [0.8, 0.53, 0.88], [0, H - SEAT_T / 2, 0], LIE_Z),
+      // ③ 다리 넷 — 곧게. 좌판 밑 X 틀
+      ...[0, 1, 2, 3].map((k) => {
+        const a = Math.PI / 4 + k * Math.PI / 2;
+        return part(new CylinderGeometry(R, R, H - SEAT_T - 0.02, 6), LEGC, [Math.cos(a) * LEGR, (H - SEAT_T - 0.02) / 2, Math.sin(a) * LEGR]);
+      }),
+      ...[0, 1].map((k) =>
+        part(new BoxGeometry(LEGR * 2, R * 2, R * 2), LEGC, [0, H - SEAT_T - 0.02, 0], [0, Math.PI / 4 + k * Math.PI / 2, 0])),
+      // ④ 발끝 마개
+      ...[0, 1, 2, 3].map((k) => {
+        const a = Math.PI / 4 + k * Math.PI / 2;
+        return part(new CylinderGeometry(R * 1.15, R * 1.15, R * 3, 6), [0.92, 0.92, 0.90], [Math.cos(a) * LEGR, R * 1.5, Math.sin(a) * LEGR]);
+      }),
+    ]);
+  },
 
   /**
    * 브라운관 TV — **실물 사진을 보고 다시 만들었다.**
@@ -314,18 +364,42 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
     ]);
   },
 
-  물뿌리개: () => assemble([
-    // 뒷마당 것. 긴 주둥이와 장미꼭지가 실루엣의 전부다
-    part(new CylinderGeometry(0.30, 0.34, 0.56, 20), WHITE, [0, 0.30, 0], undefined, TILE.METAL),
-    // 말린 테두리 — 양철 물뿌리개는 입이 말려 있다. 없으면 몸통과 어깨가 한 덩어리다
-    part(lip(0.30, 0.030, 20), WHITE, [0, 0.595, 0]),
-    part(new CylinderGeometry(0.24, 0.28, 0.10, 20), WHITE, [0, 0.66, 0]),
-    part(new CylinderGeometry(0.11, 0.11, 0.10, 20), DARK, [0, 0.74, 0]),
-    // 주둥이 — 아래에서 위로 뻗는다
-    part(new CylinderGeometry(0.06, 0.08, 0.74, 20), WHITE, [0.40, 0.48, 0], [0, 0, -0.7]),
-    part(new CylinderGeometry(0.14, 0.06, 0.10, 20), WHITE, [0.66, 0.70, 0], [0, 0, -0.7]),
-    // 손잡이 둘
-    part(new TorusGeometry(0.20, 0.04, 4, 10, Math.PI), WHITE, [-0.28, 0.62, 0], [0, Math.PI / 2, 0.4], TILE.METAL),
-    part(new TorusGeometry(0.16, 0.04, 4, 10, Math.PI), WHITE, [0, 0.74, 0], [0, Math.PI / 2, 0]),
-  ]),
+  /**
+   * 물뿌리개(함석) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/물뿌리개/` (오래된 아연 도금 물뿌리개 정옆)
+   *
+   * 앞의 것은 아래가 넓은 원뿔대 몸통에 굵은 주둥이가 몸통 가운데서 나오는 것이었다. 사진과 대보니:
+   *   ① 높이 : 지름 = **1.38 : 1** 의 **곧은 원통** 몸통, 테에서 0.45 아래를 한 바퀴 두른 볼록 띠
+   *   ② 주둥이는 몸통 **아래쪽(테에서 0.76)** 에서 **49°** 로 뻗는 **몸통 지름 2배** 길이의 가는 관(지름의 0.12),
+   *      끝에 **나팔꼴 꼭지**(얼굴 지름 = 몸통 지름의 0.44)
+   *   ③ 주둥이와 몸통을 잇는 **수평 버팀대**(테에서 0.19 아래)
+   *   ④ 윗면 가운데 몸통 높이의 0.40 만큼 솟은 **띠쇠 고리 손잡이**와 몸통 뒤로 지름의 0.30 튀어나온 **뒷손잡이**
+   * 주황 · 초록 팔레트(9 · 11)는 사진의 도금 회색을 못 낸다 — 흰색 팔레트에 함석 인쇄(`TILE.SPANGLE`).
+   * 거리에 216개라 면 수를 아꼈다(원기둥 14면). 치수는 몸통 지름 = 1 로 쓴다(주둥이 +x).
+   */
+  물뿌리개: () => {
+    const D = 1, H = 1.38, R = D / 2, ZINC: RGB = [0.78, 0.82, 0.80];
+    const SP_Y = H * (1 - 0.76), SP_L = 2.05 * D, SP_A = 49 * Math.PI / 180, SP_R = 0.06;
+    const tip: [number, number, number] = [R + Math.cos(SP_A) * SP_L, SP_Y + Math.sin(SP_A) * SP_L, 0];
+    return assemble([
+      // ① 몸통 · 바닥 · 볼록 띠 · 테
+      part(new CylinderGeometry(R, R * 0.97, H, 14, 1, true), ZINC, [0, H / 2, 0], undefined, TILE.SPANGLE),
+      part(new CircleGeometry(R, 14), [0.55, 0.57, 0.56], [0, 0.002, 0], [Math.PI / 2, 0, 0]),
+      part(new TorusGeometry(R + 0.005, 0.02, 3, 14), ZINC, [0, H * (1 - 0.45), 0], LIE_Z),
+      part(new TorusGeometry(R, 0.018, 3, 14), [0.72, 0.75, 0.74], [0, H, 0], LIE_Z),
+      // 윗면 — 앞 절반을 덮은 둥근 덮개, 뒤는 짙은 물구멍
+      part(new SphereGeometry(R, 10, 3, 0, Math.PI, 0, Math.PI / 2).scale(1, 0.3, 1), ZINC, [0, H, 0], [0, -Math.PI / 2, 0]),
+      part(new CircleGeometry(R * 0.9, 10, Math.PI / 2, Math.PI), [0.22, 0.24, 0.24], [0, H + 0.004, 0], [-Math.PI / 2, 0, 0]),
+      // ② 주둥이 관 + 나팔꼴 꼭지
+      part(new CylinderGeometry(SP_R, SP_R, SP_L, 6), ZINC,
+        [R + Math.cos(SP_A) * SP_L / 2, SP_Y + Math.sin(SP_A) * SP_L / 2, 0], [0, 0, SP_A - Math.PI / 2]),
+      part(new CylinderGeometry(0.22, SP_R, 0.40, 10, 1, true), ZINC, tip, [0, 0, SP_A - Math.PI / 2]),
+      part(new CircleGeometry(0.22, 10), [0.60, 0.63, 0.62], [tip[0] + Math.cos(SP_A) * 0.2, tip[1] + Math.sin(SP_A) * 0.2, 0], [0, 0, SP_A - Math.PI / 2 - Math.PI / 2]),
+      // ③ 수평 버팀대 — 테에서 0.19 아래, 몸통 → 관
+      part(new BoxGeometry(0.62, 0.03, 0.05), ZINC, [R + 0.30, H * (1 - 0.19), 0]),
+      // ④ 윗손잡이(띠쇠 고리) · 뒷손잡이
+      part(new TorusGeometry(0.175, 0.03, 3, 8, Math.PI), ZINC, [0, H, 0]),
+      part(new TorusGeometry(0.30, 0.03, 3, 8, Math.PI), ZINC, [-R, H * 0.72, 0], [0, 0, Math.PI / 2]),
+    ]);
+  },
 };

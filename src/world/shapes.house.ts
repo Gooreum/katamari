@@ -296,7 +296,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     plan.lineTo(-hx, -hz + r); plan.quadraticCurveTo(-hx, -hz, -hx + r, -hz);
     // 평면을 밀어 올리고 모서리를 둥글린다. 밀기 축 z 를 위(y)로 세운다
     const bar = mergeVertices(new ExtrudeGeometry(plan, {
-      depth: T - BEVEL * 2, bevelEnabled: true, bevelThickness: BEVEL, bevelSize: BEVEL, bevelSegments: 3, curveSegments: 4,
+      depth: T - BEVEL * 2, bevelEnabled: true, bevelThickness: BEVEL, bevelSize: BEVEL, bevelSegments: 3, curveSegments: 7,
     }).deleteAttribute('uv').deleteAttribute('normal'));
     bar.rotateX(-Math.PI / 2).translate(0, BEVEL, 0);
     // ③ 윗면 가운데 부풂 — 위쪽 절반만 조금 올린다
@@ -327,7 +327,8 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     // ③ 배 모양 몸통 — 둥글린 상자를 뒤로 갈수록 좁히고, 밑은 양 끝을 들고, 뒤 윗모서리를 치켜 올린다
     const body = warp(soft(0.86, 0.46, 0.64, 0.45), (x, y, z) => {
       const back = Math.max(0, -x / 0.43);
-      return [x, y < 0 ? y + 0.05 * (x / 0.43) ** 2 : y + 0.05 * Math.max(0, back - 0.4), z * (1 - 0.22 * back)];
+      // 꼬리 — 뒤 윗모서리를 더 치켜 올린다(트랙 D 「꼬리가 안 들렸다」)
+      return [x, y < 0 ? y + 0.05 * (x / 0.43) ** 2 : y + 0.12 * Math.max(0, back - 0.35), z * (1 - 0.22 * back)];
     });
     return assemble([
       part(body, WHITE, [-0.07, 0.23, 0]),
@@ -340,7 +341,7 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
         part(new SphereGeometry(0.04, 8, 6).scale(0.5, 1.1, 0.8), INK, [0.36, 0.60, k * 0.13], [0, k * -0.6, 0])),
       // 날개 — 옆구리 잎꼴, 몸통보다 조금 짙게
       ...([1, -1] as const).map((k) =>
-        part(new SphereGeometry(1, 10, 6).scale(0.24, 0.09, 0.04), [0.92, 0.86, 0.90], [0.0, 0.22, k * 0.30], [0, 0, 0.15])),
+        part(new SphereGeometry(1, 10, 6).scale(0.24, 0.09, 0.04), [0.92, 0.86, 0.90], [-0.08, 0.28, k * 0.28], [0, 0, 0.15])),
     ]);
   },
 
@@ -356,14 +357,15 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
    * 치수는 길이 = 1 로 쓴다(머리 +x).
    */
   칫솔: () => {
-    const HEAD_T = 0.035, TUFT_H = 0.059, WID = 0.07, HANDLE: RGB = [0.50, 0.62, 0.70];
+    // 자루 — 따뜻한 빛에서 회녹색으로 떴다(트랙 D). 하늘색 쪽으로
+    const HEAD_T = 0.035, TUFT_H = 0.059, WID = 0.07, HANDLE: RGB = [0.42, 0.62, 0.82];
     // ② 자루 — 가운데가 살짝 부푼 곧은 막대
     const stick = warp(soft(1.0, HEAD_T, WID, 0.45), (x, y, z) => [x, y * (1 + 0.25 * (1 - (x / 0.5) ** 2)), z * (1 + 0.1 * (1 - (x / 0.5) ** 2))]);
     return assemble([
       part(stick, HANDLE, [0, HEAD_T / 2 + 0.004, 0]),
       // ① 솔 다발 11개 — 머리(+x 끝 0.25) 위에 틈을 두고
       ...Array.from({ length: 11 }, (_, k) =>
-        part(new BoxGeometry(0.016, TUFT_H, WID * 0.86), [0.72, 0.76, 0.75], [0.5 - 0.02 - k * 0.0215, HEAD_T + TUFT_H / 2, 0])),
+        part(new BoxGeometry(0.016, TUFT_H, WID * 0.86), [0.95, 0.96, 0.94], [0.5 - 0.02 - k * 0.0215, HEAD_T + TUFT_H / 2, 0])),
     ]);
   },
 

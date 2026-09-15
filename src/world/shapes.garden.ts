@@ -1,18 +1,18 @@
 import {
-  BoxGeometry, CylinderGeometry, IcosahedronGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CylinderGeometry, ExtrudeGeometry, IcosahedronGeometry, Quaternion, Shape, SphereGeometry, TorusGeometry,
+  Vector3,
   type BufferGeometry,
 } from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShapeIdGarden } from './generation';
 import {
-  assemble, DARK, hollow, invert, part, soft, WHITE, WOOD,
+  assemble, hollow, invert, part, WHITE,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
-/** 눕힌 원기둥. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다 */
-const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 
 /**
  * ── 일본식 정원 물건 일곱 ────────────────────────────────────
@@ -371,45 +371,85 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
   },
 
   /**
-   * 게타 (24cm) — 나막신.
+   * 게타 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/게타/` (会津桐 남성용, 검은 벨벳 끈 — 옆 · 위 · 밑 · 줄자)
    *
-   * 툇마루·평상 앞에 벗어둔다. **굽 둘이 정체다** — 바닥판만 있으면 슬리퍼고,
-   * 판을 띄우는 이(歯) 두 개가 있어야 게타다.
+   * 앞의 것은 좁고 긴 판(폭 : 길이 = 0.42)에 굽 둘을 가운데 모아 단 것이었다. 사진과 대보니:
+   *   ① 폭이 길이의 **0.5**, 네 모서리가 폭의 **0.25** 로 둥근 납작한 판(두께 길이의 0.05)
+   *   ② 판 밑 굽 둘 — 길이 방향 폭 **0.15**, 판 두께의 **2.5배** 높이. **앞코 쪽이 0.32 로 길게** 남고 뒤끝은 0.15
+   *   ③ 앞코에서 0.15 지점에서 V자로 모여 뒤쪽 0.65~0.69 의 양옆으로 내려가는 **굵고 둥근 검은 벨벳 끈**
+   *   ④ 옅은 오동나무 윗면 (231,208,168)
+   * 나무 팔레트(7)는 오동나무보다 짙어 흰색 팔레트에 계수로. 치수는 길이 = 1 로 쓴다(앞코 +x).
    */
-  게타: () => assemble([
-    part(soft(0.098, 0.020, 0.235, 0.24), WOOD, [0, 0.058, 0]),
-    // 이(歯) 둘 — 앞뒤로 떨어져야 «띄운» 것으로 보인다
-    // 이(歯) 둘 — `[0.42,0.31,0.21]` 은 바닥판(WOOD)과 대비가 0.03 이었다.
-    // 굽은 닳아서 «짙다»
-    part(new BoxGeometry(0.090, 0.048, 0.020), [0.20, 0.14, 0.09], [0, 0.024, 0.062]),
-    part(new BoxGeometry(0.090, 0.048, 0.020), [0.20, 0.14, 0.09], [0, 0.024, -0.055]),
-    // 하나오(끈) — 앞코에서 갈라져 양옆으로. 검은 끈이 나막신을 신발로 만든다
-    part(new CylinderGeometry(0.007, 0.007, 0.075, 6), DARK,
-      [0.021, 0.078, 0.055], [0.55, 0.55, 0]),
-    part(new CylinderGeometry(0.007, 0.007, 0.075, 6), DARK,
-      [-0.021, 0.078, 0.055], [0.55, -0.55, 0]),
-    part(new SphereGeometry(0.011, 6, 4), DARK, [0, 0.072, 0.093]),
-  ]),
+  게타: () => {
+    const L = 1, W = 0.5, T = 0.05, TH = 0.12, R = 0.125, TOE = 0.5;
+    const KIRI: RGB = [0.95, 0.86, 0.72], SIDE: RGB = [0.68, 0.56, 0.42], STRAP: RGB = [0.05, 0.05, 0.06];
+    // ① 판 — 모서리 둥근 직사각형을 밀어 올린다
+    const plan = new Shape();
+    const hx = L / 2, hz = W / 2;
+    plan.moveTo(-hx + R, -hz);
+    plan.lineTo(hx - R, -hz); plan.quadraticCurveTo(hx, -hz, hx, -hz + R);
+    plan.lineTo(hx, hz - R); plan.quadraticCurveTo(hx, hz, hx - R, hz);
+    plan.lineTo(-hx + R, hz); plan.quadraticCurveTo(-hx, hz, -hx, hz - R);
+    plan.lineTo(-hx, -hz + R); plan.quadraticCurveTo(-hx, -hz, -hx + R, -hz);
+    const board = mergeVertices(new ExtrudeGeometry(plan, { depth: T, bevelEnabled: false, curveSegments: 4 })
+      .deleteAttribute('uv').deleteAttribute('normal')).rotateX(-Math.PI / 2);
+    board.computeVertexNormals();
+    // ③ 끈 — 앞 매듭(앞코에서 0.15)에서 양옆 뒤(0.67)로 둥글게 휜 두 가닥
+    const front: [number, number, number] = [TOE - 0.15, TH + T + 0.035, 0];
+    const strap = (k: number): Part[] => {
+      const back: [number, number, number] = [TOE - 0.67, TH + T + 0.01, k * (hz - 0.03)];
+      const mid: [number, number, number] = [(front[0] + back[0]) / 2, TH + T + 0.075, k * (hz - 0.03) / 2];
+      return [front, mid].map((a, n) => {
+        const b = n === 0 ? mid : back;
+        const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], len = Math.hypot(d[0]!, d[1]!, d[2]!);
+        // 원기둥 축(y)을 a → b 방향으로 돌린다
+        const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(d[0]! / len, d[1]! / len, d[2]! / len));
+        return part(new CylinderGeometry(0.022, 0.022, len, 6).applyQuaternion(q), STRAP, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]);
+      });
+    };
+    return assemble([
+      part(board, KIRI, [0, TH, 0]),
+      // ② 굽 둘 — 앞코에서 0.32 뒤 · 뒤끝에서 0.15 앞
+      part(new BoxGeometry(0.15, TH, W * 0.98), SIDE, [TOE - 0.32 - 0.075, TH / 2, 0]),
+      part(new BoxGeometry(0.16, TH, W * 0.98), SIDE, [-TOE + 0.15 + 0.08, TH / 2, 0]),
+      ...strap(1), ...strap(-1),
+      part(new SphereGeometry(0.03, 6, 4), STRAP, front),
+    ]);
+  },
 
   /**
-   * 갈퀴 (85cm) — 대나무 갈퀴.
+   * 갈퀴(대나무 갈퀴) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/갈퀴/` (타일 벽 앞에 세운 대나무 갈퀴, 타일 칸으로 잼)
    *
-   * 자갈에 고랑을 긋는 물건이라 이 마당에 있어야 할 이유가 분명하다.
-   * **부챗살이 정체다** — 자루 끝에 살 다섯이 부채꼴로 벌어져야 갈퀴다.
+   * 앞의 것은 짧은 자루 끝에 살 **다섯**이 좁게 벌어진 것이었다. 사진과 대보니:
+   *   ① 머리가 전체의 **0.33** 길이 · **0.32** 폭으로 약 **60°** 벌어진 부채꼴, 가는 대나무 살 약 **29 개**
+   *   ② 살 끝에서 머리 길이의 0.3 자리를 호로 한 줄 묶은 **초록 철사**(64,104,98)
+   *   ③ 머리 길이의 0.72 자리를 가로지르는 **가로대**와 그 위로 살짝 솟은 자루 끝, 살 끝은 아래로 꺾인 갈고리
+   *   ④ 전체의 **0.67** 을 차지하는 마디 있는 곧은 대나무 자루
+   * 치수는 전체 길이 = 1 로 쓴다(머리가 위, 세워 둔다).
    */
-  갈퀴: () => assemble([
-    // 자루 — 대나무 결 인쇄를 문다. 몸통이 민무늬면 갈퀴가 막대 하나로 보인다
-    ...culm(0, 0, 0.74, 0.017, 0, 3).map((q) => part(q.geo, q.rgb, undefined, undefined, TILE.WOOD_F)),
-    // 살 다섯 — 부채꼴. 각도를 벌려 심는다
-    ...([-0.42, -0.21, 0, 0.21, 0.42] as const).map((a) =>
-      part(new CylinderGeometry(0.006, 0.008, 0.20, 6), BAMBOO,
-        [Math.sin(a) * 0.10, 0.80, 0], [0, 0, a], TILE.WOOD_F)),
-    // 살을 묶는 가로대 둘
-    part(new CylinderGeometry(0.006, 0.006, 0.17, 6), BAMBOO_NODE, [0, 0.755, 0], LIE_X),
-    part(new CylinderGeometry(0.005, 0.005, 0.22, 6), BAMBOO_NODE, [0, 0.845, 0], LIE_X),
-    // 자루 끝 손잡이 마개
-    part(new SphereGeometry(0.020, 6, 5), BAMBOO_NODE, [0, 0.005, 0]),
-  ]),
+  갈퀴: () => {
+    const POLE = 0.67, HEAD = 0.34, HALF = 0.52, N = 29;
+    const tine = (i: number): Part[] => {
+      const a = -HALF + (2 * HALF * i) / (N - 1);
+      const dx = Math.sin(a), dy = Math.cos(a);
+      return [
+        part(new CylinderGeometry(0.0035, 0.004, HEAD, 3), BAMBOO, [dx * HEAD / 2, POLE + dy * HEAD / 2, 0], [0, 0, -a]),
+        // 갈고리 — 끝이 앞으로 꺾인다
+        part(new BoxGeometry(0.006, 0.006, 0.03), BAMBOO_NODE, [dx * HEAD, POLE + dy * HEAD, 0.012]),
+      ];
+    };
+    return assemble([
+      ...culm(0, 0, POLE + 0.10, 0.009, 0, 3).map((q) => part(q.geo, q.rgb, undefined, undefined, TILE.WOOD_F)),
+      ...Array.from({ length: N }, (_, i) => tine(i)).flat(),
+      // ② 초록 철사 — 살 끝에서 머리 길이의 0.3 안쪽을 호로
+      part(new TorusGeometry(HEAD * 0.7, 0.004, 3, 16, 2 * HALF), [0.26, 0.43, 0.40], [0, POLE, 0], [0, 0, Math.PI / 2 - HALF]),
+      // ③ 가로대 — 머리 길이의 0.72 자리(모이는 곳에서 0.28)
+      part(new CylinderGeometry(0.006, 0.006, 0.17, 5), BAMBOO_NODE, [0, POLE + HEAD * 0.28, 0.006], [0, 0, Math.PI / 2]),
+    ]);
+  },
+
 };
 
 void WHITE;

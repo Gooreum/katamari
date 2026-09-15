@@ -726,14 +726,36 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     ]);
   },
 
-  화분: () => assemble([
-    // 뒷마당의 토마토 화분. 흙과 줄기가 있어야 화분이다.
-    // **파야 흙이 «담긴» 것으로 보인다** — 통짜 위에 얹은 흙은 뚜껑이다
-    ...hollow(0.38, 0.28, 0.52, 0.035, 0.06, 20, WHITE, [0.42, 0.30, 0.22], TILE.CERAMIC),
-    part(new CylinderGeometry(0.33, 0.33, 0.04, 20), [0.28, 0.22, 0.16], [0, 0.40, 0]),
-    part(new CylinderGeometry(0.03, 0.025, 0.44, 6), [0.35, 0.55, 0.25], [0, 0.64, 0]),
-    part(new SphereGeometry(0.13, 12, 8), [0.35, 0.55, 0.25], [0.06, 0.84, 0], undefined, TILE.CERAMIC),
-  ]),
+  /**
+   * 화분(素焼き鉢 · 駄温鉢) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/화분/` (띠만 짙게 구운 흙 화분 옆모습 · 뒤집어 본 밑면)
+   *
+   * 앞의 것은 속을 판 원뿔대에 흙과 줄기 · 토마토 한 알이었다. 사진과 대보니:
+   *   ① 테 지름 : 바닥 지름 : 높이 = **1 : 0.58 : 0.78** 로 아래가 좁은 **곧은 원뿔대**(배흘림 없음)
+   *   ② 전체 높이의 **위 0.29** 를 차지하고 몸통보다 테 지름의 0.085 씩 튀어나온 **짙은 밤색 띠**(102,44,32)와
+   *      그 아래 밝은 주황 흙빛 몸통(162,84,59)의 **두 색 대비**
+   *   ③ 위에서 보이는 안쪽 벽은 더 밝다(188,108,90)
+   * 사진은 빈 화분이다 — 식물은 뺐고 흙만 깔았다. 적갈 팔레트(17)는 띠와 몸통의 두 색을 한 색으로 누른다.
+   * 거리에 56개라 면 수를 16 으로. 치수는 테 지름 = 1 로 쓴다.
+   */
+  화분: () => {
+    const H = 0.78, RT = 0.5, RB = 0.29, BAND = 0.29 * H, OUT = 0.085 * 2 * RT / 2;
+    const BODY: RGB = [0.66, 0.35, 0.25], BANDC: RGB = [0.42, 0.18, 0.13], INNER: RGB = [0.77, 0.45, 0.39];
+    const rAt = (y: number): number => RB + (RT - OUT - RB) * (y / (H - BAND));   // 띠 아래 몸통 반지름
+    return assemble([
+      // ① 몸통 — 바닥에서 띠 밑까지 곧은 원뿔대
+      part(new CylinderGeometry(rAt(H - BAND), RB, H - BAND, 16, 1, true), BODY, [0, (H - BAND) / 2, 0]),
+      part(new CircleGeometry(RB, 16), [0.50, 0.28, 0.20], [0, 0.002, 0], [Math.PI / 2, 0, 0]),
+      // ② 짙은 띠 — 몸통보다 튀어나오고 아래로 조금 좁아진다
+      part(new CylinderGeometry(RT, RT - 0.02, BAND, 16, 1, true), BANDC, [0, H - BAND / 2, 0]),
+      part(new RingGeometry(rAt(H - BAND), RT - 0.02, 16), BANDC, [0, H - BAND, 0], [Math.PI / 2, 0, 0]),
+      // 테 윗면 입술 + ③ 밝은 안쪽 벽
+      part(new TorusGeometry(RT - 0.025, 0.025, 3, 16), [0.76, 0.50, 0.46], [0, H, 0], [Math.PI / 2, 0, 0]),
+      part(invert(new CylinderGeometry(RT - 0.05, RB - 0.03, H - 0.06, 16, 1, true)), INNER, [0, H / 2 + 0.03, 0]),
+      // 흙
+      part(new CircleGeometry(RT - 0.07, 16), [0.30, 0.22, 0.16], [0, H - 0.10, 0], [-Math.PI / 2, 0, 0], TILE.DIRT),
+    ]);
+  },
 
   /**
    * 주전자. **뚜껑이 몸통보다 넓게 얹혀 턱이 진다.**

@@ -531,14 +531,15 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     const x0 = -0.5, xNeck = x0 + BULB, xTube = xNeck + NECK, xEnd = 0.5 - R;
     return assemble([
       // ② 수은 구 — 관보다 가는 은빛 막대(끝이 둥글다)
-      part(new CapsuleGeometry(R * 0.41, BULB - R * 0.82, 2, 8), [0.62, 0.62, 0.60], [x0 + BULB / 2, R, 0], LIE_X),
+      part(new CapsuleGeometry(R * 0.41, BULB - R * 0.82, 2, 8), [0.42, 0.43, 0.46], [x0 + BULB / 2, R, 0], LIE_X),
       // 나팔꼴 목 — 위(+y → +x)가 관 쪽으로 벌어진다
       part(new CylinderGeometry(R, R * 0.47, NECK, 10), GLASSY, [xNeck + NECK / 2, R, 0], CAP_X),
       // ① 유리 관 + 둥글게 막힌 끝
       part(new CylinderGeometry(R, R, xEnd - xTube, 10, 1, true), GLASSY, [(xTube + xEnd) / 2, R, 0], CAP_X),
       part(new SphereGeometry(R, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), GLASSY, [xEnd, R, 0], CAP_X),
       // ③ 눈금판 — 0.26 ~ 0.88
-      part(new BoxGeometry(0.62, 0.003, R * 1.3), WHITE, [-0.5 + 0.26 + 0.31, R * 2 + 0.0015, 0], undefined, TILE.THERMO),
+      // 눈금판 — 관 폭을 거의 다 채운다(트랙 D 「사진은 폭을 거의 채운다」)
+      part(new BoxGeometry(0.62, 0.003, R * 1.8), WHITE, [-0.5 + 0.26 + 0.31, R * 2 - 0.004, 0], undefined, TILE.THERMO),
     ]);
   },
 
@@ -607,18 +608,22 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
       // 머리 — 몸통 앞끝에서 이어져 주둥이로 모인다
       part(new SphereGeometry(0.17, 8, 6).scale(1.0, 0.85, 1.0), WHITE, [0.30, 0.30, 0]),
       // ③ 베이지 배 — 몸통 아래 절반
-      part(new SphereGeometry(1, 8, 3, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(0.40, 0.12, 0.25), BEIGE, [0.02, 0.12, 0]),
+      // 배는 몸통보다 조금 넓게 — 안에 묻혀 온몸이 초록으로 보였다(트랙 D)
+      part(new SphereGeometry(1, 8, 3, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(0.42, 0.14, 0.29), BEIGE, [0.02, 0.14, 0]),
       ...([1, -1] as const).flatMap((k) => [
         // ② 눈 — 초록 눈두덩 위로 까만 눈이 옆을 본다
         part(new SphereGeometry(0.065, 6, 4), WHITE, [0.37, 0.40, k * 0.12]),
         part(new SphereGeometry(0.045, 6, 4), [0.25, 0.18, 0.60], [0.39, 0.41, k * 0.165]),
         // ③ 갈색 줄(콧구멍 → 눈 아래 → 고막) + 고막
-        part(new SphereGeometry(1, 4, 3).scale(0.13, 0.016, 0.02), BROWN, [0.35, 0.34, k * 0.165], [0, 0, 0.30]),
+        // 줄 — 머리 밖으로 막대처럼 튀어나왔다(트랙 D). 짧게, 머리 면에 붙인다
+        part(new SphereGeometry(1, 4, 3).scale(0.08, 0.014, 0.015), BROWN, [0.36, 0.345, k * 0.150], [0, 0, 0.30]),
         part(new SphereGeometry(0.03, 4, 3).scale(1, 1, 0.5), BROWN, [0.24, 0.32, k * 0.19]),
         // ④ 접은 허벅지 + 발가락
         part(new SphereGeometry(1, 6, 4).scale(0.15, 0.10, 0.085), WHITE, [-0.28, 0.12, k * 0.24]),
-        part(new SphereGeometry(1, 4, 3).scale(0.16, 0.025, 0.06), TAN, [-0.08, 0.025, k * 0.30], [0, k * 0.5, 0]),
-        part(new SphereGeometry(1, 4, 3).scale(0.08, 0.05, 0.05), TAN, [0.22, 0.05, k * 0.20]),
+        // 발 — 허벅지 끝에 붙인다(따로 떨어진 판으로 읽혔다). 앞다리를 세운다
+        part(new SphereGeometry(1, 4, 3).scale(0.13, 0.025, 0.06), TAN, [-0.14, 0.03, k * 0.28], [0, k * 0.5, 0]),
+        part(new CylinderGeometry(0.025, 0.03, 0.12, 5), TAN, [0.22, 0.07, k * 0.19], [k * 0.3, 0, 0]),
+        part(new SphereGeometry(1, 4, 3).scale(0.06, 0.02, 0.05), TAN, [0.25, 0.015, k * 0.22]),
       ]),
     ]);
   },
