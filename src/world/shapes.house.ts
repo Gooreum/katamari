@@ -62,7 +62,8 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
   계란: () => {
     const R = 0.375, WIDE = 0.46;
     const pts = Array.from({ length: 15 }, (_, k) => {
-      const t = k / 14;                                            // 0 = 뭉툭한 끝, 1 = 뾰족한 끝
+      // 0 = 뭉툭한 끝, 1 = 뾰족한 끝. 양 끝을 촘촘히 뽑는다 — 고르게 뽑으면 끝 두 점 사이가 원뿔로 뾰족해졌다
+      const t = (1 - Math.cos(Math.PI * k / 14)) / 2;
       const u = t < WIDE ? (t - WIDE) / WIDE : (t - WIDE) / (1 - WIDE);
       return new Vector2(Math.max(0.001, R * Math.sqrt(Math.max(0, 1 - u * u))), t);
     });

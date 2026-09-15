@@ -267,7 +267,8 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
    * 치수는 전체 길이 = 1 로 쓴다(머리 −x, 끝 +x).
    */
   나사: () => {
-    const R = 0.071, HEAD_R = 0.135, HEAD_L = 0.18, Y = HEAD_R;
+    // 머리 길이 0.18 은 반지름(0.135)보다 길어 「버섯」으로 깊었다(트랙 D) — 반구보다 조금 납작한 둥근머리로
+    const R = 0.071, HEAD_R = 0.135, HEAD_L = 0.12, Y = HEAD_R;
     // 끝 원뿔을 길게(0.16) — 뭉툭하면 볼트다. 목재 나사는 끝이 송곳처럼 뾰족하다
     const x0 = -0.5 + HEAD_L, neckEnd = x0 + 0.25, threadEnd = 0.34;
     return assemble([

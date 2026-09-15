@@ -511,8 +511,9 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     const H = 0.96, R = 0.5, CORE = 0.21;
     const CORE_RGB: RGB = [0.58, 0.46, 0.32];
     return assemble([
-      // 흰 휴지 — 따뜻한 조명에서 누렇게 떠서 푸른 쪽으로 한 톤
-      part(new CylinderGeometry(R, R, H, 20, 1, true), [1.02, 1.04, 1.10], [0, H / 2, 0], undefined, TILE.PAPER),
+      // 흰 휴지 — 따뜻한 조명에서 누렇게 떠서 푸른 쪽으로 한 톤. 종이 인쇄의 가로줄이 롤 가운데를 지나
+      // 「두 롤을 쌓은 것」으로 읽혀(트랙 D) 무늬 없이 둔다
+      part(new CylinderGeometry(R, R, H, 20, 1, true), [1.02, 1.04, 1.10], [0, H / 2, 0]),
       // 종이심 — 안쪽 벽을 뒤집어 구멍이 보이게
       part(invert(new CylinderGeometry(CORE, CORE, H, 14, 1, true)), CORE_RGB, [0, H / 2, 0]),
       // 롤 단면 — 위아래 도넛
@@ -520,9 +521,14 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
         [y > 0 ? -Math.PI / 2 : Math.PI / 2, 0, 0])),
       // 종이심 끝 테 — 갈색 고리
       part(new TorusGeometry(CORE, 0.012, 4, 14), CORE_RGB, [0, H, 0], [Math.PI / 2, 0, 0]),
-      // ③ 풀린 자락 — 롤 폭(= 롤 높이)만 한 한 장이 앞면을 타고 비스듬히 바닥까지 늘어진다
-      // 바닥에 닿아 한 번 꺾인 끝 — 롤 앞에 짧게. 멀리 뻗으면 최장축이 자락이 돼 롤이 눌린다
-      part(new BoxGeometry(0.012, H * 0.92, 0.62), [1.02, 1.04, 1.10], [R + 0.03, H * 0.46, 0.12], [0.35, 0, -0.10], TILE.PAPER),
+      /**
+       * ③ 풀린 자락 — **롤 앞면에 붙어** 바닥까지 늘어진 한 장 + 바닥에 한 번 꺾여 앞으로 누운 끝.
+       * 판 한 장을 비스듬히 세웠더니 「롤 옆에 따로 선 판자, 윗면보다 높이 솟았다」(트랙 D, 2026-09-16).
+       * 롤과 같은 원통을 5mm 크게 앞(+z) 0.9 rad 만 잘라 감싼다 — 롤 면을 벗어날 수가 없다
+       */
+      part(new CylinderGeometry(R + 0.005, R + 0.005, H * 0.97, 6, 1, true, -0.45, 0.9), [0.97, 0.99, 1.04], [0, H * 0.485, 0]),
+      // 꺾인 끝은 롤 앞으로 0.02 만 — 더 뻗으면 앞뒤가 최장축이 돼 롤 전체가 작아진다
+      part(new BoxGeometry(0.44, 0.008, 0.07), [0.97, 0.99, 1.04], [0, 0.004, R - 0.015]),
     ]);
   },
 

@@ -1156,12 +1156,11 @@ export function buildPrintAtlas(): CanvasTexture {
   /** 달걀 — 아주 옅은 반점. 세면 메추리알이 된다 */
   at(TILE.EGG, () => {
     base();
-    for (let i = 0; i < 90; i++) {
-      cx.fillStyle = `rgba(150,126,96,${(0.03 + rnd(i * 19, 0.05)).toFixed(3)})`;
-      cx.beginPath();
-      cx.ellipse(rnd(i * 7 + 5, CELL), rnd(i * 13 + 3, CELL),
-        2 + rnd(i * 11, 5), 2 + rnd(i * 5, 4), rnd(i * 3, 3), 0, Math.PI * 2);
-      cx.fill();
+    // 사진(ref/계란)의 껍질은 잔 구멍이 촘촘한 무광 — 얼룩이 크면 돌림면에서 한 줄로 늘어나
+    // 「비스듬한 얼룩 띠」가 됐다(2026-09-16 렌더). 점을 작고 옅게, 더 흩어서 찍는다
+    for (let i = 0; i < 160; i++) {
+      cx.fillStyle = `rgba(150,126,96,${(0.02 + rnd(i * 19, 0.03)).toFixed(3)})`;
+      cx.fillRect(rnd(i * 71 + 5, CELL), rnd(i * 37 + i * i + 3, CELL), 1 + rnd(i * 11, 2), 1 + rnd(i * 5, 2));
     }
   });
 
