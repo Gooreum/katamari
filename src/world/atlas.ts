@@ -193,6 +193,22 @@ export const TILE = {
   MENKO: 52,
   /** 공책(자포니카 학습장) 표지 — 남색 바탕 · 흰 이중선 둥근 틀 · 곤충 사진 · 위 로고 띠 · 아래 이름 칸 */
   JAPONICA: 53,
+  /** 밥공기 몸통 — 흰 자기, 입술 바로 아래 갈색 선 둘 사이 청회색 띠(돌림면 v 위쪽 끝) */
+  RICEBOWL: 54,
+  /** 밥공기 굽 — 흰 바탕에 짙은 코발트 세로 줄 20개(원기둥 옆면 한 바퀴) */
+  BOWLFOOT: 55,
+  /** 도마(히노키) — 옅은 바탕에 가로로 곧게 흐르는 가는 곧은결 + 옅은 분홍 띠 한두 줄. 옹이 없음 */
+  HINOKI: 56,
+  /** 당근 — 흰 바탕에 몸통을 가로로 두르는 옅은 잔주름 줄(돌림면 v 방향 고리) */
+  CARROT: 57,
+  /** 유키히라 냄비 — 줄마다 반 칸씩 엇갈린 벌집 망치 자국 */
+  HAMMERED: 58,
+  /** 전기밥솥 몸통 — 아래 절반을 도는 빨간 다섯 잎 꽃 · 초록 · 회색 잎 꽃대 */
+  FLOWERBAND: 59,
+  /** 찬장 유리 — 옅은 청회색 유리에 비친 선반 줄 · 접시와 찻잔 그림자 · 모서리 둥근 흰 테 */
+  CUPBOARD_GLASS: 60,
+  /** 찬장 문·서랍 앞판 — 짙은 적갈색 나뭇결 판에 가장자리를 두른 모서리 둥근 가는 흰 선 */
+  CUPBOARD_DOOR: 61,
 } as const;
 
 /**
@@ -521,35 +537,66 @@ export function buildPrintAtlas(): CanvasTexture {
    * 지우개 슬리브 — `ref/지우개/` (톰보 MONO).
    * 윗면에 감긴다 — u 가 긴 변, v 가 폭. 폭을 가로지르는 3단 띠:
    *   위 파랑 0.38 (흰 「MONO」 글자) · 가운데 크림 0.19 (검은 글자) · 아래 검정 0.43 (흰 글자)
+   *
+   * **글자를 캔버스 글자로 찍는다.** 네모 막대로 흉내 냈더니 판정자가 「네모 구멍이 줄지어
+   * 뚫렸다 — 키보드나 하모니카」라고 했다(2026-09-15). 찌라시 가격과 같은 처리다.
+   * 신문처럼 **뒤집어 그린다** — 윗면 uv 는 캔버스 위쪽을 앞(+z)으로 보낸다. 뒤집으면 파랑이 뒤,
+   * 검정이 앞에 오고, 앞에서 글자가 바로 읽힌다(사진을 눕힌 방향 그대로).
+   * 이 칸은 길이 0.80 × 폭 0.39 판에 감기므로 가로가 2.05배 늘어난다 — 글자만 가로로 0.49배 눌러 쓴다.
    */
   at(TILE.ERASER, () => {
     const V = (f: number): number => f * CELL;
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
     cx.fillStyle = '#2d4fb0'; cx.fillRect(0, 0, CELL, V(0.38));
     cx.fillStyle = '#efe9d2'; cx.fillRect(0, V(0.38), CELL, V(0.19));
     cx.fillStyle = '#1c1b1a'; cx.fillRect(0, V(0.57), CELL, V(0.43));
-    cx.fillStyle = '#efe9d2';
-    for (let k = 0; k < 4; k++) cx.fillRect(V(0.34 + k * 0.09), V(0.12), V(0.06), V(0.12));   // MONO
-    for (let k = 0; k < 11; k++) cx.fillRect(V(0.22 + k * 0.055), V(0.74), V(0.035), V(0.07)); // PLASTIC ERASER
-    cx.fillStyle = '#1c1b1a';
-    for (let k = 0; k < 13; k++) cx.fillRect(V(0.16 + k * 0.055), V(0.43), V(0.04), V(0.09)); // Tombow PENCIL'S
+    const text = (s: string, px: number, y: number, color: string): void => {
+      cx.save();
+      cx.scale(0.49, 1);
+      cx.font = `bold ${px}px sans-serif`;
+      cx.textAlign = 'center';
+      cx.textBaseline = 'middle';
+      cx.fillStyle = color;
+      cx.fillText(s, (CELL * 0.55) / 0.49, y);
+      cx.restore();
+    };
+    text('MONO', 38, V(0.20), '#f4f1e8');
+    text('Tombow PENCIL', 19, V(0.476), '#1c1b1a');
+    text('PLASTIC ERASER', 20, V(0.78), '#f4f1e8');
+    cx.restore();
   });
 
-  // ── 우유팩 ── 흰 바탕 + 위아래 색 띠 + 소 얼룩. 이 셋이면 우유팩으로 읽힌다.
-  // 「牛乳」 글자는 128px 에서 뭉개져서 얼룩으로 대신한다 (성냥갑 상표와 같은 판단).
+  /**
+   * 우유팩 옆면 — `ref/우유팩/` (1972 農協牛乳 1 L 신문 사진 + 요즘 雪印 팩 치수).
+   * 앞면 높이를 1로 두면 위 짙은 띠 0.30 · 가운데 흰 띠 0.41 · 아래 짙은 띠 0.26, 띠 경계마다 가는 줄.
+   * 흰 띠에 굵은 한자 넷을 2 × 2 로 — 「牛乳」 넉 자가 이 크기에서 뭉개질까 봐 예전엔 소 얼룩으로
+   * 대신했는데, 사진 속 팩에 소 얼룩은 없다. 한 면이 폭 1 × 높이 2.79 라 세로로 2.79배 늘어난다 —
+   * 글자만 세로로 0.36배 눌러 쓴다. 옆면 v 는 아래가 0 이라 뒤집어 그린다.
+   * 1972 사진은 흑백이라 띠 색을 모른다 — 짙은 남색으로 두었다(`intent.md` 「못 찾은 것」).
+   */
   at(TILE.MILK, () => {
-    cx.fillStyle = '#fbf7ee';
-    cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#d94b3a';
-    cx.fillRect(0, 10, CELL, 16);
-    cx.fillStyle = '#2f6fb5';
-    cx.fillRect(0, 102, CELL, 14);
-    cx.fillStyle = '#2a2724';
-    cx.beginPath(); cx.arc(46, 62, 21, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(84, 47, 12, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(88, 82, 15, 0, Math.PI * 2); cx.fill();
-    // 소 얼룩만 있으면 젖소 무늬 상자다. 붉은 점 하나가 상표 자리를 만든다
-    cx.fillStyle = '#d94b3a';
-    cx.beginPath(); cx.arc(64, 62, 7, 0, Math.PI * 2); cx.fill();
+    const V = (f: number): number => f * CELL;
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    cx.fillStyle = '#fbf7ee'; cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#233f8a';
+    cx.fillRect(0, 0, CELL, V(0.30));
+    cx.fillRect(0, V(0.74), CELL, V(0.26));
+    // 띠 경계의 가는 줄 두세 가닥
+    for (const y of [0.32, 0.335, 0.70, 0.715]) cx.fillRect(0, V(y), CELL, 1);
+    cx.fillStyle = '#233f8a';
+    cx.font = 'bold 50px serif';
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    for (const [ch, col, row] of [['農', 0, 0], ['協', 1, 0], ['牛', 0, 1], ['乳', 1, 1]] as const) {
+      cx.save();
+      cx.translate(V(0.29 + col * 0.42), V(0.425 + row * 0.19));
+      cx.scale(1, 0.36);
+      cx.fillText(ch, 0, 0);
+      cx.restore();
+    }
+    cx.restore();
   });
 
   // ── 화투 ── 붉은 띠 + 검은 문양. 원작 거실 바닥에 흩어져 있는 그것.
@@ -1455,6 +1502,139 @@ export function buildPrintAtlas(): CanvasTexture {
     // ⑤ 이름 칸
     cx.fillStyle = '#f4f1e8'; cx.fillRect(X(0.12), X(0.81), X(0.76), X(0.13));
     cx.restore();
+  });
+
+  /**
+   * 밥공기 몸통 — `ref/밥공기/` (白山陶器 「紀の川」 1977).
+   * 돌림면 v 는 윤곽 첫 점(굽 쪽)이 0 이라 **캔버스 아래쪽이 입술**이다. 띠는 입술에서 높이의
+   * 0.045 아래서 시작해 0.055 두께 — 윤곽 길이로 환산하면 v 0.91~0.96 이다.
+   * 갈색 선 (78,70,60) — 청회색 (92,110,117) — 갈색 선, 3겹.
+   */
+  at(TILE.RICEBOWL, () => {
+    base();
+    cx.fillStyle = '#4e463c'; cx.fillRect(0, CELL * 0.905, CELL, 2);
+    cx.fillStyle = '#6a8591'; cx.fillRect(0, CELL * 0.905 + 2, CELL, 4);
+    cx.fillStyle = '#4e463c'; cx.fillRect(0, CELL * 0.905 + 6, CELL, 2);
+  });
+
+  /** 밥공기 굽 — 한 바퀴 20줄. 사진은 앞 반쪽에 10줄, 줄 굵기가 흰 틈보다 조금 가늘다 */
+  at(TILE.BOWLFOOT, () => {
+    base();
+    cx.fillStyle = '#255366';
+    for (let k = 0; k < 20; k++) cx.fillRect(k * CELL / 20, 0, CELL / 20 * 0.42, CELL);
+  });
+
+  /**
+   * 도마 — `ref/도마/` (木屋 히노키). 결은 판 길이(u) 방향으로 곧게, 옹이 없이.
+   * 밝은 결 (236,209,168) 과 분홍 도는 결 (229,197,159) 이 번갈아 — 바탕색 대비 흰색 계수로 옮겼다.
+   * `grain()` 은 옹이를 넣고 결이 끊겨 «막 켠 나무»라, 대패질한 곧은결 판은 따로 그린다.
+   */
+  at(TILE.HINOKI, () => {
+    base();
+    for (let i = 0; i < 34; i++) {
+      cx.fillStyle = i % 7 === 0 ? 'rgba(214,150,120,0.20)' : 'rgba(150,120,80,0.16)';
+      cx.fillRect(0, rnd(i * 11 + 7, CELL), CELL, i % 7 === 0 ? 5 : 1);
+    }
+  });
+
+  /**
+   * 당근 잔주름 — `ref/당근/`. 몸통을 가로로 두르는 가는 줄이 드문드문.
+   * 곱셈이라 사진의 «흰» 잔뿌리 자국은 못 그린다(흰색 위로 밝게 못 간다) — 옅은 그늘 줄로 대신한다.
+   */
+  at(TILE.CARROT, () => {
+    base();
+    for (let i = 0; i < 16; i++) {
+      cx.fillStyle = 'rgba(120,60,30,0.22)';
+      const y = rnd(i * 29 + 5, CELL), x = rnd(i * 13 + 3, CELL);
+      cx.fillRect(x - 30, y, 40 + rnd(i * 7, 50), 1);
+    }
+  });
+
+  /**
+   * 유키히라 망치 자국 — `ref/냄비/`. 실물은 한 알이 지름의 0.04 라 한 바퀴 78 알인데,
+   * 128px 칸에 78 알이면 한 알이 1.6px 이라 무늬가 사라진다. 한 바퀴 16 알로 키웠다.
+   * 줄마다 반 칸 엇갈린다 — 이 엇갈림이 «벌집»이다.
+   */
+  at(TILE.HAMMERED, () => {
+    base();
+    const n = 16, rows = 9, w = CELL / n, h = CELL / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let k = 0; k <= n; k++) {
+        const x = k * w + (r % 2 ? w / 2 : 0), y = r * h + h / 2;
+        cx.fillStyle = 'rgba(70,74,84,0.22)';
+        cx.beginPath(); cx.ellipse(x, y, w * 0.42, h * 0.40, 0, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = 'rgba(255,255,255,0.9)';
+        cx.beginPath(); cx.ellipse(x - 1, y - 1, w * 0.22, h * 0.20, 0, 0, Math.PI * 2); cx.fill();
+      }
+    }
+  });
+
+  /**
+   * 전기밥솥 꽃무늬 — `ref/밥솥/` (東芝 RCK-200E).
+   * 원기둥 옆면 v 는 아래가 0 이라 **캔버스 위쪽이 몸통 아래**다 — 꽃대가 아래(캔버스 위)에서
+   * 위로 자라게 그린다. 빨간 꽃 (216,34,35) 에 흰 꽃술, 초록 (90,174,85) · 회색 (146,148,147) 잎.
+   * 한 바퀴에 꽃 넷 — 앞에서 둘이 보인다.
+   */
+  at(TILE.FLOWERBAND, () => {
+    base();
+    for (let k = 0; k < 4; k++) {
+      const cxp = (k + 0.5) * CELL / 4;
+      // 줄기 — 몸통 아래(캔버스 위 0.05)에서 꽃(0.42)까지. 사진의 꽃은 몸통 아래 절반에 핀다
+      cx.fillStyle = '#7f8a7c'; cx.fillRect(cxp - 1, CELL * 0.05, 2, CELL * 0.37);
+      // 잎 — 줄기 양옆으로 초록·회색 번갈아
+      for (let j = 0; j < 3; j++) {
+        cx.fillStyle = j % 2 ? '#929493' : '#5aae55';
+        const y = CELL * (0.10 + j * 0.10);
+        cx.beginPath(); cx.ellipse(cxp - 6, y, 5, 3, -0.6, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = j % 2 ? '#5aae55' : '#929493';
+        cx.beginPath(); cx.ellipse(cxp + 6, y + 3, 5, 3, 0.6, 0, Math.PI * 2); cx.fill();
+      }
+      // 꽃 — 다섯 잎
+      cx.fillStyle = '#d82223';
+      for (let p = 0; p < 5; p++) {
+        const a = p * Math.PI * 2 / 5;
+        cx.beginPath(); cx.arc(cxp + Math.cos(a) * 5, CELL * 0.42 + Math.sin(a) * 5, 4.5, 0, Math.PI * 2); cx.fill();
+      }
+      cx.fillStyle = '#f4f1e8';
+      cx.beginPath(); cx.arc(cxp, CELL * 0.42, 2.5, 0, Math.PI * 2); cx.fill();
+    }
+  });
+
+  /**
+   * 찬장 유리 — `ref/찬장/` (1970년대 식기장). 머티리얼이 불투명이라 유리 너머 그릇을 «넣으면» 안 보인다
+   * (예전 찬장의 그릇 셋이 유리 뒤에 숨어 있었다). 유리 면에 **비친 그림**으로 그린다 —
+   * 선반 줄 하나와 그 위 접시 · 찻잔 윤곽, 창 가장자리의 모서리 둥근 흰 테(사진의 흰 선).
+   * 부품 정점색은 흰색이라 이 칸의 색이 그대로 나온다. 칸이 세로로 늘어나도 읽히게 굵게 그린다.
+   */
+  at(TILE.CUPBOARD_GLASS, () => {
+    cx.fillStyle = '#aec8cf'; cx.fillRect(0, 0, CELL, CELL);
+    // 안쪽 그늘 — 아래로 갈수록 짙다(선반 밑)
+    cx.fillStyle = 'rgba(60,50,45,0.28)'; cx.fillRect(0, CELL * 0.55, CELL, CELL * 0.45);
+    // 선반 줄
+    cx.fillStyle = '#7a6a5e'; cx.fillRect(0, CELL * 0.52, CELL, 4);
+    // 접시 셋을 세워 기댄 윤곽 + 찻잔 둘
+    cx.fillStyle = '#eef0ec';
+    for (const x of [0.22, 0.34, 0.46]) { cx.beginPath(); cx.ellipse(CELL * x, CELL * 0.36, 11, 20, 0, 0, Math.PI * 2); cx.fill(); }
+    for (const x of [0.66, 0.82]) cx.fillRect(CELL * x - 9, CELL * 0.72, 18, 16);
+    // 반사 줄 — 비스듬히 두 줄
+    cx.fillStyle = 'rgba(255,255,255,0.45)';
+    cx.save(); cx.translate(CELL / 2, CELL / 2); cx.rotate(-0.6);
+    cx.fillRect(-40, -CELL, 10, CELL * 2); cx.fillRect(-18, -CELL, 4, CELL * 2);
+    cx.restore();
+    // 모서리 둥근 흰 테
+    cx.strokeStyle = '#f2f0ea'; cx.lineWidth = 5;
+    cx.beginPath(); cx.roundRect(5, 5, CELL - 10, CELL - 10, 14); cx.stroke();
+  });
+
+  /** 찬장 문·서랍 — 짙은 적갈 (92,61,53) 판에 가장자리 흰 선. 흰 선은 곱셈으로 못 내므로 판 색까지 여기서 칠한다 */
+  at(TILE.CUPBOARD_DOOR, () => {
+    cx.fillStyle = '#5c3d35'; cx.fillRect(0, 0, CELL, CELL);
+    for (let i = 0; i < 18; i++) {
+      cx.fillStyle = 'rgba(40,24,18,0.35)';
+      cx.fillRect(0, rnd(i * 17 + 3, CELL), CELL, 1);
+    }
+    cx.strokeStyle = '#eeeae2'; cx.lineWidth = 4;
+    cx.beginPath(); cx.roundRect(9, 9, CELL - 18, CELL - 18, 12); cx.stroke();
   });
 
   const tex = new CanvasTexture(cv);

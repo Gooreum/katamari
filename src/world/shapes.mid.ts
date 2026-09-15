@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, CircleGeometry, CylinderGeometry, LatheGeometry, RingGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CapsuleGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, LatheGeometry, RingGeometry, SphereGeometry, TorusGeometry,
   Vector2, type BufferGeometry,
 } from 'three';
 import type { ShapeIdMid } from './generation';
@@ -31,14 +31,30 @@ const TILT: readonly [number, number, number] = [Math.PI / 2, 0.42, 0];
 export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
   // ─── 버킷 3 (8~15cm) ─────────────────────────────────────────
 
-  소시지: () => assemble([
-    // 양끝이 묶인 원기둥. 끝을 원뿔로 막아야 소시지가 된다 (8.3cm)
-    part(new CylinderGeometry(0.22, 0.22, 0.66, 14), WHITE, [0, 0.22, 0], LIE_X),
-    part(new SphereGeometry(0.22, 12, 8), WHITE, [0.33, 0.22, 0]),
-    part(new SphereGeometry(0.22, 12, 8), WHITE, [-0.33, 0.22, 0]),
-    // 묶은 끈 — `PAPER`(대비 0.07)로는 몸통과 안 갈린다. 끈은 늘 몸통보다 밝다
-    part(new CylinderGeometry(0.065, 0.065, 0.11, 8), WRAP, [0.47, 0.22, 0], LIE_X),
-  ]),
+  /**
+   * 소시지(어육 소시지) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/소시지/` (주황 필름 어육 소시지 세 개 · 위에서 본 투명 필름 한 개)
+   *
+   * 앞의 것은 길이 : 지름 = 1 : 0.4 의 통통한 원기둥에 한쪽 끝만 흰 끈이었다. 사진과 대보니:
+   *   ① 길이 : 지름 = **1 : 0.16** — 훨씬 가늘고 길다. 양 끝은 지름의 절반 길이 반구
+   *   ② 필름은 **선명한 주황 한 가지**(254,150,75) — 살구색 팔레트(18)에 곱하면 탁한 갈색이 된다
+   *   ③ **양 끝** 모두 은색 금속 고리(지름의 0.27)로 묶였고, 그 밖으로 짧은 주황 필름 술(지름의 0.2)
+   * 은색 고리와 주황 필름을 한 물건에 두려면 팔레트가 흰색이어야 한다. 치수는 전체 길이 = 1 로 쓴다.
+   */
+  소시지: () => {
+    const R = 0.073, BODY = 0.91;
+    const FILM: RGB = [1.04, 0.62, 0.32], CLIP: RGB = [0.84, 0.84, 0.89], TUFT: RGB = [1.03, 0.40, 0.16];
+    return assemble([
+      // ① 몸통 — 반구 끝 원기둥 한 덩어리
+      part(new CapsuleGeometry(R, BODY - 2 * R, 4, 12), FILM, [0, R, 0], LIE_X),
+      ...([1, -1] as const).flatMap((k) => [
+        // ③ 금속 고리 — 필름이 모이는 끝에 물린다
+        part(new CylinderGeometry(0.02, 0.02, 0.016, 8), CLIP, [k * (BODY / 2 + 0.004), R, 0], LIE_X),
+        // 필름 술 — 고리 밖으로 부채처럼 벌어진다(꼭지가 고리 쪽)
+        part(new ConeGeometry(0.024, 0.03, 6), TUFT, [k * (BODY / 2 + 0.027), R, 0], [0, 0, k * Math.PI / 2]),
+      ]),
+    ]);
+  },
 
   /**
    * 껌 — **사진에서 잰 값으로 다시 만들었다.**
@@ -324,8 +340,15 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    * 치수는 높이 = 1 로 쓴다(앞 원판이 +z).
    */
   연필깎이: () => {
-    const BLUE: RGB = [0.22, 0.50, 1.05], BRASS: RGB = [0.78, 0.66, 0.44];
-    const W = 0.51, AXIS = 0.76, DRUM_R = 0.19, DEPTH = 0.65;
+    /**
+     * 판정자 기록(2026-09-16 묶음 4 1회차) — 「받침 위에 **나무 원판**이 달린 기계」.
+     * 원판에 `TILE.METAL` 긁힘 줄을 물렸더니 놋쇠색 위에서 나뭇결로 읽혔다. 사진의 원판은 결 없는
+     * 짙은 청동빛 금속이고 파란 드럼과 원판 사이에 **크롬 테**가 한 줄 돈다 — 무늬를 빼고 테를 넣었다.
+     * 손잡이는 드럼 뒤에 숨어 앞에서 안 보였다 — 팔을 옆(+x)으로 뉘어 크림색 손잡이가 몸통 밖으로 나오게 한다.
+     * 팔레트는 흰색 하나 — 빨강(8)에 파랑 계수를 곱하면 보라 기계가 됐다.
+     */
+    const BLUE: RGB = [0.20, 0.48, 0.95], BRONZE: RGB = [0.46, 0.42, 0.37], CHROME: RGB = [1.05, 1.05, 1.08];
+    const W = 0.51, AXIS = 0.76, DRUM_R = 0.19, DEPTH = 0.65, BACK = -DEPTH * 0.36;
     return assemble([
       // 받침판
       part(soft(W + 0.02, 0.10, DEPTH, 0.2), BLUE, [0, 0.05, 0]),
@@ -333,20 +356,20 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
       part(soft(W * 0.9, AXIS - 0.1, DEPTH * 0.43, 0.2), BLUE, [0, 0.10 + (AXIS - 0.1) / 2, -DEPTH * 0.12]),
       // 가로 누운 드럼 — 축이 앞뒤(z)
       part(new CylinderGeometry(DRUM_R, DRUM_R, DEPTH * 0.72, 16), BLUE, [0, AXIS, 0], [Math.PI / 2, 0, 0]),
-      // 투명 받침통 — 앞쪽 다리 앞, 높이 0.46
-      part(new BoxGeometry(W * 0.86, 0.46, DEPTH * 0.40), [0.85, 0.92, 1.05], [0, 0.10 + 0.23, DEPTH * 0.22], undefined, TILE.GLASSY),
-      // ① 놋쇠 앞 원판 + 연필 구멍
-      part(new CylinderGeometry(W * 0.49, W * 0.49, 0.05, 20), BRASS, [0, AXIS, DEPTH * 0.36 + 0.025], [Math.PI / 2, 0, 0], TILE.METAL),
-      part(new CylinderGeometry(W * 0.06, W * 0.06, 0.012, 10), [0.10, 0.09, 0.08], [0, 0.70, DEPTH * 0.36 + 0.056], [Math.PI / 2, 0, 0]),
+      // 투명 받침통 — 앞쪽 다리 앞, 높이 0.46. 흰 팔레트 위에서 옅은 하늘빛 유리
+      part(new BoxGeometry(W * 0.86, 0.46, DEPTH * 0.40), [0.86, 0.94, 1.02], [0, 0.10 + 0.23, DEPTH * 0.22], undefined, TILE.GLASSY),
+      // ① 크롬 테 + 청동빛 앞 원판 + 연필 구멍
+      part(new CylinderGeometry(W * 0.47, W * 0.47, 0.05, 20), CHROME, [0, AXIS, DEPTH * 0.36 - 0.01], [Math.PI / 2, 0, 0]),
+      part(new CylinderGeometry(W * 0.49, W * 0.49, 0.05, 20), BRONZE, [0, AXIS, DEPTH * 0.36 + 0.035], [Math.PI / 2, 0, 0]),
+      part(new CylinderGeometry(W * 0.06, W * 0.06, 0.012, 10), [0.08, 0.07, 0.06], [0, 0.70, DEPTH * 0.36 + 0.066], [Math.PI / 2, 0, 0]),
       // ② 물림쇠 손잡이 둘
       ...([1, -1] as const).map((s) =>
-        part(soft(0.07, 0.09, 0.06, 0.3), BRASS, [s * W * 0.22, AXIS + W * 0.49 + 0.03, DEPTH * 0.36])),
-      // ④ 뒤 크랭크 — 막대 + 크림색 손잡이
-      part(new CylinderGeometry(0.018, 0.018, 0.18, 6), [0.85, 0.85, 0.85], [0, AXIS - 0.08, -DEPTH * 0.36 - 0.02], [0.4, 0, 0]),
-      part(new CylinderGeometry(0.035, 0.035, 0.10, 8), [1.3, 1.25, 1.1], [0.05, AXIS - 0.17, -DEPTH * 0.43], [0, 0, Math.PI / 2]),
+        part(soft(0.07, 0.09, 0.06, 0.3), BRONZE, [s * W * 0.22, AXIS + W * 0.49 + 0.03, DEPTH * 0.36])),
+      // ④ 뒤 크랭크 — 드럼 뒤 축에서 옆(+x)으로 뉜 팔 + 뒤를 보는 크림색 손잡이
+      part(new CylinderGeometry(0.02, 0.02, 0.30, 6), CHROME, [0.15, AXIS, BACK - 0.03], [0, 0, Math.PI / 2]),
+      part(new CylinderGeometry(0.045, 0.045, 0.12, 8), [0.95, 0.91, 0.80], [0.30, AXIS, BACK - 0.09], [Math.PI / 2, 0, 0]),
     ]);
   },
-
 
   /**
    * RC 컨트롤러 — **사진에서 잰 값으로 다시 만들었다.**
@@ -450,21 +473,29 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     ]);
   },
 
-  우유팩: () => assemble([
-    // 1L 게이블탑 (19.5cm). **지붕 경사가 없으면 그냥 상자다** — 원작 거실에서
-    // 이 실루엣과 소 그림 인쇄가 우유팩을 우유팩으로 만든다.
-    part(soft(0.46, 0.66, 0.46, 0.1), WHITE, [0, 0.33, 0], undefined, TILE.MILK),
-    // **지붕에는 인쇄를 안 넣는다.** 넣었더니 색 띠가 몸통 위에 한 번 더 나와서
-    // 팩이 두 칸으로 잘려 보였다. 인쇄는 몸통 한 벌이면 충분하다.
-    // **두 판의 폭을 다르게 한다.** 같으면 옆면 두 장이 같은 평면이라 z-fighting 이
-    // 셋 났다(자가 `0×1 1×2 0×2` 로 잡았다). 실제 게이블탑도 한쪽이 다른 쪽을 덮는다
-    part(new BoxGeometry(0.472, 0.26, 0.24), WHITE, [0, 0.76, 0.11], [0.7, 0, 0]),
-    part(new BoxGeometry(0.450, 0.26, 0.24), WHITE, [0, 0.76, -0.11], [-0.7, 0, 0]),
-    // 접힌 마루. 지붕 둘이 만나는 자리를 덮어야 틈이 안 보인다
-    // 접힌 마루. **팔레트가 흰색이라 밝게는 못 간다** — `WRAP` 도 포화돼 대비 0.06 이다.
-    // 흰 물건의 표식은 «짙은» 쪽이다
-    part(new BoxGeometry(0.47, 0.10, 0.045), [0.62, 0.60, 0.56], [0, 0.915, 0]),
-  ]),
+  /**
+   * 우유팩 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/우유팩/` (1972 農協牛乳 1 L 신문 사진 + 모눈 위 雪印 1 L 팩 치수 7 × 23.5 cm)
+   *
+   * 앞의 것은 폭 : 높이 = 1 : 2.0 의 뭉툭한 상자에 소 얼룩을 찍은 것이었다. 사진과 대보니:
+   *   ① 폭 : 높이 = **1 : 3.36** 의 가늘고 긴 네모 기둥 — 박공 지붕이 높이의 **0.17**, 위에 가는 접합 날개
+   *   ② 옆면을 위 짙은 띠 0.30 · 흰 띠 0.41 · 아래 짙은 띠 0.26 으로 나누고 흰 띠에 한자 넉 자(`TILE.MILK`)
+   *   ③ 지붕 비탈과 옆 세모 박공도 짙은 색이다(1972 사진)
+   * 지붕은 삼각 기둥 하나로 만든다 — 판 둘을 기울여 얹었더니 옆 박공이 비어 틈이 보였다.
+   * 치수는 폭 = 1 로 쓴다.
+   */
+  우유팩: () => {
+    const BODY = 3.36 * 0.83, ROOF = 3.36 * 0.17, FIN = 0.09, NAVY: RGB = [0.15, 0.26, 0.58];
+    const RISE = ROOF - FIN, R = 1 / Math.sqrt(3);
+    return assemble([
+      part(new BoxGeometry(1, BODY, 1), WHITE, [0, BODY / 2, 0], undefined, TILE.MILK),
+      // ③ 박공 지붕 — 세 면 원기둥(꼭짓점 위)을 x 축으로 눕히고 높이만 눌러 폭 1 · 높이 RISE 로
+      part(new CylinderGeometry(R, R, 1.0, 3, 1, false, Math.PI / 2).scale(RISE / (1.5 * R), 1, 1), NAVY,
+        [0, BODY + RISE / 3, 0], [0, 0, Math.PI / 2]),
+      // 접합 날개 — 마루 위 가는 판
+      part(new BoxGeometry(0.98, FIN, 0.05), [0.95, 0.94, 0.92], [0, BODY + RISE + FIN / 2 - 0.01, 0]),
+    ]);
+  },
 
   /**
    * 두루마리 휴지 — **사진에서 잰 값으로 다시 만들었다.**
@@ -643,15 +674,48 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
     ]);
   },
 
-  밥솥: () => assemble([
-    part(new CylinderGeometry(0.44, 0.44, 0.52, 20), WHITE, [0, 0.28, 0]),
-    // 뚜껑 + 손잡이 + 김 구멍
-    part(new CylinderGeometry(0.46, 0.44, 0.14, 20), WHITE, [0, 0.60, 0]),
-    part(new CylinderGeometry(0.10, 0.10, 0.10, 8), DARK, [0, 0.71, 0]),
-    part(soft(0.16, 0.10, 0.10, 0.3), DARK, [0.46, 0.34, 0]),
-    part(soft(0.16, 0.10, 0.10, 0.3), DARK, [-0.46, 0.34, 0]),
-    part(new BoxGeometry(0.30, 0.10, 0.02), DARK, [0, 0.30, 0.44]),
-  ]),
+  /**
+   * 밥솥(전기밥솥) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/밥솥/` (東芝 RCK-200E 1975 무렵 앞 · 옆, National 초록 꽃무늬, ER-4 광고)
+   *
+   * 앞의 것은 곧은 원기둥에 양옆 귀와 앞 네모 판이었다. 사진과 대보니:
+   *   ① 몸통 높이 : 윗지름 = **0.73**, 아래로 **0.86** 까지 좁아진다. 짙은 갈색 테가 위(0.067) · 아래(0.04)를
+   *      조이고, 그 위 **몸통보다 넓은** 흰 뚜껑(0.17)
+   *   ② 뚜껑 위를 몸통 폭의 **1.16** 만큼 가로지르는 짙은 갈색 **아치 손잡이** — 꼭대기가 전체 높이 1.27
+   *   ③ 몸통 아래 절반을 도는 빨간 꽃 · 초록 · 회색 잎(`TILE.FLOWERBAND`)
+   *   ④ 앞 아래 세로로 긴 짙은 스위치 상자(너비 0.27 · 높이 0.48)와 흰 레버
+   * 은색 팔레트(6)는 꽃무늬를 회색에 가둔다 — 사진의 흰 몸통대로 흰색 하나.
+   * 치수는 몸통 윗지름 = 1 로 쓴다(스위치 상자 +z).
+   */
+  밥솥: () => {
+    const FEET = 0.05, BOT = 0.04, TOPRIM = 0.067, BODY = 0.73 - BOT - TOPRIM, LID = 0.17;
+    const y0 = FEET + BOT, y1 = y0 + BODY, y2 = y1 + TOPRIM, y3 = y2 + LID, TOP = 1.27;
+    const BROWN: RGB = [0.30, 0.28, 0.27], RIM: RGB = [0.18, 0.15, 0.13];
+    return assemble([
+      // 발 넷
+      ...([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).map(([sx, sz]) =>
+        part(new BoxGeometry(0.08, FEET, 0.08), RIM, [sx * 0.28, FEET / 2, sz * 0.28])),
+      // ① 아래 테 · 몸통 · 위 테 · 뚜껑
+      part(new CylinderGeometry(0.43, 0.43, BOT, 20), RIM, [0, FEET + BOT / 2, 0]),
+      part(new CylinderGeometry(0.50, 0.43, BODY, 20, 1, true), WHITE, [0, y0 + BODY / 2, 0], undefined, TILE.FLOWERBAND),
+      part(new CylinderGeometry(0.505, 0.505, TOPRIM, 20), BROWN, [0, y1 + TOPRIM / 2, 0]),
+      part(new CylinderGeometry(0.49, 0.53, LID, 20), [0.90, 0.88, 0.85], [0, y2 + LID / 2, 0]),
+      // 뚜껑 윗면 — 속이 비치는 짙은 창과 작은 꼭지
+      part(new CircleGeometry(0.30, 16).scale(1, 0.7, 1), [0.30, 0.30, 0.32], [0, y3 + 0.002, 0], [-Math.PI / 2, 0, 0]),
+      part(new CylinderGeometry(0.035, 0.035, 0.03, 8), RIM, [0.10, y3 + 0.015, 0.33]),
+      // ② 아치 손잡이 — 기둥 둘 + 잡는 막대. 기둥 밑은 뚜껑 옆 경첩 상자
+      ...([1, -1] as const).flatMap((k) => [
+        part(soft(0.10, TOP - y2 - 0.02, 0.12, 0.3), BROWN, [k * 0.535, (y2 + TOP) / 2 - 0.01, 0]),
+        part(soft(0.12, 0.14, 0.16, 0.25), BROWN, [k * 0.54, y2 + 0.05, 0]),
+      ]),
+      part(soft(1.16, 0.074, 0.12, 0.35), BROWN, [0, TOP - 0.037, 0]),
+      // ④ 스위치 상자 — 몸통 앞 아래, 가운데에서 왼쪽으로. 흰 레버와 빨간 등 둘
+      part(soft(0.27, 0.48, 0.07, 0.15), RIM, [-0.21, y0 + 0.24, 0.43]),
+      part(new BoxGeometry(0.09, 0.05, 0.03), [0.95, 0.95, 0.93], [-0.21, y0 + 0.07, 0.475]),
+      ...[0.36, 0.28].map((y) =>
+        part(new SphereGeometry(0.018, 6, 4), [0.95, 0.30, 0.18], [-0.23, y0 + y, 0.47])),
+    ]);
+  },
 
   화분: () => assemble([
     // 뒷마당의 토마토 화분. 흙과 줄기가 있어야 화분이다.

@@ -1,16 +1,16 @@
 import {
-  BoxGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, ExtrudeGeometry, LatheGeometry, Shape,
+  SphereGeometry, TorusGeometry, Vector2,
   type BufferGeometry,
 } from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShapeIdHouse } from './generation';
 import {
-  assemble, hollow, DARK, INK, METAL, part, soft, WHITE, WOOD, WRAP,
+  assemble, evenProfile, invert, INK, part, SHINE, soft, warp, WHITE, WRAP,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
-/** 눕힌 원기둥. 원기둥 축은 Y라 Z로 90° 돌리면 X축이 된다 */
-const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
 /** X축으로 돌린 원기둥 — 축이 Z가 된다 */
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
 /** 원뿔 꼭짓점을 +X 쪽으로 눕히는 회전 */
@@ -48,85 +48,228 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   // ─── 부엌 ────────────────────────────────────────────────────
 
-  계란: () => assemble([
-    // 눕힌 타원. **완전한 구면이면 골프공과 구별이 안 된다** — 마당 표에 골프공이 있다
-    // **껍질 얼룩을 인쇄로 넣는다.** 민짜 타원은 골프공과 구별이 안 되고,
-    // 붙일 만한 부품도 없다(달걀에 뭘 붙이면 달걀이 아니다)
-    part(new SphereGeometry(0.5, 14, 10).scale(1, 0.76, 0.76), WHITE, [0, 0.38, 0],
-      undefined, TILE.EGG),
-    // 한쪽만 좁다. 달걀을 달걀로 만드는 건 이 비대칭이다
-    part(new SphereGeometry(0.5, 14, 10).scale(0.44, 0.60, 0.60), WHITE, [0.32, 0.38, 0],
-      undefined, TILE.EGG),
-  ]),
+  /**
+   * 계란 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/계란/` (뭉툭한 끝으로 세운 흰 달걀 정측면)
+   *
+   * 앞의 것은 타원 구에 작은 구를 한쪽에 붙인 것이라 좁은 쪽에 «혹»이 났다. 사진과 대보니:
+   *   ① 폭 : 길이 = **0.75**
+   *   ② 가장 넓은 곳이 **뭉툭한 끝에서 0.46** — 뭉툭한 쪽 1/4 지점 폭 0.90, 뾰족한 쪽 1/4 지점 0.82
+   *   ③ 모서리 없이 끊김 없는 한 곡선이다 — 부품 둘을 붙이면 이음매가 생긴다
+   * 반타원 둘을 가장 넓은 곳에서 이은 돌림면 하나로 만든다. 이 식으로 네 지점(10%·25%)의 폭이
+   * 잰 값과 0.03 안에서 맞는다. 바닥에서는 **옆으로 눕는다**. 치수는 길이 = 1 로 쓴다.
+   */
+  계란: () => {
+    const R = 0.375, WIDE = 0.46;
+    const pts = Array.from({ length: 15 }, (_, k) => {
+      const t = k / 14;                                            // 0 = 뭉툭한 끝, 1 = 뾰족한 끝
+      const u = t < WIDE ? (t - WIDE) / WIDE : (t - WIDE) / (1 - WIDE);
+      return new Vector2(Math.max(0.001, R * Math.sqrt(Math.max(0, 1 - u * u))), t);
+    });
+    // 돌림축 y 를 −x 로 눕힌다(뭉툭한 끝 +x). 껍질 얼룩은 옅게 — 세면 메추리알이 된다
+    return assemble([
+      part(new LatheGeometry(pts, 14), [1.0, 0.99, 0.95], [0.5, R, 0], [0, 0, Math.PI / 2], TILE.EGG),
+    ]);
+  },
 
   /**
-   * 밥공기 (12cm).
+   * 밥공기 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/밥공기/` (白山陶器 「紀の川」 1977, 판매 표기 Φ12 × 5.5 cm)
    *
-   * **예전 주석이 문제를 자백하고 있었다** — 「사발의 윤곽은 안쪽이 아니라 이 얇은
-   * 띠가 만든다」. 속을 파는 대신 테두리 링으로 흉내 냈다는 뜻이고, 그래서 화면에서
-   * **통짜 원뿔이라 갓등처럼 보였다.** 사발의 정체는 파인 것이다.
+   * 앞의 것은 곧은 원뿔대 사발(입 1 : 높이 0.54)에 굽 지름 0.58, 입술 밖에 푸른 고리를 두른 것이었다.
+   *   ① 입지름 : 높이 : 굽 지름 = **1 : 0.44 : 0.37** — 더 얕고 굽이 좁다
+   *   ② 옆선이 **아래로 갈수록 빨리 좁아지는 둥근 사발꼴**(깊이 1/6 에서 입의 0.96, 1/3 에서 0.88, 1/2 에서 0.76)
+   *   ③ 입술 바로 아래 **가는 띠**(높이의 0.055) — 고리를 얹지 않고 인쇄로 두른다(`TILE.RICEBOWL`)
+   *   ④ 높이의 0.18 인 짧은 굽에 **코발트 세로 줄 20개**(`TILE.BOWLFOOT`)
+   * 사진이 흰 자기라 팔레트는 흰색 하나 — 민트(13)를 곱하면 띠와 굽 줄이 묻힌다.
+   * 치수는 입지름 = 1 로 쓴다.
    */
-  밥공기: () => assemble([
-    // **사발을 굽 «위»에 올린다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다.
-    // 안쪽도 짙게 — `[0.80,0.82,0.86]` 은 바깥과 대비가 0.14 로 아슬아슬했다
-    ...hollow(0.50, 0.32, 0.44, 0.035, 0.06, 20, WHITE, [0.72, 0.75, 0.80], TILE.CERAMIC)
-      .map((q) => part(q.geo, q.rgb, [0, 0.095, 0], undefined, q.tile)),
-    // 굽 — 사발을 살짝 띄운다. 없으면 컵이다
-    part(new CylinderGeometry(0.28, 0.30, 0.10, 20), WHITE, [0, 0.05, 0]),
-    // 테두리 청색 띠 — 밥공기다운 마감
-    part(new TorusGeometry(0.475, 0.024, 6, 20), [0.42, 0.54, 0.76], [0, 0.535, 0], LIE_Z),
-  ]),
+  밥공기: () => {
+    const H = 0.44, FOOT = 0.18 * H, FOOT_R = 0.185, WALL = 0.025;
+    // ② 바깥 윤곽 — 굽 안쪽에서 입까지. 길이 기준으로 고르게 뽑아야 띠가 v 0.91~0.96 에 앉는다
+    const outer = evenProfile([[FOOT_R, FOOT], [0.26, 0.105], [0.33, 0.155], [0.38, 0.22], [0.44, 0.293], [0.48, 0.367], [0.50, H]], 8)
+      .map(([r, y]) => new Vector2(r, y));
+    const inner = evenProfile([[0.001, FOOT + 0.035], [0.20, FOOT + 0.045], [0.31, 0.17], [0.36, 0.23], [0.42, 0.30], [0.458, 0.37], [0.50 - WALL, H]], 6)
+      .map(([r, y]) => new Vector2(r, y));
+    return assemble([
+      part(new LatheGeometry(outer, 16), WHITE, undefined, undefined, TILE.RICEBOWL),
+      part(invert(new LatheGeometry(inner, 16)), [0.93, 0.94, 0.94]),
+      // 입술 — 가장 밝은 한 줄
+      part(new TorusGeometry(0.50 - WALL / 2, WALL / 2, 3, 16), [1.02, 1.02, 1.02], [0, H, 0], LIE_Z),
+      // ④ 굽 — 목이나 턱 없이 몸통 밑에 곧장 붙는다
+      part(new CylinderGeometry(FOOT_R, FOOT_R, FOOT, 16, 1, true), WHITE, [0, FOOT / 2, 0], undefined, TILE.BOWLFOOT),
+      part(new CircleGeometry(FOOT_R, 16), [0.86, 0.86, 0.84], [0, 0.002, 0], [Math.PI / 2, 0, 0]),
+    ]);
+  },
 
-  젓가락: () => assemble([
-    // **두 짝이어야 한다.** 한 짝만 두면 성냥·연필과 구별이 안 된다
-    part(new CylinderGeometry(0.030, 0.017, 1.0, 6), WHITE, [0, 0.03, 0.055], LIE_X),
-    part(new CylinderGeometry(0.030, 0.017, 1.0, 6), WHITE, [0, 0.03, -0.055], LIE_X),
-    // 굵은 쪽 끝동. 나무젓가락은 여기서 색이 갈린다
-    part(new CylinderGeometry(0.033, 0.033, 0.18, 6), WOOD, [-0.40, 0.03, 0.055], LIE_X),
-    part(new CylinderGeometry(0.033, 0.033, 0.18, 6), WOOD, [-0.40, 0.03, -0.055], LIE_X),
-  ]),
+  /**
+   * 젓가락 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/젓가락/` (도쿄의 옻칠 젓가락 한 벌, 옆에서 곧게)
+   *
+   * 앞의 것은 끝까지 고르게 가늘어지는 흰 막대 둘에 나무색 끝동(0.18)이었다. 사진과 대보니:
+   *   ① 머리 굵기가 길이의 **0.042**, 끝은 머리의 **0.30** — 가늘어지는 건 **끝 쪽 2/3** 에 몰려 있고
+   *      손잡이 쪽 1/3 은 0.87 → 1.0 으로 거의 곧다
+   *   ② 끝에서 0.635 까지 **짙은 붉은 칠**, 손잡이 쪽은 **검은 칠** — 그 사이 초록 무늬 판(0.15)
+   *   ③ 두 짝 사이 틈은 굵기의 1/4
+   * 칠 색이 팔레트(나무)에 곱해지면 붉은 칠이 흙색이 된다 — 팔레트는 흰색, 색은 칠이 정한다.
+   * 치수는 길이 = 1 로 쓴다(끝 +x, 머리 −x).
+   */
+  젓가락: () => {
+    const HEAD = 0.021, TIP = HEAD * 0.30, MID = HEAD * 0.87;
+    const RED: RGB = [0.36, 0.04, 0.02], BLACK: RGB = [0.03, 0.03, 0.03], GREEN: RGB = [0.08, 0.22, 0.12];
+    // 구간 [끝 쪽 x, 머리 쪽 x, 끝 쪽 반지름, 머리 쪽 반지름, 색] — 끝(+0.5)에서 머리(−0.5)로
+    const bands: readonly (readonly [number, number, number, number, RGB])[] = [
+      [0.5, 0.5 - 0.635, TIP, MID, RED],
+      [0.5 - 0.635, 0.5 - 0.68, MID, MID * 1.01, BLACK],
+      [0.5 - 0.68, 0.5 - 0.83, MID * 1.01, HEAD * 0.95, GREEN],
+      [0.5 - 0.83, -0.5, HEAD * 0.95, HEAD, BLACK],
+    ];
+    return assemble([0.026, -0.026].flatMap((z) => bands.map(([x0, x1, r0, r1, rgb]) =>
+      // 원기둥 위(+y)가 끝 쪽 — Z 로 −90° 눕히면 +x 를 본다
+      part(new CylinderGeometry(r0, r1, x0 - x1, 6), rgb, [(x0 + x1) / 2, HEAD, z], [0, 0, -Math.PI / 2])))
+      .concat([
+        // 초록 판 위 작은 금색 꽃 — 짝마다 둘
+        ...[0.026, -0.026].flatMap((z) => [-0.22, -0.28].map((x) =>
+          part(new SphereGeometry(0.006, 5, 4), [0.62, 0.57, 0.36], [x, HEAD * 1.9, z]))),
+      ]));
+  },
 
-  숟가락: () => assemble([
-    part(soft(0.62, 0.035, 0.09, 0.45), METAL, [-0.16, 0.05, 0]),
-    // 눌린 구 하나가 숟가락 머리를 만든다. 상자로 하면 주걱이 된다
-    part(new SphereGeometry(0.5, 16, 10).scale(0.46, 0.24, 0.36), METAL, [0.30, 0.06, 0]),
-    // 자루 끝 — 얇은 판이 허공에서 끊기면 부러진 것으로 보인다
-    // 자루 끝 — 자루 «안»에 가둔다. 같은 두께면 위·아랫면이 같은 평면이다
-    part(new CylinderGeometry(0.05, 0.05, 0.031, 8), METAL, [-0.46, 0.05, 0]),
-  ]),
+  /**
+   * 숟가락 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/숟가락/` (스테인리스 숟가락을 바로 위에서)
+   *
+   * 앞의 것은 눌린 구(머리) 0.46 에 곧은 막대 자루였다. 사진과 대보니:
+   *   ① 머리는 전체의 **0.34**, 폭 : 길이 = **0.62** 의 달걀꼴 — 떠먹는 끝 쪽이 더 넓다
+   *   ② 목이 머리 폭의 **0.10** 까지 조였다가 자루가 끝에서 0.30 지점에서 **머리 폭의 0.30** 까지
+   *      넓어지고, 다시 좁아져 끝이 둥글다 — 곧은 막대가 아니다
+   *   ③ 오목한 면 안쪽만 어둡다 — 머리가 파여 있어야 주걱이 아니다
+   * 자루는 평면 윤곽을 밀어 만든다. 치수는 길이 = 1 로 쓴다(머리 +x).
+   */
+  숟가락: () => {
+    const HL = 0.17, HW = 0.107, RIM = 0.045, T = 0.012;
+    // ② 자루 윤곽 — [x, 반폭]. 목(0.11)이 가장 좁고 −0.22 에서 가장 넓다
+    const half: readonly (readonly [number, number])[] = [
+      [0.20, 0.050], [0.16, 0.024], [0.11, 0.011], [0.0, 0.018], [-0.10, 0.027],
+      [-0.22, 0.032], [-0.35, 0.028], [-0.45, 0.021], [-0.49, 0.013], [-0.50, 0.0],
+    ];
+    const outline = new Shape();
+    outline.moveTo(half[0]![0], half[0]![1]);
+    for (const [x, w] of half.slice(1)) outline.lineTo(x, w);
+    for (const [x, w] of [...half].reverse().slice(1)) outline.lineTo(x, -w);
+    // 밀어 만든 도형은 색인이 없다 — 다른 부품(색인 있음)과 병합하려면 색인을 붙인다
+    const handle = mergeVertices(new ExtrudeGeometry(outline, { depth: T, bevelEnabled: false }));
+    // ① 달걀꼴 — 떠먹는 끝(+x) 쪽 폭을 넓힌다
+    const egg = (g: BufferGeometry): BufferGeometry => warp(g, (x, y, z) => [x, y, z * (1 + 0.14 * (x / HL))]);
+    const SILVER: RGB = [1.08, 1.04, 0.98];
+    return assemble([
+      // 머리 바깥 — 아래 반구를 눌러 접시처럼. 바닥에 닿는 건 이 볼록한 밑이다
+      part(egg(new SphereGeometry(1, 16, 5, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(HL, RIM, HW)),
+        SILVER, [0.5 - HL, RIM, 0]),
+      // ③ 오목한 안쪽 — 어둡게 비친다
+      part(egg(invert(new SphereGeometry(1, 16, 5, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(HL * 0.94, RIM * 0.8, HW * 0.94))),
+        [0.74, 0.72, 0.72], [0.5 - HL, RIM + 0.001, 0]),
+      // 자루 — 판을 눕히고(X +90°) 끝이 바닥에 닿게 0.055 rad 기울인다
+      part(handle, SILVER, [0, 0.040, 0], [Math.PI / 2, 0, 0.055]),
+    ]);
+  },
 
-  당근: () => assemble([
-    // 눕힌 원뿔. 꼭짓점이 +X를 보게 돌린다
-    part(new ConeGeometry(0.19, 0.86, 9), WHITE, [0.08, 0.19, 0], TIP_X),
-    // 잎 세 갈래. **당근을 당근으로 만드는 건 이 초록이다** — 없으면 그냥 원뿔이다
-    part(new ConeGeometry(0.05, 0.30, 4), [0.36, 0.62, 0.28], [-0.44, 0.30, 0], [0, 0, 0.35]),
-    part(new ConeGeometry(0.05, 0.26, 4), [0.36, 0.62, 0.28], [-0.40, 0.28, 0.10], [0.4, 0, 0.2]),
-    part(new ConeGeometry(0.05, 0.26, 4), [0.36, 0.62, 0.28], [-0.40, 0.28, -0.10], [-0.4, 0, 0.2]),
-  ]),
+  /**
+   * 당근 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/당근/` (五寸 당근 옆모습 + 잎 자른 꼭지 접사)
+   *
+   * 앞의 것은 끝이 뾰족한 원뿔(길이 : 지름 = 1 : 0.44)에 잎 세 갈래를 세운 것이었다. 사진과 대보니:
+   *   ① 길이 : 가장 굵은 지름 = **1 : 0.27** — 훨씬 가늘다. 가장 굵은 곳은 윗끝에서 **0.13**
+   *   ② 끝까지 곧게 가늘어지다(1/2 에서 0.77, 3/4 에서 0.67, 0.95 에서 0.42) **뭉툭하게** 끝난다
+   *   ③ 잎은 잘려 없고, 오목하게 파인 어깨 한가운데에 **짧은 초록 꼭지**(어깨 지름의 0.29)만 박혀 있다
+   *   ④ 몸통을 가로로 두르는 옅은 잔주름(`TILE.CARROT`)
+   * 치수는 길이 = 1 로 쓴다(끝 +x, 어깨 −x).
+   */
+  당근: () => {
+    const R = 0.135;
+    // [반지름 비, 끝에서 잰 길이] — 끝(0)에서 어깨(1)로, 어깨는 가운데로 오목하게 말려 들어간다
+    const prof = evenProfile([[0.001, 0], [0.26, 0.012], [0.42, 0.05], [0.67, 0.25], [0.77, 0.5], [0.95, 0.78],
+      [1.0, 0.87], [0.97, 0.95], [0.84, 0.985], [0.55, 1.0], [0.30, 0.992]].map(([k, y]) => [k! * R, y!] as const), 12)
+      .map(([r, y]) => new Vector2(r, y));
+    return assemble([
+      // 돌림축 y 를 −x 로 눕힌다 → 끝(y=0)이 +x
+      part(new LatheGeometry(prof, 12), [0.97, 0.42, 0.19], [0.5, R, 0], [0, 0, Math.PI / 2], TILE.CARROT),
+      // ③ 초록 꼭지 — 오목한 어깨에 박혀 조금만 튀어나온다
+      part(new CylinderGeometry(0.29 * R, 0.29 * R, 0.03, 8), [0.48, 0.51, 0.25], [-0.5 + 0.004, R, 0], [0, 0, Math.PI / 2]),
+    ]);
+  },
 
-  냄비: () => assemble([
-    // **속을 판다.** 뚜껑을 비껴 얹어서 안이 보이게 한다 — 통짜 원기둥은 컵이다
-    ...hollow(0.42, 0.38, 0.44, 0.03, 0.05, 20, WHITE, [0.34, 0.36, 0.38], TILE.METAL),
-    // 뚜껑 — 한쪽으로 밀어 얹는다. 이게 「끓이는 중」의 정체다
-    part(new CylinderGeometry(0.44, 0.44, 0.05, 20), METAL, [0.14, 0.47, 0], [0, 0, 0.16]),
-    part(new SphereGeometry(0.08, 8, 6), DARK, [0.16, 0.53, 0], undefined, TILE.METAL),
-    // 양쪽 귀. **이게 있어야 컵이 아니라 냄비다**
-    part(soft(0.16, 0.05, 0.11, 0.35), DARK, [0.49, 0.34, 0]),
-    part(soft(0.16, 0.05, 0.11, 0.35), DARK, [-0.49, 0.34, 0]),
-  ]),
+  /**
+   * 냄비(유키히라) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/냄비/` (中尾アルミ 打出雪平鍋 18cm, 옆모습 + 비스듬히)
+   *
+   * 앞의 것은 양쪽 귀가 달린 곧은 원통 냄비에 뚜껑을 비껴 얹은 것이었다. 사진과 대보니:
+   *   ① 높이 : 지름 = **0.39** 의 얕은 사발 — 옆벽은 거의 곧다가 **아래 1/3 에서 크게 둥글어져**
+   *      좁은 바닥(지름의 0.33)으로 간다. 뚜껑은 없다
+   *   ② 귀 대신 **곧은 막대 손잡이 하나** — 몸통 지름의 0.96 길이, 굵기 0.13, 약 20° 들렸다.
+   *      앞 0.28 은 몸통에 나팔처럼 붙는 알루미늄 통, 뒤 0.72 는 옅은 나무(가는 홈 둘, 끝이 둥글다)
+   *   ③ 손잡이와 90° 인 두 옆의 **삼각 부리**
+   *   ④ 옆면을 덮은 엇갈린 벌집 망치 자국(`TILE.HAMMERED`)
+   * 치수는 몸통 지름 = 1 로 쓴다(손잡이 +x).
+   */
+  냄비: () => {
+    const H = 0.39, WALL = 0.014;
+    // ③ 부리 — ±z 옆 입술을 삼각형으로 끌어낸다. 몸통 · 안쪽 · 입술 테가 같은 식으로 휘어야 틈이 안 난다
+    const spout = (g: BufferGeometry): BufferGeometry => warp(g, (x, y, z) => {
+      const r = Math.hypot(x, z);
+      if (r < 1e-6) return [x, y, z];
+      const a = Math.abs(Math.abs(Math.atan2(x, z)) - Math.PI / 2);   // ±z 방향(손잡이와 90°)에서 0
+      const off = Math.PI / 2 - a;
+      const k = Math.max(0, 1 - off / 0.28) * Math.max(0, (y - 0.26) / (H - 0.26));
+      const s = (r + 0.06 * k) / r;
+      return [x * s, y + 0.012 * k, z * s];
+    });
+    const outer = [[0.001, 0], [0.165, 0], [0.30, 0.025], [0.39, 0.065], [0.44, 0.13], [0.47, 0.25], [0.50, H]]
+      .map(([r, y]) => new Vector2(r!, y!));
+    const inner = [[0.001, WALL], [0.16, WALL], [0.29, 0.035], [0.38, 0.072], [0.43, 0.135], [0.46, 0.25], [0.50 - WALL, H]]
+      .map(([r, y]) => new Vector2(r!, y!));
+    // ② 손잡이 — 몸통 벽(x=0.47, 입술 조금 아래)에서 +x 로 20° 들린 축
+    const TILT = 0.35, L = 0.96, R = 0.065;
+    const along = (d: number, dy = 0): [number, number, number] =>
+      [0.47 + Math.cos(TILT) * d, 0.30 + Math.sin(TILT) * d + dy, 0];
+    const HANDLE_ROT: readonly [number, number, number] = [0, 0, -(Math.PI / 2 - TILT)];
+    const WOODEN: RGB = [1.17, 1.09, 0.96];
+    return assemble([
+      part(spout(new LatheGeometry(outer, 16)), WHITE, undefined, undefined, TILE.HAMMERED),
+      part(spout(invert(new LatheGeometry(inner, 16))), [0.80, 0.84, 0.88]),
+      part(spout(new TorusGeometry(0.50 - WALL / 2, WALL / 2, 3, 24).rotateX(Math.PI / 2).translate(0, H, 0)), [1.08, 1.08, 1.08]),
+      // 알루미늄 통 — 몸통 쪽이 나팔처럼 벌어진다
+      part(new CylinderGeometry(R * 0.95, R * 1.45, L * 0.28, 10), [1.02, 1.02, 1.04], along(L * 0.14), HANDLE_ROT),
+      // 금속 테 한 줄
+      part(new CylinderGeometry(R * 1.05, R * 1.05, 0.018, 10), [0.86, 0.86, 0.88], along(L * 0.28), HANDLE_ROT),
+      // 나무 — 0.72, 끝이 반구
+      part(new CylinderGeometry(R, R, L * 0.72, 10), WOODEN, along(L * 0.64), HANDLE_ROT),
+      part(new SphereGeometry(R, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2), WOODEN, along(L), HANDLE_ROT),
+      // 나무 끝에서 0.30 · 0.38 의 가는 홈
+      ...[0.30, 0.38].map((f) =>
+        part(new CylinderGeometry(R * 1.01, R * 1.01, 0.008, 10), [0.66, 0.58, 0.46], along(L - L * 0.72 * f), HANDLE_ROT)),
+    ]);
+  },
 
-  도마: () => assemble([
-    // **두께 0.07 로 시작했더니 화면에서 검은 조각으로 사라졌다** — 옆 칸 방석과
-    // 구별이 안 됐다. 실물 비율(34cm × 2cm)은 맞지만 이 크기에서는 안 읽힌다.
-    // 두께를 키우고 자루를 넓혀서 「자루 달린 판」이 실루엣에 남게 한다.
-    part(soft(0.96, 0.13, 0.62, 0.14), WHITE, [-0.02, 0.065, 0]),
-    // 자루. 자루가 없으면 그냥 판자다
-    part(soft(0.28, 0.11, 0.30, 0.25), WHITE, [0.60, 0.055, 0]),
-    part(new CylinderGeometry(0.06, 0.06, 0.16, 8), DARK, [0.63, 0.055, 0]),
-    // 나뭇결 두 줄 — 판에 결이 없으면 플라스틱으로 보인다
-    part(new BoxGeometry(0.88, 0.015, 0.04), WOOD, [-0.03, 0.132, 0.15]),
-    part(new BoxGeometry(0.88, 0.015, 0.04), WOOD, [-0.03, 0.132, -0.11]),
-  ]),
+  /**
+   * 도마 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/도마/` (日本橋木屋 히노키 360 × 180 × 30 mm)
+   *
+   * 앞의 것은 판 한쪽에 둥근 자루를 단 서양식 도마(두께 0.13)였다. 사진과 대보니:
+   *   ① 길이 : 너비 : 두께 = **1 : 0.50 : 0.084** 의 두툼한 **통판** — 자루도 구멍도 없다
+   *   ② 윗면을 길이 방향으로 곧게 지나는 가는 곧은결과 옅은 분홍 띠(`TILE.HINOKI`)
+   *   ③ **짧은 끝면만 한 톤 짙은** 나뭇결 끝면(180,154,124)
+   * 옅은 히노키색(232,204,165)은 나무 팔레트(7)에 곱하면 짙은 갈색이 된다 — 팔레트는 흰색.
+   * 치수는 길이 = 1 로 쓴다.
+   */
+  도마: () => {
+    const T = 0.084, W = 0.5;
+    return assemble([
+      part(new BoxGeometry(1.0, T, W), [0.95, 0.85, 0.71], [0, T / 2, 0], undefined, TILE.HINOKI),
+      // ③ 끝면 — 판 «밖»으로 1mm 덧대야 끝면과 같은 평면이 안 된다
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(0.003, T * 0.98, W * 0.98), [0.76, 0.64, 0.53], [k * 0.5015, T / 2, 0])),
+    ]);
+  },
 
   // ─── 화장실 ──────────────────────────────────────────────────
 
@@ -192,6 +335,14 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
    */
   구슬: () => assemble([
     part(new SphereGeometry(0.5, 16, 10), [0.80, 0.90, 0.80], [0, 0.5, 0], undefined, TILE.MARBLE),
+    /**
+     * ③ 창 반사 — **흰색보다 밝은 조각 둘.** 판정자가 「공」이라고 했다(2026-09-16). 인쇄의 흐린 창은
+     * 곱셈이라 옅은 유리 위에서 흰색을 못 넘어 안 보였다. 구 겉면을 따라 휜 작은 조각을 1% 밖에
+     * 얹고 `SHINE` 으로 칠한다 — 불투명한 이 엔진에서 «유리»를 말하는 건 이 번쩍임뿐이다.
+     */
+    // phi 는 +z(앞)·−x(왼쪽) 사이 — 시트 카메라가 앞 오른쪽 위에서 보므로 앞 왼쪽 위에 창이 비친다
+    ...[[0.80, 0.20], [1.06, 0.14]].map(([phi, w]) =>
+      part(new SphereGeometry(0.505, 3, 3, phi!, w!, 0.42, 0.30), SHINE, [0, 0.5, 0])),
   ]),
 
   /**

@@ -1,10 +1,11 @@
 import {
-  BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, TorusGeometry,
+  BoxGeometry, CapsuleGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, LatheGeometry, SphereGeometry,
+  TorusGeometry, Vector2,
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdSmall } from './generation';
 import {
-  assemble, GLASS, INK, METAL, part, WHITE, WRAP, soft,
+  assemble, GLASS, INK, METAL, part, WHITE, WRAP, soft, warp,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -88,28 +89,58 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     ]),
   ]),
 
-  쌀알: () => assemble([
-    /**
-     * **길고 가늘어야 한다.** 예전 반지름 0.17 은 통통해서 알약으로 보였다.
-     * 그리고 쌀알에는 **세로 홈**이 하나 있다 — 그 선 하나가 「낟알」을 만든다.
-     */
-    part(new CylinderGeometry(0.13, 0.13, 0.60, 8), WHITE, [0, 0.13, 0], LIE_X),
-    part(new ConeGeometry(0.13, 0.24, 8), WHITE, [0.42, 0.13, 0], CAP_X),
-    part(new ConeGeometry(0.13, 0.20, 8), WHITE, [-0.40, 0.13, 0], LIE_X),
-    // 배 쪽 홈. 몸통보다 짙어야 «파인 선»으로 읽힌다
-    part(new BoxGeometry(0.66, 0.035, 0.05), [0.74, 0.71, 0.64], [0, 0.13, 0.115]),
-  ]),
+  /**
+   * 쌀알 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/쌀알/` (백미 한 알 접사 + 고시히카리 흩은 낟알, 치수는 스미토모화학 자료)
+   *
+   * 앞의 것은 원기둥 양 끝에 원뿔을 단 «알약»에 짙은 세로 홈을 그은 것이었다. 사진과 대보니:
+   *   ① 길이 : 폭 : 두께 = **1 : 0.58 : 0.35** — 원기둥이 아니라 납작하고 통통한 타원 알
+   *   ② 한쪽 끝 모서리를 **비스듬히 깎아낸 배아 자국** — 길이의 0.23, 폭의 0.54 깊이, 시작에 폭의 0.13 턱
+   *   ③ 반대쪽 끝은 턱 없이 **둥글고 뭉툭하다**
+   * 세로 홈은 사진에서 희미한 결일 뿐이라 뺐다 — 짙은 선을 그으면 알약의 쪼갬선이다.
+   * 치수는 길이 = 1 로 쓴다(배아 자국 +x, +z 모서리).
+   */
+  쌀알: () => {
+    const L = 0.5, W = 0.29, T = 0.175, CUT = 0.23;
+    const grain = warp(new SphereGeometry(1, 12, 8).scale(L, T, W), (x, y, z) => {
+      // ③ 끝을 뭉툭하게 — 길이 방향만 초타원 쪽으로 민다
+      const bx = Math.sign(x) * L * Math.abs(x / L) ** 0.8;
+      // ② 배아 자국 — 폭의 0.13 턱에서 시작해 끝에서 폭의 0.54 깊이까지 비스듬히 깎는다
+      const x0 = L - CUT;
+      if (bx > x0 && z > 0) {
+        const t = (bx - x0) / CUT;
+        const cap = W - 0.26 * W - t * (1.08 - 0.26) * W;
+        return [bx, y, Math.min(z, cap)];
+      }
+      return [bx, y, z];
+    });
+    return assemble([part(grain, [0.97, 0.97, 0.98], [0, T, 0])]);
+  },
 
-  팥: () => assemble([
-    /**
-     * 팥은 구가 아니라 **길쭉한 타원**이다. 그리고 옆구리에 흰 배꼽줄(제)이 있다 —
-     * 팥과 콩을 가르는 건 그 줄 하나인데, 예전 계수 `[0.9,0.88,0.82]` 는
-     * 팔레트를 곱하면 몸통과 **대비 0.10** 이라 화면에서 안 보였다.
-     * 1을 넘는 `WRAP` 으로 바꾸고 몸통 밖으로 살짝 튀어나오게 한다.
-     */
-    part(new SphereGeometry(0.5, 12, 8).scale(1.0, 0.78, 0.72), WHITE, [0, 0.39, 0]),
-    part(new BoxGeometry(0.74, 0.11, 0.09), WRAP, [0, 0.39, 0.345]),
-  ]),
+  /**
+   * 팥 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/팥/` (팥 무더기 위키미디어 + 2 mm 눈금 막대가 있는 두 알)
+   *
+   * 앞의 것은 타원 구 옆구리에 네모 막대를 붙인 것이었다. 사진과 대보니:
+   *   ① 폭이 길이의 **0.65~0.75** 인, 양 끝이 둥글고 **옆선이 곧은 짧은 원통꼴**
+   *   ② 흰 배꼽 줄은 알 길이의 **0.45~0.6**, 가운데가 아니라 **한쪽 끝으로 치우쳐** 있고 두 끝이 둥글다
+   *   ③ 반들거리는 적갈색(127,81,66)과 흰 줄의 강한 대비 — 적갈 팔레트(17)에 흰색을 곱하면
+   *      줄이 주황이 된다(예전 `WRAP`). 팔레트를 흰색으로 두고 껍질 색을 계수로 정한다
+   * 치수는 길이 = 1 로 쓴다. 줄이 보이게 윗면에 둔다.
+   */
+  팥: () => {
+    const R = 0.35, MID = 0.15, SQ = 0.92;
+    // 알 윗면 높이 — 곧은 몸통은 평평하고 둥근 끝에서 내려간다. 줄이 이 면을 따라 휜다
+    const top = (x: number): number => SQ * Math.sqrt(Math.max(0, R * R - Math.max(0, Math.abs(x) - MID) ** 2));
+    const hilum = warp(new CapsuleGeometry(0.04, 0.44, 1, 5).rotateZ(Math.PI / 2), (x, y, z) =>
+      [x + 0.18, y * 0.55 + top(x + 0.18) - 0.012, z]);
+    return assemble([
+      // 몸통 — 반구 끝 원기둥을 눕히고 높이를 0.92 로 누른다
+      part(new CapsuleGeometry(R, 2 * MID, 3, 8).scale(SQ, 1, 1), [0.52, 0.34, 0.28], [0, R * SQ, 0], LIE_X),
+      // 배꼽 줄 — +x 끝에서 0.06 들어와 0.52 길이
+      part(hilum, [1.0, 1.0, 0.93], [0, R * SQ, 0]),
+    ]);
+  },
 
   /**
    * 클립 — **사진에서 잰 값으로 다시 만들었다.**
@@ -245,10 +276,14 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
       part(new SphereGeometry(HEAD_R, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, HEAD_L / HEAD_R, 1),
         WHITE, [x0, Y, 0], [0, 0, Math.PI / 2]),
       part(new CircleGeometry(HEAD_R, 16), [0.8, 0.8, 0.8], [x0, Y, 0], [0, Math.PI / 2, 0]),
-      // 십자 홈 — 돔 앞면
-      // 십자 홈 — 돔 앞면에 «파인» 짙은 선. 두께를 두면 머리 밖으로 튀어나온 돌기가 된다(판정자)
-      part(new BoxGeometry(0.006, 0.15, 0.03), INK, [-0.497, Y, 0]),
-      part(new BoxGeometry(0.006, 0.03, 0.15), INK, [-0.497, Y, 0]),
+      /**
+       * 십자 홈 — **돔 곡면을 따라 붙인 좁은 띠 넷.** 곧은 판 둘을 꼭지에 댔더니 판 끝이 돔 곡면
+       * 밖으로 2.7mm 튀어나와 판정자가 「머리 뒤의 납작한 날개」라고 했다(2026-09-15).
+       * 돔과 같은 구를 1% 크게, 경도 폭 0.34 rad · 꼭지에서 0.75 rad 까지만 잘라 네 방향에 얹는다
+       */
+      ...[0, 1, 2, 3].map((k) =>
+        part(new SphereGeometry(HEAD_R * 1.01, 2, 4, k * Math.PI / 2 - 0.17, 0.34, 0, 0.75).scale(1, HEAD_L / HEAD_R, 1),
+          INK, [x0, Y, 0], [0, 0, Math.PI / 2])),
       // ② 매끈한 목 + 나사산 + 뾰족한 끝
       part(new CylinderGeometry(R, R, neckEnd - x0, 10, 1, true), WHITE, [(x0 + neckEnd) / 2, Y, 0], [0, 0, Math.PI / 2]),
       part(new CylinderGeometry(R * 1.04, R * 1.04, threadEnd - neckEnd, 10, 1, true), WHITE,
@@ -487,23 +522,40 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
       part(new BoxGeometry(0.018, 0.05, 0.05), INK, [x, 0.095, 0.035])),
   ]),
 
-  '간장 팩': () => assemble([
-    /**
-     * 도시락에 들어 있는 **물고기 모양** 간장통. 예전엔 구 + 원뿔 둘이라
-     * 화면에서 갈색 덩어리였다 — 물고기는 **옆으로 납작하고 꼬리지느러미가 선다.**
-     * 눈과 붉은 뚜껑이 물고기를 물고기로 만든다.
-     */
-    part(new SphereGeometry(0.26, 10, 8).scale(1.15, 1, 0.55), WHITE, [-0.02, 0.16, 0]),
-    part(new ConeGeometry(0.19, 0.30, 8).scale(1, 1, 0.55), WHITE, [0.34, 0.16, 0], CAP_X),
-    // 꼬리지느러미 — 세로로 «선다». 이게 실루엣의 전부다
-    part(new ConeGeometry(0.20, 0.24, 4).scale(0.42, 1, 1), WHITE, [-0.36, 0.16, 0],
-      [0, 0, Math.PI / 2]),
-    // 붉은 뚜껑 + 눈
-    part(new CylinderGeometry(0.075, 0.075, 0.13, 8), [0.88, 0.32, 0.20],
-      [0.53, 0.16, 0], LIE_X),
-    ...([1, -1] as const).map((k) =>
-      part(new SphereGeometry(0.045, 6, 5), INK, [0.20, 0.22, k * 0.10])),
-  ]),
+  /**
+   * 간장 팩(물고기 모양 간장병) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/간장 팩/` (旭創業 제품 옆모습, 표기 54 × 23 mm)
+   *
+   * 앞의 것은 구 + 원뿔 + 짧은 원기둥 뚜껑이었다. 사진과 대보니:
+   *   ① 길이 : 높이 = **1 : 0.42**. 몸통은 병 길이의 **0.61** 인 앞뒤 거의 대칭 레몬꼴
+   *      (한가운데가 가장 높다) — 구를 늘인 달걀꼴이 아니다
+   *   ② 빨간 뚜껑은 **몸 쪽이 넓은 원뿔대**, 길이 0.19 · 몸 쪽 지름이 몸통 높이의 0.40
+   *   ③ 간장이 차서 **거의 검은 몸통**(35,35,41)과 간장이 안 드는 **우윳빛 꼬리**(길이 0.15,
+   *      자루 0.26 → 끝 0.56 높이로 벌어진다)의 대비. 등지느러미 속 간장은 호박색으로 비친다
+   * 적갈 팔레트(17)에 곱하면 검은 몸통 · 흰 꼬리 · 빨간 뚜껑이 한 색으로 뭉친다 — 팔레트는 흰색.
+   * 치수는 길이 = 1 로 쓴다(뚜껑 +x, 꼬리 −x).
+   */
+  '간장 팩': () => {
+    const RM = 0.18, BODY = 0.61, FLAT = 0.55, SOY: RGB = [0.15, 0.14, 0.17];
+    // ① 몸통 옆 윤곽 — [최대 높이에 대한 비, 꼬리 쪽 끝에서의 거리]. 사진 x=300·350·415·500·540 에서 잰 값
+    const prof = [[0.001, 0], [0.26, 0], [0.55, 0.043], [0.74, 0.128], [1.0, 0.311], [0.86, 0.451], [0.61, 0.561], [0.33, BODY], [0.001, BODY]]
+      .map(([k, y]) => new Vector2(k! * RM, y!));
+    return assemble([
+      // 돌림축을 +x 로 눕히고(Z −90°) 두께만 0.55 로 누른다 — 옆으로 납작한 물고기
+      part(new LatheGeometry(prof, 12).scale(1, 1, FLAT), SOY, [-0.35, RM, 0], CAP_X),
+      // 목 — 몸통과 뚜껑 사이 0.05
+      part(new CylinderGeometry(0.062, 0.062, 0.05, 10), SOY, [0.285, RM, 0], CAP_X),
+      // ② 뚜껑 — 원기둥 위(+y → +x)가 바깥 끝. 몸 쪽이 넓다
+      part(new CylinderGeometry(0.054, 0.080, 0.19, 12), [0.78, 0.31, 0.30], [0.405, RM, 0], CAP_X),
+      // ③ 꼬리 — 네모 원뿔대를 얇게 눌러 세운 판. 자루에서 끝으로 벌어진다
+      part(new CylinderGeometry(0.052, 0.112, 0.15, 4).scale(1, 1, 0.12), [0.90, 0.90, 0.88], [-0.425, RM, 0], CAP_X),
+      // 등지느러미 — 간장이 얇게 비치는 호박색
+      part(new SphereGeometry(0.06, 8, 4).scale(1.5, 0.6, 0.35), [0.61, 0.44, 0.22], [-0.04, RM * 2 - 0.004, 0]),
+      // 눈 — 머리 쪽 윗편, 양옆
+      ...([1, -1] as const).map((k) =>
+        part(new SphereGeometry(0.02, 6, 4), [0.55, 0.53, 0.57], [0.20, RM + 0.03, k * 0.056])),
+    ]);
+  },
 
   청개구리: () => assemble([
     /**

@@ -339,103 +339,209 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
   // ─── 부엌 ────────────────────────────────────────────────────
 
   /**
-   * 싱크대 (175cm). **개수통이 파여 있어야 싱크대다.**
-   * 상판에 통짜를 얹으면 그건 조리대고, 파야 설거지하는 데가 된다.
+   * 싱크대 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/싱크대/` (高津装飾美術 「公団型流し台」 W1800 D550 H800 앞모습 + ガスミュージアム 昭和40年代 부엌)
+   *
+   * 앞의 것은 문 두 짝 달린 통짜 장 위 **왼쪽**에 개수통을 판 것이었다. 사진과 대보니:
+   *   ① 폭 : 높이 : 깊이 = **1 : 0.44 : 0.31** — 앞의 것(1 : 0.5 : 0.35)보다 낮고 얕다
+   *   ② 폭 0.31 사각 개수대가 **가운데(0.51)**, 뒤에 높이 0.11 짜리 턱
+   *   ③ 통짜 장이 아니다 — 양 끝 폭 0.33 **나뭇결 수납장 둘** 사이 폭 0.28 **무릎 자리가 바닥까지 트였다**
+   *   ④ 문 위쪽 0.15 높이에 한 쌍씩 달린 **V자 크롬 손잡이**, 주황빛 갈색 나뭇결 앞판 (115,60,28)
+   * 은색 팔레트(6)는 나뭇결 문을 회색으로 누른다 — 팔레트는 흰색, 스테인리스·나무는 계수로.
+   * 꼭지는 사진에 없지만(벽에서 나온다) 게임에서 개수대를 «물 쓰는 데»로 읽히게 뒤 턱에 작게 남겼다.
+   * 치수는 폭 = 1 로 쓴다(앞 +z).
    */
-  싱크대: () => assemble([
-    // 몸통 — **굽 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
-    part(soft(1.00, 0.42, 0.34, 0.10), WHITE, [0, 0.26, 0], undefined, TILE.PANEL),
-    /**
-     * 스테인리스 상판. **개수통 자리를 비워야 한다** — 판 한 장으로 덮었더니
-     * 파놓은 통이 통째로 가려져서 「그냥 조리대」가 됐다.
-     * 통(왼쪽 −0.42~−0.06)을 피해 앞·뒤·오른쪽 세 조각으로 나눈다.
-     */
-    part(soft(1.02, 0.025, 0.06, 0.35), METAL, [0, 0.475, 0.145]),
-    part(soft(1.02, 0.025, 0.06, 0.35), METAL, [0, 0.475, -0.145]),
-    // 좌우 조각은 앞·뒤 조각 «사이»만 덮는다. 깊이가 같으면 셋이 서로 겹쳐서
-    // 같은 평면 위에 판이 두 장 깔린다(자가 `1×3 2×3 1×4 2×4` 로 잡았다)
-    part(soft(0.58, 0.025, 0.23, 0.35), METAL, [0.22, 0.475, 0]),
-    part(soft(0.08, 0.025, 0.23, 0.35), METAL, [-0.47, 0.475, 0]),
-    // 개수통 — 상판 왼쪽에 판다
-    // 개수통 — 상판을 뚫은 자리에 판다. 상판 높이(0.4875)와 턱이 맞아야 한다
-    // 개수통 — 상판보다 **8mm 높게** 앉힌다. 턱이 상판과 같은 높이면 같은 평면이
-    // 생겨 z-fighting 이다(자가 `1×5 2×6 3×7` 로 잡았다). 실제 드롭인 싱크도 턱이 뜬다
-    ...basin(0.36, 0.26, 0.15, 0.02, [0.45, 0.50, 0.55], METAL, TILE.METAL)
-      .map((q) => part(q.geo, q.rgb, [-0.24, 0.346, 0], undefined, q.tile)),
-    // 꼭지는 «작게». 1.0 배로 뒀더니 형태 높이가 목표(0.85m)의 1.4배가 됐다 —
-    // 압출 조각에는 꼭지가 없었으니 목표값이 그만큼 낮은 게 당연하다
-    ...tap(-0.24, 0.49, -0.12, 0.6),
-    // 문 둘 + 손잡이 — 몸통 앞면에 선을 그어야 장으로 읽힌다
-    part(soft(0.44, 0.38, 0.02, 0.30), WHITE, [0.25, 0.24, 0.175]),
-    part(soft(0.44, 0.38, 0.02, 0.30), WHITE, [-0.25, 0.24, 0.175]),
-    // 손잡이 둘 — 길이를 다르게. 한 축에 나란히 놓으면 끝면이 같은 평면이다
-    part(new CylinderGeometry(0.013, 0.013, 0.13, 8), METAL, [0.055, 0.24, 0.19], LIE_X, TILE.METAL),
-    part(new CylinderGeometry(0.013, 0.013, 0.11, 8), METAL, [-0.055, 0.24, 0.19], LIE_X),
-    part(soft(0.96, 0.05, 0.30, 0.35), DARK, [0, 0.025, 0]),             // 굽
-  ]),
+  싱크대: () => {
+    const H = 0.44, D = 0.31, BASE = 0.05 * H, DOOR = 0.69 * H, APRON = 0.23 * H;
+    const yDoor = BASE, yApron = BASE + DOOR, yTop = yApron + APRON, TOP_T = H - yTop;
+    const WOODEN: RGB = [0.47, 0.25, 0.12], STEEL: RGB = [0.40, 0.38, 0.36], CHROME: RGB = [1.05, 1.05, 1.08];
+    const CAB = 0.332, CX = 0.5 - 0.017 - CAB / 2;               // 수납장 폭 · 중심(양 끝에서 0.017 들어온다)
+    const BW = 0.31, BD = 0.20, BX = 0.01, BZ = 0.0;              // 개수대
+    const FACE = D / 2 - 0.012;                                   // 문 · 앞판 앞면 — 상판이 0.012 내민다
+    // V자 손잡이 — 짧은 막대 둘을 ±35° 로
+    const vHandle = (x: number): Part[] => ([1, -1] as const).map((k) =>
+      part(new CylinderGeometry(0.004, 0.004, 0.03, 5), CHROME, [x + k * 0.011, yApron - 0.15 * DOOR, FACE + 0.006], [0, 0, k * 1.0]));
+    return assemble([
+      // ③ 수납장 둘 — 몸통 + 문 두 짝 + 손잡이
+      ...([1, -1] as const).flatMap((k) => [
+        part(new BoxGeometry(CAB, DOOR, D / 2 + FACE - 0.008), WOODEN, [k * CX, yDoor + DOOR / 2, (FACE - 0.008 - D / 2) / 2], undefined, TILE.WOOD_C),
+        ...([1, -1] as const).map((j) =>
+          part(new BoxGeometry(CAB / 2 - 0.003, DOOR - 0.006, 0.008), WOODEN, [k * CX + j * CAB / 4, yDoor + DOOR / 2, FACE - 0.004], undefined, TILE.WOOD_C)),
+        ...vHandle(k * CX - 0.053), ...vHandle(k * CX + 0.053),
+        // 굽 — 문보다 조금 들어간 짙은 판
+        part(new BoxGeometry(CAB - 0.02, BASE, D - 0.05), [0.23, 0.13, 0.09], [k * CX, BASE / 2, -0.02]),
+      ]),
+      // 앞판 띠 — 폭 전체, 가운데 가는 가로 홈
+      part(new BoxGeometry(0.98, APRON, D / 2 + FACE), WOODEN, [0, yApron + APRON / 2, (FACE - D / 2) / 2], undefined, TILE.WOOD_C),
+      part(new BoxGeometry(0.98, 0.004, 0.004), [0.20, 0.10, 0.05], [0, yApron + APRON * 0.62, FACE + 0.001]),
+      // ② 스테인리스 상판 — 개수대 자리를 비운 네 조각(겹치지 않게)
+      part(new BoxGeometry(1.0, TOP_T, D / 2 - BD / 2 - BZ), STEEL, [0, yTop + TOP_T / 2, (D / 2 + BD / 2 + BZ) / 2]),
+      part(new BoxGeometry(1.0, TOP_T, D / 2 - BD / 2 + BZ), STEEL, [0, yTop + TOP_T / 2, -(D / 2 + BD / 2 - BZ) / 2]),
+      part(new BoxGeometry(0.5 + BX - BW / 2, TOP_T, BD), STEEL, [(-0.5 + BX - BW / 2) / 2, yTop + TOP_T / 2, BZ]),
+      part(new BoxGeometry(0.5 - BX - BW / 2, TOP_T, BD), STEEL, [(0.5 + BX + BW / 2) / 2, yTop + TOP_T / 2, BZ]),
+      // 상판 앞 테 — 검게 비친다
+      part(new BoxGeometry(1.0, TOP_T * 0.9, 0.004), [0.12, 0.12, 0.14], [0, yTop + TOP_T / 2, D / 2 + 0.002]),
+      // 개수대 — 상판보다 조금 높게 앉힌다(드롭인 싱크의 뜬 턱)
+      ...basin(BW, BD, 0.10, 0.012, [0.85, 0.85, 0.88], STEEL, TILE.METAL)
+        .map((q) => part(q.geo, q.rgb, [BX, H - 0.10 + 0.003, BZ], undefined, q.tile)),
+      // 뒤 턱 — 높이 0.11H, 양 끝에서 0.07 들어온다
+      part(new BoxGeometry(0.86, 0.11 * H, 0.012), STEEL, [0, H + 0.11 * H / 2, -D / 2 + 0.006]),
+      ...tap(BX, H, -BD / 2 - 0.02, 0.35),
+    ]);
+  },
 
   /**
-   * 냉장고 (155cm). **문 둘로 갈린 앞면과 세로 손잡이**가 정체다.
-   * 통짜 상자에 색만 칠하면 그건 캐비닛이다.
+   * 냉장고 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/냉장고/` (National NR-8180AF, 표기 W52 D61 H125 cm, 앞 · 옆)
+   *
+   * 앞의 것은 폭 : 높이 = 0.39 의 흰 상자에 문 둘과 **오른쪽** 세로 손잡이였다. 사진과 대보니:
+   *   ① 폭 : 높이 : 깊이 = **1 : 2.4 : 1.17** — 깊다
+   *   ② 위 **0.22** 냉동실 · 아래 **0.73** 냉장실, 그 사이 틈 0.011, 받침 0.034(네 귀퉁이 흰 발)
+   *   ③ 손잡이는 **왼쪽** 가장자리에서 폭의 0.14 안쪽의 크롬 막대 — 문 틈에서 **검정 · 회색 삼각형**
+   *      (밑변 폭의 0.23)이 마주 보아 나비넥타이가 된다
+   *   ④ 몸통 양옆 앞 모서리를 위에서 아래까지 두른 **크롬 띠**, 냉동실 오른쪽 위 은색 상표판(폭의 0.18)
+   * 문 모서리는 거의 직각이다 — 둥글린 상자(`soft`)를 버리고 곧은 상자로 만든다.
+   * 치수는 높이 = 1 로 쓴다(앞 +z).
    */
-  냉장고: () => assemble([
-    part(soft(0.39, 0.985, 0.39, 0.08), WHITE, [0, 0.5275, 0], undefined, TILE.PANEL),
-    // 냉동실 / 냉장실 — 앞면을 둘로 가르는 선
-    // 문 두 짝 — 몸통과 대비가 0.07 이라 「앞면을 둘로 가르는 선」이 안 보였다.
-    // 문은 몸통보다 «한 단 밝다»(빛을 정면으로 받는다)
-    // 문 두 짝 — 냉장고 팔레트가 «흰색»이라 밝게는 못 간다(1.42 로도 대비 0.06).
-    // 흰 물건의 선은 짙은 쪽이다
-    part(soft(0.37, 0.26, 0.025, 0.30), [0.74, 0.75, 0.78], [0, 0.855, 0.202]),
-    part(soft(0.37, 0.66, 0.025, 0.20), [0.74, 0.75, 0.78], [0, 0.35, 0.202]),
-    // 세로 손잡이 둘
-    part(new CylinderGeometry(0.016, 0.016, 0.18, 7), METAL, [0.14, 0.86, 0.225], undefined, TILE.PANEL),
-    part(new CylinderGeometry(0.016, 0.016, 0.44, 7), METAL, [0.14, 0.40, 0.225]),
-    // 문틈 — 어두운 띠 하나가 「문이 둘」을 확정한다
-    part(new BoxGeometry(0.37, 0.012, 0.02), DARK, [0, 0.70, 0.205]),
-    // 굽 — 몸통보다 좁게 하고 몸통을 그 «위»에 올린다
-    part(soft(0.35, 0.035, 0.35, 0.35), DARK, [0, 0.0175, 0]),           // 굽
-  ]),
+  냉장고: () => {
+    const W = 0.42, D = 0.49, FOOT = 0.034, FRIDGE = 0.73, GAP = 0.011, FREEZER = 0.22, T = 0.03;
+    const yGap = FOOT + FRIDGE, yFrz = yGap + GAP;
+    const BODY: RGB = [0.95, 0.93, 0.92], CHROME: RGB = [1.12, 1.12, 1.15], FRONT = D / 2;
+    const HX = -W / 2 + 0.14 * W;                                  // ③ 손잡이 x
+    // 삼각형 — 세 면 원기둥을 앞으로 눕힌 얇은 판. thetaStart π 면 꼭짓점이 위, 0 이면 아래
+    const tri = (up: boolean, h: number, rgb: RGB, y: number): Part => {
+      const r = 0.23 * W / Math.sqrt(3);
+      const s = h / (1.5 * r);
+      return part(new CylinderGeometry(r, r, 0.012, 3, 1, false, up ? Math.PI : 0).scale(1, 1, s), rgb,
+        [HX, up ? y + 0.5 * r * s : y - 0.5 * r * s, FRONT + 0.006], [Math.PI / 2, 0, 0]);
+    };
+    return assemble([
+      // 받침 — 가운데는 검게 들어가고 네 귀퉁이만 흰 발
+      part(new BoxGeometry(W - 0.04, FOOT, D - 0.08), [0.12, 0.12, 0.13], [0, FOOT / 2, -0.02]),
+      ...([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).map(([sx, sz]) =>
+        part(new BoxGeometry(0.035, FOOT, 0.035), BODY, [sx * (W / 2 - 0.02), FOOT / 2, sz * (D / 2 - 0.05)])),
+      // 몸통(문 뒤)
+      part(new BoxGeometry(W, 1 - FOOT, D - T), BODY, [0, FOOT + (1 - FOOT) / 2, -T / 2], undefined, TILE.PANEL),
+      // ② 문 둘 + 문 틈
+      part(new BoxGeometry(W - 0.004, FRIDGE, T), BODY, [0, FOOT + FRIDGE / 2, FRONT - T / 2]),
+      part(new BoxGeometry(W - 0.004, FREEZER, T), BODY, [0, yFrz + FREEZER / 2, FRONT - T / 2]),
+      part(new BoxGeometry(W - 0.01, GAP, 0.02), [0.15, 0.15, 0.16], [0, yGap + GAP / 2, FRONT - 0.02]),
+      // ④ 양옆 크롬 띠
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(0.008, 1 - FOOT, 0.012), CHROME, [k * (W / 2 + 0.002), FOOT + (1 - FOOT) / 2, FRONT - 0.006])),
+      // ③ 손잡이 — 냉동실 막대(위 끝 → 검은 삼각형) · 냉장실 막대(회색 삼각형 → 0.51)
+      part(new BoxGeometry(0.010, 0.996 - 0.837, 0.012), CHROME, [HX, (0.996 + 0.837) / 2, FRONT + 0.012]),
+      tri(true, 0.058, [0.08, 0.09, 0.10], yFrz),
+      tri(false, 0.044, [0.40, 0.40, 0.41], yGap),
+      part(new BoxGeometry(0.010, yGap - 0.044 - 0.513, 0.012), CHROME, [HX, (yGap - 0.044 + 0.513) / 2, FRONT + 0.012]),
+      // 상표판 — 냉동실 오른쪽 위
+      part(new BoxGeometry(0.18 * W, 0.022, 0.004), CHROME, [0.140, 0.963, FRONT + 0.002]),
+    ]);
+  },
 
   /**
-   * 찬장 (145cm). **유리문 안에 그릇이 보여야** 찬장이다.
-   * 나무 상자에 문만 그리면 옷장이 된다.
+   * 찬장(식기장) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/찬장/` (1970년대 식기장 W86 D37 H180 cm, 앞모습 + 그릇 넣은 모습)
+   *
+   * 앞의 것은 나무 궤짝 위아래 통째에 유리문 두 짝이었다. 사진과 대보니 층이 다섯이다:
+   *   ① 폭 : 높이 : 깊이 = **1 : 2.09 : 0.43**
+   *   ② 위에서부터 미닫이 유리 **0.27** · 여닫이 유리문 두 짝 **0.28** · 트인 칸 **0.12** · 문 + 서랍 **0.23** · 굽 0.05
+   *   ③ 가운데 유리문의 모서리 둥근 창과 맞닿는 선 옆 **크롬 둥근 손잡이 한 쌍**
+   *   ④ 오른쪽 아래 사각 크롬 손잡이 **서랍 넷**(폭 0.52)과 왼쪽 여닫이문, 모든 문 가장자리의 **가는 흰 선**
+   * 유리는 불투명이라 그릇을 안에 넣으면 안 보인다 — 유리 면에 비친 선반 · 그릇을 그린다(`TILE.CUPBOARD_GLASS`).
+   * 흰 선은 곱셈으로 못 내므로 문 앞판은 판 색까지 인쇄가 정한다(`TILE.CUPBOARD_DOOR`).
+   * 치수는 높이 = 1 로 쓴다(앞 +z).
    */
-  찬장: () => assemble([
-    part(soft(0.62, 1.00, 0.21, 0.08), WOOD, [0, 0.50, 0], undefined, TILE.WOOD_C),
-    part(soft(0.66, 0.03, 0.24, 0.35), WOOD, [0, 1.01, 0]),              // 갓돌림  // NOTE:찬장
-    // 파인 안쪽 — 유리문 너머로 보인다
-    // 파인 안쪽 — 유리문 너머의 «그늘». WOOD 와 대비가 0.05 라 통짜로 보였다
-    part(invert(new BoxGeometry(0.54, 0.86, 0.17)), [0.16, 0.13, 0.10], [0, 0.53, 0.01]),
-    // 선반 둘 + 그릇 — 「그릇장」을 만드는 건 이것이다
-    ...([0.40, 0.68] as const).map((y) =>
-      part(new BoxGeometry(0.54, 0.02, 0.17), WOOD, [0, y, 0])),
-    part(new CylinderGeometry(0.06, 0.045, 0.05, 12), [1, 1, 0.98], [-0.14, 0.425, 0]),
-    part(new CylinderGeometry(0.06, 0.045, 0.05, 12), [1, 1, 0.98], [0.02, 0.425, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 0.09, 10), [0.45, 0.68, 0.82], [0.16, 0.725, 0]),
-    // 유리문 둘 + 손잡이
-    // **유리를 밝게.** 팔레트를 흰색(0)으로 두고 나무만 WOOD 계수로 눌렀다 —
-    // 처음엔 팔레트가 나무색이라 유리까지 갈색이 돼서 «통짜 나무 궤짝»으로 보였다
-    part(new BoxGeometry(0.28, 0.84, 0.012), [0.70, 0.82, 0.86], [-0.15, 0.53, 0.108]),
-    part(new BoxGeometry(0.28, 0.84, 0.012), [0.70, 0.82, 0.86], [0.15, 0.53, 0.108]),
-    part(new BoxGeometry(0.015, 0.86, 0.02), WOOD, [0, 0.53, 0.112]),
-    part(new CylinderGeometry(0.014, 0.014, 0.03, 6), METAL, [-0.05, 0.50, 0.125], LIE_Z, TILE.WOOD_C),
-    part(new CylinderGeometry(0.014, 0.014, 0.03, 6), METAL, [0.05, 0.50, 0.125], LIE_Z),
-  ]),
+  찬장: () => {
+    const W = 0.478, D = 0.206, FRONT = D / 2, SIDE = 0.018;
+    const BROWN: RGB = [0.38, 0.25, 0.22], CHROME: RGB = [1.05, 1.05, 1.08], IW = W - SIDE * 2;
+    // 층 경계(아래에서) — 굽 0.05 · 아래 칸 0.23 · 트인 칸 0.12 · 유리문 0.28 · 가운데 테 0.02 · 미닫이 0.27 · 윗테 0.03
+    const Y = { base: 0.05, low: 0.28, open: 0.40, doors: 0.68, mid: 0.70, slide: 0.97 };
+    const pane = (x: number, y: number, w: number, h: number, z = FRONT - 0.006): Part =>
+      part(new BoxGeometry(w, h, 0.008), WHITE, [x, y, z], undefined, TILE.CUPBOARD_GLASS);
+    const front = (x: number, y: number, w: number, h: number): Part =>
+      part(new BoxGeometry(w, h, 0.012), WHITE, [x, y, FRONT - 0.006], undefined, TILE.CUPBOARD_DOOR);
+    const DRAWER = (Y.low - Y.base) / 4;
+    return assemble([
+      // 몸통 — 옆판 둘 · 뒤판 · 굽 · 윗테 · 층 칸막이
+      ...([1, -1] as const).map((k) => part(new BoxGeometry(SIDE, 1, D), BROWN, [k * (W / 2 - SIDE / 2), 0.5, 0], undefined, TILE.WOOD_C)),
+      part(new BoxGeometry(IW, 1, 0.01), BROWN, [0, 0.5, -D / 2 + 0.005]),
+      part(new BoxGeometry(IW, Y.base, D), BROWN, [0, Y.base / 2, 0]),
+      part(new BoxGeometry(W, 1 - Y.slide, D), BROWN, [0, (1 + Y.slide) / 2, 0], undefined, TILE.WOOD_C),
+      part(new BoxGeometry(IW, Y.mid - Y.doors, D), BROWN, [0, (Y.mid + Y.doors) / 2, 0]),
+      part(new BoxGeometry(IW, 0.012, D), BROWN, [0, Y.open, 0]),
+      part(new BoxGeometry(IW, 0.012, D), [0.93, 0.92, 0.90], [0, Y.low + 0.006, 0]),
+      // ② 미닫이 유리 두 장 — 가운데서 겹친다(앞뒤로 비껴)
+      pane(-IW / 4 - 0.005, (Y.mid + Y.slide) / 2, IW / 2 + 0.01, Y.slide - Y.mid - 0.01),
+      pane(IW / 4 + 0.005, (Y.mid + Y.slide) / 2, IW / 2 + 0.01, Y.slide - Y.mid - 0.01, FRONT - 0.016),
+      // ③ 여닫이 유리문 두 짝 — 짙은 문틀 위에 모서리 둥근 창 + 크롬 둥근 손잡이
+      ...([1, -1] as const).flatMap((k) => [
+        part(new BoxGeometry(IW / 2 - 0.003, Y.doors - Y.open - 0.008, 0.01), BROWN, [k * IW / 4, (Y.doors + Y.open) / 2, FRONT - 0.012]),
+        pane(k * IW / 4, (Y.doors + Y.open) / 2, IW / 2 - 0.04, Y.doors - Y.open - 0.05),
+        part(new SphereGeometry(0.008, 6, 4), CHROME, [k * 0.018, Y.doors - 0.39 * (Y.doors - Y.open), FRONT + 0.004]),
+      ]),
+      // 트인 칸 — 흰 속판과 유리 칸막이 한 장
+      part(new BoxGeometry(IW, Y.open - Y.low, 0.006), [0.93, 0.92, 0.90], [0, (Y.open + Y.low) / 2, -D / 2 + 0.013]),
+      part(new BoxGeometry(0.006, Y.open - Y.low - 0.012, D * 0.8), [0.78, 0.86, 0.88], [0.02, (Y.open + Y.low) / 2, 0]),
+      // ④ 아래 칸 — 왼쪽 여닫이문(0.48) + 오른쪽 서랍 넷(0.52)
+      front(-W / 2 + SIDE + IW * 0.24, (Y.base + Y.low) / 2, IW * 0.48 - 0.004, Y.low - Y.base - 0.004),
+      part(new SphereGeometry(0.008, 6, 4), CHROME, [-W / 2 + SIDE + IW * 0.46, Y.low - 0.36 * (Y.low - Y.base), FRONT + 0.004]),
+      ...[0, 1, 2, 3].flatMap((i) => {
+        const y = Y.base + DRAWER * (i + 0.5), x = W / 2 - SIDE - IW * 0.26;
+        return [
+          front(x, y, IW * 0.52 - 0.004, DRAWER - 0.004),
+          part(new BoxGeometry(0.12 * W, 0.012, 0.008), CHROME, [x, y, FRONT + 0.004]),
+        ];
+      }),
+    ]);
+  },
 
   /**
-   * 식탁 (120cm) — 네모난 밥상. **밑이 뚫린다**(`underPass`).
-   * 밥상(원형 차부다이)과 달리 다리가 길어서 의자에 앉아 쓴다.
+   * 식탁 — **사진에서 잰 값으로 다시 만들었다.** 밑이 뚫린다(`underPass`).
+   * 근거: `.design-bounce/ref/식탁/` (쇼와 멜라민 식탁 W100 D70 H71.5 cm, 긴 쪽 · 짧은 쪽 · 비스듬히)
+   *
+   * 앞의 것은 두꺼운 나무 상판에 네모 나무 다리 넷과 가로대 둘이었다. 사진과 대보니:
+   *   ① 나무가 아니다 — 갈색 나뭇결 **멜라민 상판**(131,109,95)을 가로 홈 **알루미늄 테**(두께 0.03)가 두른다
+   *   ② 다리는 굵기 1.4cm 의 **가는 검은 쇠파이프** 넷 — 상판 밑 틀에서 이어져 바닥 쪽으로 약 5° 벌어진다
+   *      (위는 끝에서 0.11 · 0.086 안쪽, 발끝은 0.055 · 0.047 안쪽)
+   *   ③ 상판 아래 높이의 0.21 쯤에 **가로 봉 넷짜리 잡지 선반**, 그 밑은 바닥까지 트였다
+   * **높이만 사진 비율(0.715)을 안 따랐다.** 손배치 크기가 1.2 m(`stage.house.ts` 식탁)라 사진 비율이면
+   * 식탁 높이가 86cm 가 되어 싱크대(77cm)보다 높다. 실제 식탁 높이 71.5cm 에 맞춰 폭의 0.6 으로 두었다.
+   * 선반 밑면은 0.47 — 손배치 크기 1.2 에서 0.564 m 라 `underPass: 0.55` 보다 높다.
+   * 팔레트는 흰색 — 나무 팔레트(7)에 곱하면 알루미늄 테가 갈색이 된다. 치수는 폭 = 1 로 쓴다.
    */
-  식탁: () => assemble([
-    part(soft(1.00, 0.045, 0.58, 0.30), WOOD, [0, 0.545, 0], undefined, TILE.WOOD_C),            // 상판
-    part(new TorusGeometry(0.03, 0.014, 4, 6), WOOD, [0, 0.545, 0], LIE_Z, TILE.WOOD_C),
-    // 다리 넷 — 상판 안쪽으로 모아야 식탁 다리로 보인다
-    ...([[0.44, 0.23], [-0.44, 0.23], [0.44, -0.23], [-0.44, -0.23]] as const).map(
-      ([x, z]) => part(soft(0.055, 0.52, 0.055, 0.30), WOOD, [x, 0.26, z])),
-    // 가로대 둘
-    part(soft(0.86, 0.035, 0.03, 0.35), WOOD, [0, 0.14, 0.23]),
-    part(soft(0.86, 0.035, 0.03, 0.35), WOOD, [0, 0.14, -0.23]),
-  ]),
+  식탁: () => {
+    const H = 0.6, D = 0.70, TOP_T = 0.022, R = 0.008;
+    const STEEL: RGB = [0.18, 0.17, 0.18], ALU: RGB = [0.78, 0.79, 0.80];
+    const yFrame = H - TOP_T - 0.012, RACK = 0.47;
+    // ② 다리 — 위(틀) → 발끝으로 바깥으로 벌어진다
+    const leg = (sx: number, sz: number): Part[] => {
+      const x1 = sx * (0.5 - 0.11), z1 = sz * (D / 2 - 0.086), x2 = sx * (0.5 - 0.055), z2 = sz * (D / 2 - 0.047);
+      const dy = yFrame, len = Math.hypot(x2 - x1, dy, z2 - z1);
+      return [
+        part(new CylinderGeometry(R, R, len, 6), STEEL, [(x1 + x2) / 2, dy / 2, (z1 + z2) / 2],
+          [-Math.atan2(z2 - z1, dy), 0, Math.atan2(x2 - x1, dy)]),
+        // 발끝 고무 마개 — 조금 굵다
+        part(new CylinderGeometry(R * 1.5, R * 1.5, 0.02, 6), [0.08, 0.08, 0.08], [x2, 0.01, z2]),
+      ];
+    };
+    return assemble([
+      // ① 상판 — 알루미늄 테(몸) + 윗면 멜라민 한 장
+      part(new BoxGeometry(1.0, TOP_T, D), ALU, [0, H - TOP_T / 2, 0], undefined, TILE.METAL),
+      part(new BoxGeometry(0.99, 0.003, D - 0.01), [0.54, 0.45, 0.41], [0, H + 0.0015, 0], undefined, TILE.WOOD_F),
+      // 상판 밑 쇠파이프 틀 — 긴 쪽 둘 · 짧은 쪽 둘
+      ...([1, -1] as const).flatMap((k) => [
+        part(new BoxGeometry(0.78, 0.014, 0.014), STEEL, [0, yFrame, k * (D / 2 - 0.086)]),
+        part(new BoxGeometry(0.014, 0.014, D - 0.172), STEEL, [k * (0.5 - 0.11), yFrame, 0]),
+      ]),
+      ...([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).flatMap(([sx, sz]) => leg(sx, sz)),
+      // ③ 잡지 선반 — 긴 쪽으로 누운 봉 넷 + 양 끝 받침 파이프
+      ...[-0.16, -0.055, 0.055, 0.16].map((z) =>
+        part(new CylinderGeometry(0.006, 0.006, 0.74, 5), STEEL, [0, RACK + 0.008, z], [0, 0, Math.PI / 2])),
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(0.012, 0.012, D - 0.12), STEEL, [k * 0.37, RACK + 0.006, 0])),
+    ]);
+  },
 
   // ─── 화장실 ──────────────────────────────────────────────────
 
