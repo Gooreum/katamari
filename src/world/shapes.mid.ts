@@ -43,7 +43,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    */
   소시지: () => {
     const R = 0.073, BODY = 0.91;
-    const FILM: RGB = [1.04, 0.62, 0.32], CLIP: RGB = [0.84, 0.84, 0.89], TUFT: RGB = [1.03, 0.40, 0.16];
+    // 필름 — 따뜻한 조명에서 (254,150,75) 는 살구색으로 떴다(트랙 D). 채도를 올려 선명한 주황으로
+    const FILM: RGB = [1.05, 0.50, 0.15], CLIP: RGB = [0.84, 0.84, 0.89], TUFT: RGB = [1.03, 0.36, 0.10];
     return assemble([
       // ① 몸통 — 반구 끝 원기둥 한 덩어리
       part(new CapsuleGeometry(R, BODY - 2 * R, 4, 12), FILM, [0, R, 0], LIE_X),
@@ -485,12 +486,14 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    * 치수는 폭 = 1 로 쓴다.
    */
   우유팩: () => {
-    const BODY = 3.36 * 0.83, ROOF = 3.36 * 0.17, FIN = 0.09, NAVY: RGB = [0.15, 0.26, 0.58];
+    // 띠 색 — 1972 사진은 흑백이라 모른다. 시트 왼쪽에 놓이는 main.jpg(雪印) 의 진한 빨강으로 맞췄다
+    // (남색으로 두었더니 사진과 「전혀 다른 제품」이라는 판정, 트랙 D 2026-09-16)
+    const BODY = 3.36 * 0.83, ROOF = 3.36 * 0.17, FIN = 0.09, BAND: RGB = [0.92, 0.10, 0.08];
     const RISE = ROOF - FIN, R = 1 / Math.sqrt(3);
     return assemble([
       part(new BoxGeometry(1, BODY, 1), WHITE, [0, BODY / 2, 0], undefined, TILE.MILK),
       // ③ 박공 지붕 — 세 면 원기둥(꼭짓점 위)을 x 축으로 눕히고 높이만 눌러 폭 1 · 높이 RISE 로
-      part(new CylinderGeometry(R, R, 1.0, 3, 1, false, Math.PI / 2).scale(RISE / (1.5 * R), 1, 1), NAVY,
+      part(new CylinderGeometry(R, R, 1.0, 3, 1, false, Math.PI / 2).scale(RISE / (1.5 * R), 1, 1), BAND,
         [0, BODY + RISE / 3, 0], [0, 0, Math.PI / 2]),
       // 접합 날개 — 마루 위 가는 판
       part(new BoxGeometry(0.98, FIN, 0.05), [0.95, 0.94, 0.92], [0, BODY + RISE + FIN / 2 - 0.01, 0]),

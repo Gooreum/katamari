@@ -38,10 +38,16 @@ import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three';
  * **8 × 8 = 64칸으로 늘렸다(2026-09-10).** 사진 기준 전수 작업에서 휴지통 꽃무늬·
  * 전화기 다이얼처럼 «인쇄가 곧 단서»인 물건이 계속 나오는데 49칸 중 빈 칸이 다섯이었다.
  * 위와 같은 이유로 칸 번호는 그대로다. 1024px 은 2의 거듭제곱이기도 하다.
+ *
+ * **12 × 12 = 144칸으로 늘렸다(2026-09-16).** 부엌 묶음까지 62칸을 썼고 화장실 묶음에서 64칸을
+ * 넘었다. 남은 56종(툇마루 · 정원 · 동네 · 거리)에도 인쇄 단서가 붙을 것이라 한 번에 넉넉히 늘린다.
+ * 1536px 은 2의 거듭제곱이 아니지만 WebGL2 는 밉맵 없이(`generateMipmaps = false`) · 가장자리 고정 ·
+ * `NearestFilter` 로 쓰는 NPOT 텍스처를 그대로 받는다. 이 아틀라스가 딱 그 조건이다.
+ * GPU 메모리는 4MB → 9MB.
  */
-const GRID = 8;
+const GRID = 12;
 const CELL = 128;                        // 한 칸 128px
-const SIZE = GRID * CELL;                // 1024px
+const SIZE = GRID * CELL;                // 1536px
 
 export const TILE = {
   /** 순백. 기본값 — 이걸 쓰면 텍스처가 없는 것과 같다 */
@@ -209,6 +215,12 @@ export const TILE = {
   CUPBOARD_GLASS: 60,
   /** 찬장 문·서랍 앞판 — 짙은 적갈색 나뭇결 판에 가장자리를 두른 모서리 둥근 가는 흰 선 */
   CUPBOARD_DOOR: 61,
+  /** 체온계 눈금판 — 흰 판 위쪽 절반 노란 띠 · 아래쪽 절반 끝자리 숫자, 37 만 빨강 */
+  THERMO: 62,
+  /** 수건 — 흰 파일 바탕에 큰 꽃 한 송이, 긴 가장자리 안쪽 파란 실 한 줄씩 */
+  TOWEL: 63,
+  /** 함석(아연 도금) — 회색 바탕에 밝은 결정 얼룩(스팽글)이 흩어진 판 */
+  SPANGLE: 64,
 } as const;
 
 /**
@@ -573,19 +585,19 @@ export function buildPrintAtlas(): CanvasTexture {
    * 흰 띠에 굵은 한자 넷을 2 × 2 로 — 「牛乳」 넉 자가 이 크기에서 뭉개질까 봐 예전엔 소 얼룩으로
    * 대신했는데, 사진 속 팩에 소 얼룩은 없다. 한 면이 폭 1 × 높이 2.79 라 세로로 2.79배 늘어난다 —
    * 글자만 세로로 0.36배 눌러 쓴다. 옆면 v 는 아래가 0 이라 뒤집어 그린다.
-   * 1972 사진은 흑백이라 띠 색을 모른다 — 짙은 남색으로 두었다(`intent.md` 「못 찾은 것」).
+   * 1972 사진은 흑백이라 띠 색을 모른다 — 요즘 雪印 팩(main.jpg)의 진한 빨강으로 두었다(`intent.md` 「못 찾은 것」).
    */
   at(TILE.MILK, () => {
     const V = (f: number): number => f * CELL;
     cx.save();
     cx.translate(0, CELL); cx.scale(1, -1);
     cx.fillStyle = '#fbf7ee'; cx.fillRect(0, 0, CELL, CELL);
-    cx.fillStyle = '#233f8a';
+    cx.fillStyle = '#dc1c14';
     cx.fillRect(0, 0, CELL, V(0.30));
     cx.fillRect(0, V(0.74), CELL, V(0.26));
     // 띠 경계의 가는 줄 두세 가닥
     for (const y of [0.32, 0.335, 0.70, 0.715]) cx.fillRect(0, V(y), CELL, 1);
-    cx.fillStyle = '#233f8a';
+    cx.fillStyle = '#dc1c14';
     cx.font = 'bold 50px serif';
     cx.textAlign = 'center';
     cx.textBaseline = 'middle';
@@ -1140,17 +1152,89 @@ export function buildPrintAtlas(): CanvasTexture {
     }
   });
 
-  /** 비누 — 눌러 찍은 상표 자국. 가운데만 한 단 들어간다 */
+  /**
+   * 비누 윗면 — `ref/비누/` (牛乳石鹸 赤箱). 한가운데 길이의 0.30 짜리 **오목한 정사각 틀**, 그 안에
+   * 왼쪽을 보고 선 소 한 마리 돋을새김. 틀 위쪽 턱에 그늘이 진다(사진 (219,188,134)).
+   * 비누 윗면 가운데 얹은 정사각 조각에 감긴다 — 칸 전체가 틀이다.
+   */
   at(TILE.SOAP, () => {
     base();
-    cx.fillStyle = 'rgba(86,82,74,0.10)';
-    cx.beginPath(); cx.ellipse(CELL / 2, CELL / 2, CELL * 0.30, CELL * 0.17, 0, 0, Math.PI * 2);
-    cx.fill();
-    cx.fillStyle = 'rgba(255,255,255,0.55)';
-    cx.beginPath(); cx.ellipse(CELL / 2, CELL / 2 - 3, CELL * 0.27, CELL * 0.14, 0, 0, Math.PI * 2);
-    cx.fill();
-    cx.fillStyle = 'rgba(86,82,74,0.16)';
-    for (let i = 0; i < 3; i++) cx.fillRect(CELL * 0.32, CELL * 0.46 + i * 7, CELL * 0.36, 3);
+    const w = CELL * 0.88, h = CELL * 0.88;
+    const x0 = (CELL - w) / 2, y0 = (CELL - h) / 2;
+    cx.fillStyle = 'rgba(150,120,80,0.30)'; cx.fillRect(x0, y0, w, 4);          // 위쪽 턱 그늘
+    cx.fillStyle = 'rgba(150,120,80,0.14)'; cx.fillRect(x0, y0, 3, h);
+    cx.strokeStyle = 'rgba(150,120,80,0.28)'; cx.lineWidth = 2; cx.strokeRect(x0, y0, w, h);
+    // 소 — 몸통 · 머리 · 다리 넷 · 땅 선
+    cx.fillStyle = 'rgba(140,110,80,0.30)';
+    cx.fillRect(x0 + w * 0.30, y0 + h * 0.38, w * 0.46, h * 0.22);
+    cx.fillRect(x0 + w * 0.18, y0 + h * 0.32, w * 0.14, h * 0.14);
+    for (const f of [0.32, 0.42, 0.62, 0.72]) cx.fillRect(x0 + w * f, y0 + h * 0.58, 2, h * 0.16);
+    cx.fillRect(x0 + w * 0.15, y0 + h * 0.76, w * 0.7, 1);
+  });
+
+  /**
+   * 체온계 눈금판 — `ref/체온계/` (일본 수은 체온계). 흰 판 (219,216,209) 위쪽 절반을 노란 띠 (210,196,74) 가
+   * 덮고 아래 절반에 끝자리 숫자 「5 6 7 8 9 0 1 2」, 37 만 빨강. 판 윗면(길이 방향 = u)에 감긴다.
+   * 판은 길이 0.62 × 폭 0.045 라 가로가 14배 늘어난다 — 숫자를 가로로 0.07배 눌러 쓴다.
+   * 윗면 uv 는 캔버스 위쪽을 앞(+z)으로 보낸다 — 뒤집어 그려 노란 띠가 뒤, 숫자가 앞에 오게 한다.
+   */
+  at(TILE.THERMO, () => {
+    cx.save();
+    cx.translate(0, CELL); cx.scale(1, -1);
+    cx.fillStyle = '#dbd8d1'; cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#d2c44a'; cx.fillRect(0, 0, CELL, CELL * 0.42);
+    cx.fillStyle = '#1c1b1a';
+    for (let k = 0; k <= 32; k++) cx.fillRect(k * CELL / 32, CELL * 0.42, 1, k % 4 === 0 ? CELL * 0.18 : CELL * 0.09);
+    ['5', '6', '7', '8', '9', '0', '1', '2'].forEach((d, k) => {
+      cx.save();
+      cx.translate((k + 0.5) * CELL / 8, CELL * 0.80);
+      cx.scale(0.28, 1);
+      cx.font = 'bold 44px serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.fillStyle = d === '7' ? '#ba3c28' : '#1c1b1a';
+      cx.fillText(d, 0, 0);
+      cx.restore();
+    });
+    cx.restore();
+  });
+
+  /**
+   * 수건 — `ref/수건/` (쇼와 얇은 파일 수건). 흰 바탕 (219,222,216) 한가운데 큰 꽃 한 송이(노랑 (232,207,103)),
+   * 두 긴 가장자리 안쪽에 파란 실 (68,68,86) 한 줄씩. 파일은 짧은 고리털이라 잔 점무늬.
+   */
+  at(TILE.TOWEL, () => {
+    base();
+    for (let i = 0; i < 220; i++) {
+      cx.fillStyle = 'rgba(120,120,110,0.10)';
+      cx.fillRect(rnd(i * 53 + 7, CELL), rnd(i * 29 + i * i + 1, CELL), 2, 2);
+    }
+    cx.fillStyle = '#444456';
+    cx.fillRect(0, 6, CELL, 2); cx.fillRect(0, CELL - 8, CELL, 2);
+    // 꽃 — 여섯 잎 + 가운데, 초록 잎 둘
+    cx.fillStyle = '#5aa84e';
+    cx.beginPath(); cx.ellipse(CELL * 0.38, CELL * 0.66, 16, 7, 0.6, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.ellipse(CELL * 0.64, CELL * 0.68, 15, 6, -0.6, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#e8cf67';
+    for (let p = 0; p < 6; p++) {
+      const a = p * Math.PI / 3;
+      cx.beginPath(); cx.ellipse(CELL / 2 + Math.cos(a) * 15, CELL * 0.46 + Math.sin(a) * 15, 12, 8, a, 0, Math.PI * 2); cx.fill();
+    }
+    cx.fillStyle = '#d98a3a'; cx.beginPath(); cx.arc(CELL / 2, CELL * 0.46, 8, 0, Math.PI * 2); cx.fill();
+  });
+
+  /**
+   * 함석 — `ref/양동이/` (아연 도금 양동이). 도금 결정이 얼룩덜룩하다 — 보통 (96,102,99) 에 밝은 조각
+   * (165,170,168). 곱셈이라 바탕을 0.6 회색으로 칠하고 밝은 조각을 흰색으로 — 부품 계수가 전체 밝기를 정한다.
+   */
+  at(TILE.SPANGLE, () => {
+    cx.fillStyle = '#999999'; cx.fillRect(0, 0, CELL, CELL);
+    for (let i = 0; i < 60; i++) {
+      cx.fillStyle = i % 3 ? 'rgba(255,255,255,0.85)' : 'rgba(90,90,90,0.5)';
+      const x = rnd(i * 61 + 11, CELL), y = rnd(i * 37 + i * i + 5, CELL);
+      cx.beginPath();
+      cx.moveTo(x, y); cx.lineTo(x + 4 + rnd(i * 7, 10), y + rnd(i * 3, 6));
+      cx.lineTo(x + 2 + rnd(i * 5, 8), y + 6 + rnd(i * 9, 8)); cx.lineTo(x - 3, y + 3 + rnd(i * 13, 5));
+      cx.fill();
+    }
   });
 
   /** 달걀 — 아주 옅은 반점. 세면 메추리알이 된다 */
@@ -1159,7 +1243,7 @@ export function buildPrintAtlas(): CanvasTexture {
     // 사진(ref/계란)의 껍질은 잔 구멍이 촘촘한 무광 — 얼룩이 크면 돌림면에서 한 줄로 늘어나
     // 「비스듬한 얼룩 띠」가 됐다(2026-09-16 렌더). 점을 작고 옅게, 더 흩어서 찍는다
     for (let i = 0; i < 160; i++) {
-      cx.fillStyle = `rgba(150,126,96,${(0.02 + rnd(i * 19, 0.03)).toFixed(3)})`;
+      cx.fillStyle = `rgba(150,126,96,${(0.012 + rnd(i * 19, 0.018)).toFixed(3)})`;
       cx.fillRect(rnd(i * 71 + 5, CELL), rnd(i * 37 + i * i + 3, CELL), 1 + rnd(i * 11, 2), 1 + rnd(i * 5, 2));
     }
   });
@@ -1485,9 +1569,13 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.save();
     cx.translate(0, CELL); cx.scale(1, -1);
     cx.fillStyle = '#1d2f6e'; cx.fillRect(0, 0, CELL, CELL);
-    // ② 로고 줄
-    cx.fillStyle = '#f4f1e8';
-    for (let k = 0; k < 7; k++) cx.fillRect(X(0.14 + k * 0.1), X(0.07), X(0.06), X(0.07));
+    // ② 로고 줄 — 네모 막대 흉내가 「작은 흰 네모 한 줄」로 읽혀(판정자) 글자로 찍는다.
+    // 표지는 폭 0.71 × 길이 1.0 에 감겨 세로가 1.41배 늘어난다 — 글자만 세로로 0.71배 눌러 쓴다
+    cx.save();
+    cx.translate(X(0.5), X(0.105)); cx.scale(1, 0.71);
+    cx.fillStyle = '#f4f1e8'; cx.font = 'bold 14px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('ジャポニカ学習帳', 0, 0);
+    cx.restore();
     // ③ 흰 이중선 틀
     cx.strokeStyle = '#f4f1e8'; cx.lineWidth = 2;
     cx.strokeRect(X(0.07), X(0.19), X(0.86), X(0.78));
@@ -1498,6 +1586,16 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillStyle = '#5a3218'; cx.beginPath(); cx.ellipse(X(0.52), X(0.52), X(0.13), X(0.18), -0.3, 0, Math.PI * 2); cx.fill();
     cx.strokeStyle = '#2a1608'; cx.lineWidth = 1.5;
     cx.beginPath(); cx.moveTo(X(0.52), X(0.36)); cx.lineTo(X(0.52), X(0.70)); cx.stroke();
+    // 다리 여섯과 더듬이 둘 — 갈색 타원만으로는 「콩」이었다(판정자)
+    for (const [dy, a] of [[-0.08, 0.6], [0, 0.1], [0.08, -0.4]] as const) {
+      for (const sgn of [1, -1]) {
+        cx.beginPath(); cx.moveTo(X(0.52), X(0.52 + dy));
+        cx.lineTo(X(0.52 + sgn * 0.20), X(0.52 + dy - a * 0.12)); cx.stroke();
+      }
+    }
+    for (const sgn of [1, -1]) {
+      cx.beginPath(); cx.moveTo(X(0.52), X(0.35)); cx.lineTo(X(0.52 + sgn * 0.10), X(0.25)); cx.stroke();
+    }
     // ⑤ 이름 칸
     cx.fillStyle = '#f4f1e8'; cx.fillRect(X(0.12), X(0.81), X(0.76), X(0.13));
     cx.restore();
@@ -1560,7 +1658,8 @@ export function buildPrintAtlas(): CanvasTexture {
     for (let r = 0; r < rows; r++) {
       for (let k = 0; k <= n; k++) {
         const x = k * w + (r % 2 ? w / 2 : 0), y = r * h + h / 2;
-        cx.fillStyle = 'rgba(70,74,84,0.22)';
+        // 대비를 낮춘다 — 0.22 로는 「표범 무늬 같은 둥근 얼룩」이었다(트랙 D)
+        cx.fillStyle = 'rgba(70,74,84,0.11)';
         cx.beginPath(); cx.ellipse(x, y, w * 0.42, h * 0.40, 0, 0, Math.PI * 2); cx.fill();
         cx.fillStyle = 'rgba(255,255,255,0.9)';
         cx.beginPath(); cx.ellipse(x - 1, y - 1, w * 0.22, h * 0.20, 0, 0, Math.PI * 2); cx.fill();

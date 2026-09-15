@@ -1,20 +1,18 @@
 import {
-  BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, ExtrudeGeometry, LatheGeometry, Shape,
+  BoxGeometry, CircleGeometry, CylinderGeometry, ExtrudeGeometry, LatheGeometry, Shape,
   SphereGeometry, TorusGeometry, Vector2,
   type BufferGeometry,
 } from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShapeIdHouse } from './generation';
 import {
-  assemble, evenProfile, invert, INK, part, SHINE, soft, warp, WHITE, WRAP,
+  assemble, evenProfile, invert, INK, part, SHINE, soft, warp, WHITE,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
 /** X축으로 돌린 원기둥 — 축이 Z가 된다 */
 const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
-/** 원뿔 꼭짓점을 +X 쪽으로 눕히는 회전 */
-const TIP_X: readonly [number, number, number] = [0, 0, -Math.PI / 2];
 
 /**
  * **방 정체성 전용 형태** — 부엌 7 · 화장실 4 · 아이 방 5.
@@ -189,11 +187,12 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     const R = 0.135;
     // [반지름 비, 끝에서 잰 길이] — 끝(0)에서 어깨(1)로, 어깨는 가운데로 오목하게 말려 들어간다
     const prof = evenProfile([[0.001, 0], [0.26, 0.012], [0.42, 0.05], [0.67, 0.25], [0.77, 0.5], [0.95, 0.78],
-      [1.0, 0.87], [0.97, 0.95], [0.84, 0.985], [0.55, 1.0], [0.30, 0.992]].map(([k, y]) => [k! * R, y!] as const), 12)
+      [1.0, 0.87], [0.97, 0.95], [0.84, 0.985], [0.55, 1.0], [0.30, 0.992]].map(([k, y]) => [k! * R, y!] as const), 16)
       .map(([r, y]) => new Vector2(r, y));
     return assemble([
       // 돌림축 y 를 −x 로 눕힌다 → 끝(y=0)이 +x
-      part(new LatheGeometry(prof, 12), [0.97, 0.42, 0.19], [0.5, R, 0], [0, 0, Math.PI / 2], TILE.CARROT),
+      // 색 — (237,101,44) 계수가 따뜻한 빛에서 살구색으로 떴다(트랙 D). 채도를 올린다
+      part(new LatheGeometry(prof, 12), [1.0, 0.36, 0.12], [0.5, R, 0], [0, 0, Math.PI / 2], TILE.CARROT),
       // ③ 초록 꼭지 — 오목한 어깨에 박혀 조금만 튀어나온다
       part(new CylinderGeometry(0.29 * R, 0.29 * R, 0.03, 8), [0.48, 0.51, 0.25], [-0.5 + 0.004, R, 0], [0, 0, Math.PI / 2]),
     ]);
@@ -233,13 +232,14 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
     const along = (d: number, dy = 0): [number, number, number] =>
       [0.47 + Math.cos(TILT) * d, 0.30 + Math.sin(TILT) * d + dy, 0];
     const HANDLE_ROT: readonly [number, number, number] = [0, 0, -(Math.PI / 2 - TILT)];
-    const WOODEN: RGB = [1.17, 1.09, 0.96];
+    // 나무와 금속 통이 같은 색으로 뭉쳤다(트랙 D) — 나무는 더 따뜻하게, 통은 조금 짙은 금속으로
+    const WOODEN: RGB = [1.22, 1.05, 0.82];
     return assemble([
       part(spout(new LatheGeometry(outer, 16)), WHITE, undefined, undefined, TILE.HAMMERED),
       part(spout(invert(new LatheGeometry(inner, 16))), [0.80, 0.84, 0.88]),
       part(spout(new TorusGeometry(0.50 - WALL / 2, WALL / 2, 3, 24).rotateX(Math.PI / 2).translate(0, H, 0)), [1.08, 1.08, 1.08]),
       // 알루미늄 통 — 몸통 쪽이 나팔처럼 벌어진다
-      part(new CylinderGeometry(R * 0.95, R * 1.45, L * 0.28, 10), [1.02, 1.02, 1.04], along(L * 0.14), HANDLE_ROT),
+      part(new CylinderGeometry(R * 0.95, R * 1.45, L * 0.28, 10), [0.86, 0.87, 0.91], along(L * 0.14), HANDLE_ROT),
       // 금속 테 한 줄
       part(new CylinderGeometry(R * 1.05, R * 1.05, 0.018, 10), [0.86, 0.86, 0.88], along(L * 0.28), HANDLE_ROT),
       // 나무 — 0.72, 끝이 반구
@@ -274,56 +274,119 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
 
   // ─── 화장실 ──────────────────────────────────────────────────
 
-  비누: () => assemble([
-    // 모서리가 닳은 덩어리. 상자로 만들면 지우개와 구별이 안 된다
-    /**
-      * 모서리가 닳은 덩어리. 상자로 만들면 지우개와 구별이 안 된다.
-      * **눌러 찍은 글자 자리를 인쇄로 옮겼다** — `PAPER` 판때기는 대비 0.05 라
-      * 「비누에는 늘 뭔가 찍혀 있다」고 적어놓고 실제로는 없는 것과 같았다.
-      */
-    part(new SphereGeometry(0.5, 14, 10).scale(1, 0.42, 0.66), WHITE, [0, 0.21, 0],
-      undefined, TILE.SOAP),
-    // 거품 한 덩이 — 비누는 늘 젖어 있다. 실루엣도 깬다
-    part(new SphereGeometry(0.13, 8, 6).scale(1.4, 0.7, 1.1), WRAP, [-0.30, 0.40, 0.12]),
-  ]),
+  /**
+   * 비누 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/비누/` (牛乳石鹸 赤箱 위 · 비스듬히 · 뒷면, 90g · 130g 비교)
+   *
+   * 앞의 것은 눌린 타원 구에 거품 한 덩이를 얹은 것이었다. 사진과 대보니:
+   *   ① 평면 길이 : 폭 ≈ **1 : 0.6** 인데 네 모서리를 **길이의 0.28** 반지름으로 둥글린 도톰한 **베개꼴** —
+   *      타원이 아니라 곧은 변이 조금 남은 알약꼴이다. 두께는 길이의 0.17 이상(비스듬한 사진)이라 0.26 으로 두었다
+   *   ② 윗면 한가운데 **길이의 0.30 짜리 오목한 정사각 틀**, 안에 돋을새김 소(`TILE.SOAP`)
+   *   ③ 윗면은 가운데가 살짝 부풀고, 옆면 한가운데를 가는 이음 선이 두른다
+   * 거품은 사진에 없다 — 뺐다. 치수는 길이 = 1 로 쓴다.
+   */
+  비누: () => {
+    const L = 1, W = 0.6, RAD = 0.28, T = 0.26, BEVEL = 0.07;
+    const plan = new Shape();
+    const hx = L / 2 - BEVEL, hz = W / 2 - BEVEL, r = RAD - BEVEL;
+    plan.moveTo(-hx + r, -hz);
+    plan.lineTo(hx - r, -hz); plan.quadraticCurveTo(hx, -hz, hx, -hz + r);
+    plan.lineTo(hx, hz - r); plan.quadraticCurveTo(hx, hz, hx - r, hz);
+    plan.lineTo(-hx + r, hz); plan.quadraticCurveTo(-hx, hz, -hx, hz - r);
+    plan.lineTo(-hx, -hz + r); plan.quadraticCurveTo(-hx, -hz, -hx + r, -hz);
+    // 평면을 밀어 올리고 모서리를 둥글린다. 밀기 축 z 를 위(y)로 세운다
+    const bar = mergeVertices(new ExtrudeGeometry(plan, {
+      depth: T - BEVEL * 2, bevelEnabled: true, bevelThickness: BEVEL, bevelSize: BEVEL, bevelSegments: 3, curveSegments: 4,
+    }).deleteAttribute('uv').deleteAttribute('normal'));
+    bar.rotateX(-Math.PI / 2).translate(0, BEVEL, 0);
+    // ③ 윗면 가운데 부풂 — 위쪽 절반만 조금 올린다
+    warp(bar, (x, y, z) => [x, y > T / 2 ? y + 0.03 * Math.max(0, 1 - (x / 0.5) ** 2) * Math.max(0, 1 - (z / 0.3) ** 2) : y, z]);
+    return assemble([
+      part(bar, [1.0, 0.98, 0.94]),
+      // ② 오목한 정사각 틀 — 윗면 부풂 꼭대기에 얹은 얇은 조각
+      part(new BoxGeometry(0.30, 0.004, 0.30), [0.97, 0.95, 0.91], [0, T + 0.03, 0], undefined, TILE.SOAP),
+      // ③ 옆면 이음 선 — 몸통보다 1mm 큰 얇은 띠
+      part(new CylinderGeometry(1, 1, 0.006, 20, 1, true).scale(0.505, 1, 0.305), [0.86, 0.84, 0.80], [0, T / 2, 0]),
+    ]);
+  },
 
-  고무오리: () => assemble([
-    // **머리를 몸에 붙였더니 노란 덩어리 하나로 보였다.** 오리를 오리로 만드는 건
-    // 몸과 머리 사이의 **목선**이다. 머리를 위로 띄우고 목을 가늘게 넣는다.
-    part(new SphereGeometry(0.5, 16, 10).scale(1, 0.70, 0.78), WHITE, [-0.08, 0.32, 0]),
-    part(new CylinderGeometry(0.11, 0.15, 0.16, 14), WHITE, [0.22, 0.56, 0]),
-    part(new SphereGeometry(0.22, 12, 8), WHITE, [0.26, 0.76, 0]),
-    // 부리 — 몸과 다른 색이어야 오리가 된다
-    // 부리 — **2배로 키운다.** 몸통 부피의 0.7% 짜리는 화면에서 노란 덩어리에 묻힌다
-    part(new ConeGeometry(0.15, 0.34, 8), [0.98, 0.52, 0.10], [0.54, 0.70, 0], TIP_X),
-    part(new SphereGeometry(0.075, 8, 6), INK, [0.34, 0.86, 0.13]),
-    part(new SphereGeometry(0.075, 8, 6), INK, [0.34, 0.86, -0.13]),
-    // 치켜든 꼬리
-    part(new ConeGeometry(0.13, 0.26, 5), WHITE, [-0.46, 0.46, 0], [0, 0, 1.0]),
-  ]),
+  /**
+   * 고무오리 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/고무오리/` (옆모습 · 정면 · 물에 뜬 모습)
+   *
+   * 앞의 것은 타원 몸통 위에 가는 목과 작은 머리, 뾰족한 원뿔 부리였다. 사진과 대보니:
+   *   ① **공 같은 큰 머리**(몸통 길이의 0.62 폭)가 앞쪽에 얹혀 머리 : 몸 높이가 거의 반반인 눈사람꼴 —
+   *      목은 따로 없고 머리가 몸통에 묻힌다. 전체 길이 : 높이 = 1 : 0.85
+   *   ② 부리는 **짧고 넓적하다** — 머리 가로의 0.17 길이, 앞에서 보면 머리 폭의 0.77. 원뿔이 아니다
+   *   ③ 몸통은 윗면이 평평한 **배(船) 모양**, 뒤끝이 뭉툭하게 치켜 올라간다. 옆구리에 잎꼴 날개
+   *   ④ 부리 바로 뒤 까만 세로 타원 눈
+   * 치수는 전체 길이 = 1 로 쓴다(부리 +x).
+   */
+  고무오리: () => {
+    const HR = 0.28;                                               // 머리 반지름(가로 0.563)
+    // ③ 배 모양 몸통 — 둥글린 상자를 뒤로 갈수록 좁히고, 밑은 양 끝을 들고, 뒤 윗모서리를 치켜 올린다
+    const body = warp(soft(0.86, 0.46, 0.64, 0.45), (x, y, z) => {
+      const back = Math.max(0, -x / 0.43);
+      return [x, y < 0 ? y + 0.05 * (x / 0.43) ** 2 : y + 0.05 * Math.max(0, back - 0.4), z * (1 - 0.22 * back)];
+    });
+    return assemble([
+      part(body, WHITE, [-0.07, 0.23, 0]),
+      // ① 머리 — 몸통 앞쪽 위에 묻힌 큰 공
+      part(new SphereGeometry(HR, 16, 10), WHITE, [0.128, 0.854 - HR, 0]),
+      // ② 넓적한 부리
+      part(soft(0.11, 0.075, 0.22, 0.45), [0.91, 0.42, 0.95], [0.43, 0.555, 0]),
+      // ④ 눈 — 까만 세로 타원
+      ...([1, -1] as const).map((k) =>
+        part(new SphereGeometry(0.04, 8, 6).scale(0.5, 1.1, 0.8), INK, [0.36, 0.60, k * 0.13], [0, k * -0.6, 0])),
+      // 날개 — 옆구리 잎꼴, 몸통보다 조금 짙게
+      ...([1, -1] as const).map((k) =>
+        part(new SphereGeometry(1, 10, 6).scale(0.24, 0.09, 0.04), [0.92, 0.86, 0.90], [0.0, 0.22, k * 0.30], [0, 0, 0.15])),
+    ]);
+  },
 
-  칫솔: () => assemble([
-    part(soft(0.70, 0.05, 0.07, 0.4), WHITE, [-0.13, 0.04, 0]),
-    part(soft(0.26, 0.05, 0.11, 0.35), WHITE, [0.35, 0.04, 0]),
-    // 솔. **흰 솔이 있어야 칫솔이지, 없으면 막대다**
-    // 솔. **「흰 솔이 있어야 칫솔」이라고 적어놓고 `PAPER`(대비 0.06)를 줬다** —
-    // 자루 색이 뭐든 솔은 확실히 밝아야 한다
-    part(new BoxGeometry(0.23, 0.075, 0.105), WRAP, [0.35, 0.092, 0]),
-    part(new SphereGeometry(0.05, 6, 5), WHITE, [-0.46, 0.04, 0]),
-  ]),
+  /**
+   * 칫솔 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/칫솔/` (ヤマト歯ブラシ ¥50 · エビス ¥30 상자 속 옆모습)
+   *
+   * 앞의 것은 판 둘을 이은 자루에 흰 상자 하나를 솔로 얹은 것이었다. 사진과 대보니:
+   *   ① 솔 덩어리가 길이의 **0.25**, 높이가 머리 두께(0.035)의 **1.7배(0.059)** — 틈을 두고 선 **다발 11개**
+   *   ② 굽힘 없는 **곧은 막대** 자루, 두 끝이 둥글고 가운데가 살짝 부푼다
+   *   ③ 속이 비치는 **연파랑**(121,150,162) 자루 위 누르스름한 흰 솔(174,183,175)
+   * 흰 솔은 색 팔레트(민트 · 분홍 · 파랑)에 곱하면 물든다 — 팔레트는 흰색 하나, 자루 색은 계수로.
+   * 치수는 길이 = 1 로 쓴다(머리 +x).
+   */
+  칫솔: () => {
+    const HEAD_T = 0.035, TUFT_H = 0.059, WID = 0.07, HANDLE: RGB = [0.50, 0.62, 0.70];
+    // ② 자루 — 가운데가 살짝 부푼 곧은 막대
+    const stick = warp(soft(1.0, HEAD_T, WID, 0.45), (x, y, z) => [x, y * (1 + 0.25 * (1 - (x / 0.5) ** 2)), z * (1 + 0.1 * (1 - (x / 0.5) ** 2))]);
+    return assemble([
+      part(stick, HANDLE, [0, HEAD_T / 2 + 0.004, 0]),
+      // ① 솔 다발 11개 — 머리(+x 끝 0.25) 위에 틈을 두고
+      ...Array.from({ length: 11 }, (_, k) =>
+        part(new BoxGeometry(0.016, TUFT_H, WID * 0.86), [0.72, 0.76, 0.75], [0.5 - 0.02 - k * 0.0215, HEAD_T + TUFT_H / 2, 0])),
+    ]);
+  },
 
-  수건: () => assemble([
-    // 개어놓은 수건. **층이 보여야 한 장이 아니라 수건이다** (신문과 같은 수법)
-    part(new BoxGeometry(0.98, 0.13, 0.62), WHITE, [0, 0.065, 0]),
-    // 가운데 층 — **`PAPER`(대비 0.06)로는 겹이 안 보인다.** 수건 팔레트는 밝은 쪽이라
-    // 표식이 «짙은» 쪽이어야 한다(신문·우유팩과 같은 처방)
-    part(new BoxGeometry(0.94, 0.11, 0.58), [0.74, 0.73, 0.70], [0.01, 0.185, 0], undefined, TILE.CLOTH),
-    part(new BoxGeometry(0.90, 0.09, 0.54), WHITE, [-0.01, 0.285, 0], undefined, TILE.CLOTH),
-    // 접힌 쪽의 둥근 등. 길이를 층보다 짧게 — 같으면 옆면이 같은 평면이다
-    part(new CylinderGeometry(0.065, 0.065, 0.53, 8), [0.70, 0.69, 0.66], [-0.49, 0.13, 0], LIE_Z),
-    // 가장자리 짜임 띠
-    part(new BoxGeometry(0.86, 0.035, 0.06), [0.52, 0.58, 0.68], [0, 0.335, 0.18]),
-  ]),
+  /**
+   * 수건 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/수건/` (쇼와 얇은 파일 수건 — 개어 놓은 것 · 펼친 것 · 줄자)
+   *
+   * 앞의 것은 두께가 폭의 0.33 인 **층층 더미**였다. 사진과 대보니:
+   *   ① 접은 수건은 너비 1 : 세로 0.72 : **두께 0.066** 의 **납작한 판** — 쇼와 수건은 얇다(「生地薄」)
+   *   ② 접힌 쪽 모서리는 둥글게 말리고, 반대쪽 끝은 **한 겹이 비어져 나온다**
+   *   ③ 흰 바탕에 **큰 꽃 한 송이**, 긴 가장자리 안쪽에 **파란 실** 한 줄씩(`TILE.TOWEL`)
+   * 치수는 너비 = 1 로 쓴다(접힌 쪽 −z).
+   */
+  수건: () => {
+    const T = 0.066, D = 0.72;
+    return assemble([
+      part(new BoxGeometry(1.0, T * 0.9, D - T), WHITE, [0, T * 0.45, T / 2], undefined, TILE.TOWEL),
+      // ② 접힌 쪽 — 둥글게 말린 등
+      part(new CylinderGeometry(T * 0.45, T * 0.45, 0.99, 8), [0.92, 0.92, 0.90], [0, T * 0.45, -D / 2 + T / 2], [0, 0, Math.PI / 2]),
+      // 비어져 나온 한 겹 — 반대쪽 끝 바닥에 얇게
+      part(new BoxGeometry(0.97, T * 0.2, 0.06), [0.94, 0.94, 0.92], [0.005, T * 0.1, D / 2 + 0.03]),
+    ]);
+  },
 
   // ─── 아이 방 ─────────────────────────────────────────────────
 
@@ -336,6 +399,12 @@ export const HOUSE_BUILDERS: Record<ShapeIdHouse, () => BufferGeometry> = {
    */
   구슬: () => assemble([
     part(new SphereGeometry(0.5, 16, 10), [0.80, 0.90, 0.80], [0, 0.5, 0], undefined, TILE.MARBLE),
+    /**
+     * ④ 윤곽선 — **4% 큰 구를 뒤집어** 뒤쪽 면만 남긴다. 앞쪽은 법선이 바깥을 등져 컬링되고, 뒤쪽 안면만
+     * 구슬 둘레로 비어져 나와 짙은 테가 된다. 사진의 「윤곽을 한 바퀴 두르는 짙은 테두리선」(유리의 굴절 테)이고,
+     * 두 번 「공」으로 읽힌 뒤(2026-09-16 묶음 4 1·2회차) 창 반사만으로는 모자라 넣었다
+     */
+    part(invert(new SphereGeometry(0.52, 12, 8)), [0.30, 0.38, 0.36], [0, 0.5, 0]),
     /**
      * ③ 창 반사 — **흰색보다 밝은 조각 둘.** 판정자가 「공」이라고 했다(2026-09-16). 인쇄의 흐린 창은
      * 곱셈이라 옅은 유리 위에서 흰색을 못 넘어 안 보였다. 구 겉면을 따라 휜 작은 조각을 1% 밖에

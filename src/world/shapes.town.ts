@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { ShapeIdTown } from './generation';
 import {
-  assemble, DARK, GLASS, METAL, normalize, part, soft, WHITE, WOOD, WRAP,
+  assemble, DARK, GLASS, invert, METAL, normalize, part, soft, WHITE, WOOD, WRAP,
   type RGB,
 } from './shapes.kit';
 
@@ -213,13 +213,43 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     part(new TorusGeometry(0.49, 0.04, 4, 20), WHITE, [0, 0.33, 0], LIE_Z, TILE.CERAMIC),
   ]),
 
-  양동이: () => assemble([
-    part(new CylinderGeometry(0.44, 0.34, 0.72, 20), WHITE, [0, 0.36, 0], undefined, TILE.PLASTIC),
-    part(new CylinderGeometry(0.39, 0.30, 0.62, 20), DARK, [0, 0.40, 0]),
-    part(new TorusGeometry(0.44, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z, TILE.METAL),
-    // 손잡이 — 반원
-    part(new TorusGeometry(0.44, 0.03, 4, 10, Math.PI), METAL, [0, 0.74, 0]),
-  ]),
+  /**
+   * 양동이(함석) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/양동이/` (옛 아연 도금 양동이 지름 31 × 높이 30 cm · 나무 손잡이 · 손잡이를 세운 요즘 것)
+   *
+   * 앞의 것은 초록 플라스틱 원뿔대(입 : 바닥 : 높이 = 1 : 0.77 : 0.82)에 반원 손잡이를 세운 것이었다.
+   *   ① 입 지름 1 : 바닥 **0.62** : 높이 **0.87** — 아래가 더 좁다. 입술은 둥글게 **말린 테**(0.017)
+   *   ② 높이 0.27 ~ 0.50 에 두 쌍으로 도는 **가로 돌출 띠 4줄**, 바닥에 따로 끼운 **치마 띠**(0.074)
+   *   ③ 양옆 리벳 **귀판**(너비 0.12)에 걸린 굵은 철사 손잡이 + 가운데 **나무 손잡이**(길이 0.29 · 굵기 0.088)
+   *   ④ 아연 도금 회색에 밝은 결정 얼룩(`TILE.SPANGLE`) — 초록 팔레트(11)를 흰색으로 옮겼다
+   * 손잡이는 사진처럼 **입술 위로 눕혔다** — 세우면(입술 위 0.52) 높이가 최장축이 되어 통이 작아진다.
+   * 치수는 입 지름 = 1 로 쓴다.
+   */
+  양동이: () => {
+    const H = 0.87, RT = 0.5, RB = 0.31, SKIRT = 0.074, ZINC: RGB = [0.70, 0.73, 0.72];
+    const rAt = (y: number): number => RB + (RT - RB) * (y / H);        // 높이 y 에서 몸통 반지름
+    const TILT = 1.35;                                                    // 손잡이를 세운 자리에서 +x 로 눕힌 각
+    return assemble([
+      part(new CylinderGeometry(RT, RB, H, 20, 1, true), ZINC, [0, H / 2, 0], undefined, TILE.SPANGLE),
+      part(invert(new CylinderGeometry(RT - 0.01, RB - 0.01, H - 0.01, 20, 1, true)), [0.62, 0.64, 0.62], [0, H / 2 + 0.005, 0]),
+      part(new CylinderGeometry(RB - 0.01, RB - 0.01, 0.01, 20), [0.55, 0.57, 0.55], [0, 0.012, 0]),
+      // ① 말린 입술 테
+      part(new TorusGeometry(RT + 0.004, 0.012, 4, 24), [0.82, 0.84, 0.82], [0, H, 0], [Math.PI / 2, 0, 0]),
+      // ② 돌출 띠 넷 — 입술에서 높이의 0.27 · 0.33 · 0.44 · 0.50 아래
+      ...[0.27, 0.33, 0.44, 0.50].map((f) => {
+        const y = H * (1 - f);
+        return part(new TorusGeometry(rAt(y) + 0.002, 0.006, 3, 24), ZINC, [0, y, 0], [Math.PI / 2, 0, 0]);
+      }),
+      // 바닥 치마 띠
+      part(new CylinderGeometry(rAt(SKIRT) + 0.008, RB + 0.008, SKIRT, 20, 1, true), [0.80, 0.82, 0.80], [0, SKIRT / 2, 0]),
+      // ③ 귀판 둘(±z) + 입술 위로 눕힌 철사 손잡이 + 나무 손잡이
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(0.12, 0.10, 0.012), ZINC, [0, H - 0.03, k * (RT + 0.004)])),
+      part(new TorusGeometry(RT + 0.01, 0.0075, 4, 16, Math.PI), [0.62, 0.64, 0.62], [0, H + 0.02, 0], [0, -Math.PI / 2, -TILT]),
+      part(new CylinderGeometry(0.044, 0.044, 0.29, 8), [0.46, 0.39, 0.31],
+        [(RT + 0.01) * Math.sin(TILT), H + 0.02 + (RT + 0.01) * Math.cos(TILT), 0], [Math.PI / 2, 0, 0]),
+    ]);
+  },
 
   모래성: () => assemble([
     // 원작 동선의 모래성. 원통 본체 + 탑 넷 + 총안

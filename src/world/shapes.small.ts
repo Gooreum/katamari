@@ -1,11 +1,12 @@
 import {
-  BoxGeometry, CapsuleGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, LatheGeometry, SphereGeometry,
-  TorusGeometry, Vector2,
+  BoxGeometry, CapsuleGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, ExtrudeGeometry, LatheGeometry, Shape,
+  SphereGeometry, TorusGeometry, Vector2,
   type BufferGeometry,
 } from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShapeIdSmall } from './generation';
 import {
-  assemble, GLASS, INK, METAL, part, WHITE, WRAP, soft, warp,
+  assemble, INK, METAL, part, WHITE, WRAP, soft, warp,
   type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -102,7 +103,8 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
    */
   쌀알: () => {
     const L = 0.5, W = 0.29, T = 0.175, CUT = 0.23;
-    const grain = warp(new SphereGeometry(1, 12, 8).scale(L, T, W), (x, y, z) => {
+    // 경도 16 · 위도 8 — 12 · 8 이면 깎이는 모서리에 정점이 두셋뿐이라 자국이 안 보였다(판정자 「매끈한 타원」)
+    const grain = warp(new SphereGeometry(1, 16, 8).scale(L, T, W), (x, y, z) => {
       // ③ 끝을 뭉툭하게 — 길이 방향만 초타원 쪽으로 민다
       const bx = Math.sign(x) * L * Math.abs(x / L) ** 0.8;
       // ② 배아 자국 — 폭의 0.13 턱에서 시작해 끝에서 폭의 0.54 깊이까지 비스듬히 깎는다
@@ -132,13 +134,18 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     const R = 0.35, MID = 0.15, SQ = 0.92;
     // 알 윗면 높이 — 곧은 몸통은 평평하고 둥근 끝에서 내려간다. 줄이 이 면을 따라 휜다
     const top = (x: number): number => SQ * Math.sqrt(Math.max(0, R * R - Math.max(0, Math.abs(x) - MID) ** 2));
-    const hilum = warp(new CapsuleGeometry(0.04, 0.44, 1, 5).rotateZ(Math.PI / 2), (x, y, z) =>
+    // 줄은 알 곡면을 따라 휜다 — 마디가 없으면 두 끝 사이가 곧은 현이라 둥근 끝 쪽에서 알 속에 묻힌다
+    // (캡슐로 만들었더니 가운데가 묻혀 양 끝 두 점만 보였다). 길이 방향으로 8 마디를 준다
+    const bend = (g: BufferGeometry): BufferGeometry => warp(g.rotateZ(Math.PI / 2), (x, y, z) =>
       [x + 0.18, y * 0.55 + top(x + 0.18) - 0.012, z]);
+    const hilum = bend(new CylinderGeometry(0.04, 0.04, 0.44, 5, 8));
     return assemble([
       // 몸통 — 반구 끝 원기둥을 눕히고 높이를 0.92 로 누른다
-      part(new CapsuleGeometry(R, 2 * MID, 3, 8).scale(SQ, 1, 1), [0.52, 0.34, 0.28], [0, R * SQ, 0], LIE_X),
-      // 배꼽 줄 — +x 끝에서 0.06 들어와 0.52 길이
+      // 껍질 — (127,81,66) 계수가 따뜻한 빛에서 연한 분홍 갈색으로 떠 「감자」로 읽혔다(트랙 D). 한 단 짙게
+      part(new CapsuleGeometry(R, 2 * MID, 3, 8).scale(SQ, 1, 1), [0.40, 0.22, 0.17], [0, R * SQ, 0], LIE_X),
+      // 배꼽 줄 — +x 끝에서 0.06 들어와 0.52 길이, 두 끝이 둥글게 닫힌다
       part(hilum, [1.0, 1.0, 0.93], [0, R * SQ, 0]),
+      ...[-0.22, 0.22].map((x) => part(bend(new SphereGeometry(0.04, 5, 3).translate(0, x, 0)), [1.0, 1.0, 0.93], [0, R * SQ, 0])),
     ]);
   },
 
@@ -509,19 +516,31 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
    * 인쇄(`TILE.TOFFEE`)로 넣는다 — 삼각형도 0 늘고 실루엣도 안 망가진다.
    */
 
-  체온계: () => assemble([
-    /**
-     * 유리 막대 + 은색 구슬 + 붉은 눈금줄. **구슬이 `METAL`(대비 0.08)이라
-     * 막대 끝과 한 덩어리였다** — 수은 구는 유리보다 확실히 짙어야 보인다.
-     * 7분할 곡면도 이 크기(5cm)에서 요구되는 8분할에 못 미쳤다.
-     */
-    part(new CylinderGeometry(0.055, 0.055, 0.78, 8), GLASS, [0.08, 0.06, 0], LIE_X),
-    part(new SphereGeometry(0.10, 8, 6), [0.42, 0.20, 0.18], [-0.40, 0.06, 0]),
-    part(new BoxGeometry(0.58, 0.022, 0.06), [0.88, 0.22, 0.18], [0.10, 0.105, 0]),
-    // 눈금 — 세 줄이면 「재는 것」이 된다
-    ...([0.10, 0.26, 0.42] as const).map((x) =>
-      part(new BoxGeometry(0.018, 0.05, 0.05), INK, [x, 0.095, 0.035])),
-  ]),
+  /**
+   * 체온계 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/체온계/` (옛 수은 체온계 박물관 사진 + 일본 체온계 · 색 참고)
+   *
+   * 앞의 것은 유리 막대 끝에 **굵은 붉은 구슬**과 붉은 줄을 얹은 것이었다. 사진과 대보니:
+   *   ① 길이 : 지름 = **1 : 0.068** 의 가느다란 유리 막대, 두 끝이 둥글게 막혔다
+   *   ② 수은 구는 굵은 구슬이 아니라 **관보다 가는(0.41) 은빛 막대** — 길이의 0.16, 나팔꼴 목으로 관에 이어진다
+   *   ③ 길이의 **0.26 ~ 0.88** 구간에 흰 눈금판 — 위쪽 절반 노란 띠, 아래쪽 숫자, 37 만 빨강(`TILE.THERMO`)
+   * 유리는 불투명이라 속 눈금판을 관 윗면에 붙여 보인다. 치수는 길이 = 1 로 쓴다(수은 구 −x).
+   */
+  체온계: () => {
+    const R = 0.034, BULB = 0.16, NECK = 0.09, GLASSY: RGB = [0.80, 0.88, 0.92];
+    const x0 = -0.5, xNeck = x0 + BULB, xTube = xNeck + NECK, xEnd = 0.5 - R;
+    return assemble([
+      // ② 수은 구 — 관보다 가는 은빛 막대(끝이 둥글다)
+      part(new CapsuleGeometry(R * 0.41, BULB - R * 0.82, 2, 8), [0.62, 0.62, 0.60], [x0 + BULB / 2, R, 0], LIE_X),
+      // 나팔꼴 목 — 위(+y → +x)가 관 쪽으로 벌어진다
+      part(new CylinderGeometry(R, R * 0.47, NECK, 10), GLASSY, [xNeck + NECK / 2, R, 0], CAP_X),
+      // ① 유리 관 + 둥글게 막힌 끝
+      part(new CylinderGeometry(R, R, xEnd - xTube, 10, 1, true), GLASSY, [(xTube + xEnd) / 2, R, 0], CAP_X),
+      part(new SphereGeometry(R, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), GLASSY, [xEnd, R, 0], CAP_X),
+      // ③ 눈금판 — 0.26 ~ 0.88
+      part(new BoxGeometry(0.62, 0.003, R * 1.3), WHITE, [-0.5 + 0.26 + 0.31, R * 2 + 0.0015, 0], undefined, TILE.THERMO),
+    ]);
+  },
 
   /**
    * 간장 팩(물고기 모양 간장병) — **사진에서 잰 값으로 다시 만들었다.**
@@ -537,8 +556,14 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
    * 치수는 길이 = 1 로 쓴다(뚜껑 +x, 꼬리 −x).
    */
   '간장 팩': () => {
-    const RM = 0.18, BODY = 0.61, FLAT = 0.55, SOY: RGB = [0.15, 0.14, 0.17];
+    // 몸통은 간장 빛 — 가운데 거의 검고 가장자리가 적갈(69,49,50). 회색으로 뜨지 않게 붉은 기를 준다
+    const RM = 0.18, BODY = 0.61, FLAT = 0.55, SOY: RGB = [0.17, 0.11, 0.11];
     // ① 몸통 옆 윤곽 — [최대 높이에 대한 비, 꼬리 쪽 끝에서의 거리]. 사진 x=300·350·415·500·540 에서 잰 값
+    // 꼬리 — 자루(높이 0.26 × RM × 2) 에서 끝(0.56)으로 벌어지고 끝선이 살짝 오목하다. 두께 0.02
+    const fin = new Shape();
+    fin.moveTo(0, -0.052); fin.lineTo(-0.15, -0.112); fin.lineTo(-0.145, 0); fin.lineTo(-0.15, 0.112); fin.lineTo(0, 0.052);
+    const tail = mergeVertices(new ExtrudeGeometry(fin, { depth: 0.02, bevelEnabled: false }).deleteAttribute('uv').deleteAttribute('normal')).translate(0, 0, -0.01);
+    tail.computeVertexNormals();
     const prof = [[0.001, 0], [0.26, 0], [0.55, 0.043], [0.74, 0.128], [1.0, 0.311], [0.86, 0.451], [0.61, 0.561], [0.33, BODY], [0.001, BODY]]
       .map(([k, y]) => new Vector2(k! * RM, y!));
     return assemble([
@@ -547,9 +572,10 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
       // 목 — 몸통과 뚜껑 사이 0.05
       part(new CylinderGeometry(0.062, 0.062, 0.05, 10), SOY, [0.285, RM, 0], CAP_X),
       // ② 뚜껑 — 원기둥 위(+y → +x)가 바깥 끝. 몸 쪽이 넓다
-      part(new CylinderGeometry(0.054, 0.080, 0.19, 12), [0.78, 0.31, 0.30], [0.405, RM, 0], CAP_X),
-      // ③ 꼬리 — 네모 원뿔대를 얇게 눌러 세운 판. 자루에서 끝으로 벌어진다
-      part(new CylinderGeometry(0.052, 0.112, 0.15, 4).scale(1, 1, 0.12), [0.90, 0.90, 0.88], [-0.425, RM, 0], CAP_X),
+      // 게임의 따뜻한 빛에서 (190,74,70) 은 분홍으로 떴다(판정자 「분홍 원통」) — 채도를 올린다
+      part(new CylinderGeometry(0.054, 0.080, 0.19, 12), [0.82, 0.20, 0.18], [0.405, RM, 0], CAP_X),
+      // ③ 꼬리 — 사다리꼴 «판». 네모 원뿔대를 눌렀더니 위아래가 뾰족해 「흰 원뿔 · 깔때기」로 읽혔다(트랙 D)
+      part(tail, [0.90, 0.90, 0.88], [-0.35, RM, 0]),
       // 등지느러미 — 간장이 얇게 비치는 호박색
       part(new SphereGeometry(0.06, 8, 4).scale(1.5, 0.6, 0.35), [0.61, 0.44, 0.22], [-0.04, RM * 2 - 0.004, 0]),
       // 눈 — 머리 쪽 윗편, 양옆
@@ -558,26 +584,44 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     ]);
   },
 
-  청개구리: () => assemble([
-    /**
-     * **눈두덩이 머리 «위»로 솟아야 개구리다.** 예전 눈(반지름 0.09)은 머리 구(0.20)
-     * 상자 «안»에 들어 있어서 실루엣을 하나도 안 바꿨다 — 화면에서 「혹 달린 라임」이었다.
-     *
-     * 개구리는 넓고 낮다. 몸통을 눌러 납작하게 하고, 접힌 뒷다리를 몸 밖으로 빼고,
-     * 어두운 입선 하나로 얼굴을 만든다.
-     */
-    part(new SphereGeometry(0.34, 12, 8).scale(1.15, 0.72, 1.0), WHITE, [-0.04, 0.22, 0]),
-    part(new SphereGeometry(0.22, 10, 8).scale(1.0, 0.82, 1.05), WHITE, [0.26, 0.26, 0]),
-    ...([1, -1] as const).flatMap((k) => [
-      part(new SphereGeometry(0.15, 8, 6), WHITE, [0.26, 0.48, k * 0.15]),
-      part(new SphereGeometry(0.085, 8, 6), INK, [0.31, 0.55, k * 0.19]),
-      // 접힌 뒷다리 — 몸통 «밖으로». 안에 묻으면 없는 것과 같다
-      part(new SphereGeometry(0.17, 8, 6).scale(1.3, 0.75, 0.85), [0.74, 0.86, 0.58],
-        [-0.24, 0.15, k * 0.30]),
-    ]),
-    // 입선 — 어두운 띠 하나가 「얼굴」을 만든다
-    part(new BoxGeometry(0.11, 0.03, 0.30), [0.52, 0.60, 0.38], [0.42, 0.23, 0]),
-  ]),
+  /**
+   * 청개구리(ニホンアマガエル) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/청개구리/` (옆모습 · 위 · 옆 2)
+   *
+   * 앞의 것은 둥근 몸 · 머리 구 위에 눈두덩 둘 · 짙은 입선이었다. 사진과 대보니:
+   *   ① 몸길이 : 높이 ≈ **1 : 0.5** 의 웅크린 물방울꼴 — 등선이 **눈 뒤 머리 둔덕(가장 높은 점, 0.58)** 에서
+   *      엉덩이로 **곧게** 내려간다. 둥근 공 둘이 아니다
+   *   ② 주둥이 끝에서 0.11 뒤, 몸길이 **0.09** 크기로 옆으로 튀어나온 까만 눈
+   *   ③ 콧구멍 → 눈 → **고막(눈의 0.7 갈색 동그라미)** 으로 이어져 초록 등과 **베이지 배**를 가르는 갈색 줄
+   *   ④ 몸 옆에 꼭 붙여 접은 뒷다리 허벅지(몸길이의 0.29)와 황갈색 발가락
+   * 입선은 사진에 없다 — 뺐다. 배 · 줄 · 발은 연두 팔레트(12)에 곱해 사진 색이 나오게 계수를 잡았다.
+   * 치수는 몸길이 = 1 로 쓴다(주둥이 +x).
+   */
+  청개구리: () => {
+    const BEIGE: RGB = [1.28, 0.70, 1.88], BROWN: RGB = [0.94, 0.47, 0.40], TAN: RGB = [1.35, 0.72, 1.78];
+    // ① 몸통 — 윗면만 앞으로 갈수록 높게 민다(엉덩이 0.36 → 머리 둔덕 0.58)
+    const body = warp(new SphereGeometry(1, 10, 7).scale(0.42, 0.20, 0.27), (x, y, z) =>
+      [x, y > 0 ? y * (1 + 0.9 * Math.max(0, (x + 0.42) / 0.84)) : y, z]);
+    return assemble([
+      part(body, WHITE, [-0.06, 0.20, 0]),
+      // 머리 — 몸통 앞끝에서 이어져 주둥이로 모인다
+      part(new SphereGeometry(0.17, 8, 6).scale(1.0, 0.85, 1.0), WHITE, [0.30, 0.30, 0]),
+      // ③ 베이지 배 — 몸통 아래 절반
+      part(new SphereGeometry(1, 8, 3, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(0.40, 0.12, 0.25), BEIGE, [0.02, 0.12, 0]),
+      ...([1, -1] as const).flatMap((k) => [
+        // ② 눈 — 초록 눈두덩 위로 까만 눈이 옆을 본다
+        part(new SphereGeometry(0.065, 6, 4), WHITE, [0.37, 0.40, k * 0.12]),
+        part(new SphereGeometry(0.045, 6, 4), [0.25, 0.18, 0.60], [0.39, 0.41, k * 0.165]),
+        // ③ 갈색 줄(콧구멍 → 눈 아래 → 고막) + 고막
+        part(new SphereGeometry(1, 4, 3).scale(0.13, 0.016, 0.02), BROWN, [0.35, 0.34, k * 0.165], [0, 0, 0.30]),
+        part(new SphereGeometry(0.03, 4, 3).scale(1, 1, 0.5), BROWN, [0.24, 0.32, k * 0.19]),
+        // ④ 접은 허벅지 + 발가락
+        part(new SphereGeometry(1, 6, 4).scale(0.15, 0.10, 0.085), WHITE, [-0.28, 0.12, k * 0.24]),
+        part(new SphereGeometry(1, 4, 3).scale(0.16, 0.025, 0.06), TAN, [-0.08, 0.025, k * 0.30], [0, k * 0.5, 0]),
+        part(new SphereGeometry(1, 4, 3).scale(0.08, 0.05, 0.05), TAN, [0.22, 0.05, k * 0.20]),
+      ]),
+    ]);
+  },
 
   성냥갑: () => assemble([
     /**
