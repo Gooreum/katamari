@@ -3,7 +3,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdWorld } from './generation';
-import { assemble, DARK, GLASS, METAL, part, WHITE, WOOD, WRAP, type RGB } from './shapes.kit';
+import { assemble, DARK, METAL, part, WHITE, WRAP, type RGB } from './shapes.kit';
 import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -311,101 +311,292 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     ]);
   },
 
-  우체통: () => assemble([
-    // 기둥 위에 둥근 통. 동네의 그것보다 크고 다리가 보인다
-    part(new CylinderGeometry(0.10, 0.12, 0.44, 14), METAL, [0, 0.22, 0], undefined, TILE.METAL),
-    // 통 + 둥근 뚜껑. **폭이 같으면 옆면 두 장이 같은 평면이다** — 뚜껑을 살짝 좁힌다
-    part(new BoxGeometry(0.44, 0.46, 0.34), WHITE, [0, 0.66, 0], undefined, TILE.METAL),
-    part(new CylinderGeometry(0.22, 0.22, 0.325, 20, 1, false, 0, Math.PI), WHITE,
-      [0, 0.89, 0], LIE_Z, TILE.WOOD_C),
-    // 투입구
-    part(new BoxGeometry(0.30, 0.05, 0.36), DARK, [0, 0.80, 0]),
-  ]),
+  /**
+   * 우체통(丸型ポスト) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/우체통/` (차양 달린 둥근 우체통 정면)
+   *
+   * 앞의 것은 기둥 위에 **네모 상자**를 얹고 반원 뚜껑을 덮은 것이었다 — 영국식 벽걸이 우체통이다.
+   * 일본 길거리의 그것은 통째로 둥근 기둥이다. 사진과 대보니:
+   *   ① 높이 : 지름 = 1 : **0.26** 의 가늘고 긴 원통 — 기둥과 통이 따로 있지 않다
+   *   ② 돔 뚜껑 한가운데 작은 꼭지, 그 밑에 몸통보다 **1.36 배 넓은 주름진 차양 테**
+   *   ③ 위에서 0.22 자리에 반원 후드가 덮은 가로 편지 구멍, 그 밑에 몸통 지름 **0.74** 인 금색 문장판
+   *   ④ 아래에서 0.14 부터 **1.11 배로 퍼지는 두 단 나팔형 받침**
+   *   ⑤ 빨강 팔레트(8)를 곱하면 금색 문장판이 검붉게 죽는다 — 팔레트는 흰색, 빨강은 계수로
+   * 치수는 높이 = 1 로 쓴다.
+   */
+  우체통: () => {
+    const D = 0.26, R = D / 2, RED: RGB = [0.80, 0.24, 0.20], BRASS: RGB = [0.88, 0.74, 0.40];
+    return assemble([
+      // ④ 두 단 나팔형 받침
+      part(new CylinderGeometry(R * 1.11, R * 1.11, 0.045, 16), RED, [0, 0.022, 0], undefined, TILE.METAL),
+      part(new CylinderGeometry(R, R * 1.11, 0.095, 16), RED, [0, 0.092, 0]),
+      // ① 몸통
+      part(new CylinderGeometry(R, R, 0.72, 16), RED, [0, 0.50, 0], undefined, TILE.METAL),
+      // ③ 편지 구멍 + 후드 — 위에서 0.22
+      part(new BoxGeometry(D * 0.62, 0.022, 0.03), [0.18, 0.08, 0.07], [0, 0.775, R * 0.95]),
+      part(new CylinderGeometry(D * 0.34, D * 0.34, 0.02, 12, 1, false, 0, Math.PI), RED, [0, 0.79, R * 0.93], [Math.PI / 2, 0, 0]),
+      // ③ 금색 문장판 — 몸통 지름의 0.74
+      part(new CylinderGeometry(D * 0.37, D * 0.37, 0.016, 14), BRASS, [0, 0.705, R * 0.96], LIE_Z),
+      // 수거문 — 위에서 0.74, 몸통 지름의 0.70
+      part(new BoxGeometry(D * 0.70, 0.11, 0.014), [0.62, 0.17, 0.14], [0, 0.26, R * 0.97]),
+      // ② 차양 테 — 몸통의 1.36 배. 그 밑에 좁은 단 테 두 줄
+      part(new CylinderGeometry(R * 1.30, R * 1.20, 0.022, 16), RED, [0, 0.872, 0]),
+      part(new CylinderGeometry(R * 1.36, R * 1.36, 0.030, 16), RED, [0, 0.898, 0], undefined, TILE.METAL),
+      // ② 돔 뚜껑 + 꼭지
+      part(new SphereGeometry(R * 1.22, 16, 7, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.62, 1), RED, [0, 0.912, 0]),
+      part(new SphereGeometry(D * 0.045, 6, 5), RED, [0, 0.99, 0]),
+    ]);
+  },
 
-  표지판: () => assemble([
-    // 기둥 — **밑판 «위»에서 시작한다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다
-    part(new CylinderGeometry(0.045, 0.045, 1.06, 10), METAL, [0, 0.58, 0], undefined, TILE.METAL),
-    // 표지 판 + 안쪽 원. **두께가 같으면 옆면이 같은 평면이다** — 안쪽을 얇게
-    // 앞으로 내고, `PAPER`(대비 0.04) 대신 확실히 갈리는 색으로 간다
-    part(new CylinderGeometry(0.34, 0.34, 0.06, 20), WHITE, [0, 1.02, 0], LIE_Z, TILE.METAL),
-    part(new CylinderGeometry(0.24, 0.24, 0.05, 20), [0.86, 0.28, 0.22], [0, 1.02, 0.022], LIE_Z),
-    part(new BoxGeometry(0.30, 0.05, 0.30), METAL, [0, 0.025, 0]),
-  ]),
+  /**
+   * 표지판 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/표지판/` (주택가 교차로의 止まれ 역삼각형 + 통행금지 원판)
+   *
+   * 앞의 것은 굵은 기둥(판 지름의 0.13 이 아니라 **0.26**) 위에 **원판 하나**만 얹은 것이었다.
+   * 사진과 대보니:
+   *   ① 위가 **역정삼각형**(밑변 : 높이 = 1 : 0.87)이고 그 꼭짓점에 거의 맞닿게 **원판**이 붙는다 —
+   *      판이 둘이라야 일본 길거리 표지판이다
+   *   ② 원판 지름 = 삼각형 밑변의 **0.76**
+   *   ③ 기둥은 판 지름의 **0.13** 밖에 안 되는 가는 관 — 판 폭이 기둥의 8 배인 가분수 실루엣
+   *   ④ 두 판 다 가장자리를 **흰 띠**가 두르고, 원판의 빨간 테는 반지름의 0.2
+   * 빨강 · 파랑 팔레트(8 · 14)를 곱하면 흰 띠와 흰 바탕이 같이 물든다 — 팔레트는 흰색.
+   * 치수는 기둥 높이 = 1 로 쓴다.
+   */
+  표지판: () => {
+    const TRI = 0.42, CIR = TRI * 0.76, RED: RGB = [0.84, 0.16, 0.14], SIL: RGB = [0.70, 0.70, 0.68];
+    return assemble([
+      // ③ 가는 기둥
+      part(new CylinderGeometry(CIR * 0.065, CIR * 0.065, 1.0, 8), SIL, [0, 0.5, 0], undefined, TILE.METAL),
+      // ① 역정삼각형 — 3 면 원기둥을 눕히고 꼭짓점이 아래로 오게 돌린다
+      part(new CylinderGeometry(TRI * 0.577, TRI * 0.577, 0.02, 3), [1.0, 1.0, 1.0],
+        [0, 0.875, 0.02], [Math.PI / 2, 0, Math.PI]),
+      part(new CylinderGeometry(TRI * 0.50, TRI * 0.50, 0.016, 3), RED, [0, 0.875, 0.032], [Math.PI / 2, 0, Math.PI]),
+      // ② 원판 — 삼각형 꼭짓점 바로 아래. ④ 흰 바탕에 반지름 0.2 두께 빨간 테
+      part(new CylinderGeometry(CIR / 2, CIR / 2, 0.02, 16), RED, [0, 0.60, 0.02], LIE_Z),
+      part(new CylinderGeometry(CIR * 0.40, CIR * 0.40, 0.016, 16), [1.0, 1.0, 1.0], [0, 0.60, 0.032], LIE_Z),
+      part(new BoxGeometry(CIR * 0.46, CIR * 0.22, 0.012), [0.16, 0.24, 0.52], [0, 0.60, 0.042]),
+    ]);
+  },
 
-  드럼통: () => assemble([
-    // 몸통에 «금속» 인쇄를 문다 — 민짜 원통은 그냥 통이고, 테 둘은 얇아서 표식이 못 된다
-    part(new CylinderGeometry(0.40, 0.40, 1.00, 20), WHITE, [0, 0.50, 0], undefined, TILE.METAL),
-    // 테 둘 — 이게 있어야 드럼통이다
-    part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.28, 0], LIE_Z, TILE.METAL),
-    part(new TorusGeometry(0.41, 0.035, 4, 20), METAL, [0, 0.72, 0], LIE_Z),
-    part(new CylinderGeometry(0.38, 0.38, 0.05, 20), METAL, [0, 1.00, 0]),
-  ]),
+  /**
+   * 드럼통(200 L) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/드럼통/` (가게 앞에 나란히 선 200 L 드럼통 둘)
+   *
+   * 앞의 것은 높이 : 지름 = 1 : 0.8 인 통에 굴림테 둘을 **0.28 · 0.72** 에 두른 것이었다. 사진과 대보니:
+   *   ① 높이 : 지름 = 1 : **0.67**(사진은 1 : 0.59 로 나왔지만 눈높이가 아니라 위에서 찍혀
+   *      눌린 값이다 — 200 L 규격 쪽으로 보정했다)
+   *   ② 굴림테는 높이를 **세 토막으로 자르는 0.33 · 0.66** 자리이고 두께가 지름의 **0.07**
+   *   ③ 위아래 끝을 굴림테보다 **더 도드라진 말린 테두리**가 마감한다 — 바닥 테가 땅에 닿아
+   *      몸통 옆면이 떠 보인다
+   *   ④ 굴림테 사이 세 마디는 얕게 오목해 옆선이 곧은 직선이 아니다
+   * 치수는 높이 = 1 로 쓴다.
+   */
+  드럼통: () => {
+    const R = 0.335;
+    return assemble([
+      // ④ 세 마디 — 가운데가 살짝 오목하다
+      ...[[0.035, 0.33], [0.33, 0.66], [0.66, 0.965]].map(([y0, y1]) =>
+        part(new CylinderGeometry(R, R, y1! - y0!, 18, 1, true).scale(0.985, 1, 0.985), WHITE,
+          [0, (y0! + y1!) / 2, 0], undefined, TILE.METAL)),
+      // ② 굴림테 둘
+      ...[0.33, 0.66].map((y) =>
+        part(new CylinderGeometry(R * 1.035, R * 1.035, R * 0.07 * 2, 18), METAL, [0, y, 0], undefined, TILE.METAL)),
+      // ③ 위아래 말린 테두리 — 굴림테보다 더 나온다
+      ...[0.022, 0.978].map((y) =>
+        part(new TorusGeometry(R * 1.02, 0.022, 4, 18), [0.55, 0.52, 0.52], [0, y, 0], LIE_Z, TILE.METAL)),
+      part(new CylinderGeometry(R * 0.99, R * 0.99, 0.02, 18), METAL, [0, 0.978, 0]),
+      // 윗면 주입구 마개 둘
+      part(new CylinderGeometry(0.045, 0.045, 0.014, 8), [0.60, 0.58, 0.56], [R * 0.55, 0.992, 0]),
+      part(new CylinderGeometry(0.025, 0.025, 0.014, 6), [0.60, 0.58, 0.56], [-R * 0.55, 0.992, 0]),
+    ]);
+  },
 
-  벤치: () => assemble([
-    // 앉는 판 + 등받이. **길이가 같으면 끝면 두 장이 같은 평면이다**
-    part(new BoxGeometry(1.20, 0.08, 0.40), WOOD, [0, 0.44, 0], undefined, TILE.WOOD_C),
-    part(new BoxGeometry(1.14, 0.34, 0.07), WOOD, [0, 0.64, -0.17], undefined, TILE.WOOD_C),
-    // 다리 넷 — 주철 느낌으로 어둡게
-    ...[[-0.50, 0.15], [-0.50, -0.15], [0.50, 0.15], [0.50, -0.15]].map(
-      ([x, z]) => part(new BoxGeometry(0.08, 0.44, 0.08), DARK, [x!, 0.22, z!]),
-    ),
-  ]),
+  /**
+   * 벤치 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/벤치/` (잔디밭의 주철 옆틀 등받이 벤치)
+   *
+   * 앞의 것은 두꺼운 판 둘에 네모 다리 넷이었다. 사진과 대보니:
+   *   ① 길이 : 앉는 높이 = 1 : **0.22** 로 낮고 길다
+   *   ② 앉는 판도 등받이도 **가로 널 세 장씩**이고 널마다 널 두께쯤 되는 틈이 있다 —
+   *      통판 한 장이면 벤치가 아니라 널빤지다
+   *   ③ 양 끝은 널과 달리 **통짜 주철 곡선판**이고 팔걸이가 앞으로 말려 끝난다
+   *   ④ 다리는 옆틀 아래에서 앞뒤로 벌어져 앉는 높이의 0.5 간격으로 땅을 짚는다
+   *   ⑤ 널은 볕에서 거의 흰 회베이지(236,230,225), 주철 틀은 어디를 찍어도 먹색(30,31,33)
+   * 나무 팔레트(7)를 곱하면 회베이지 널이 주황 나무가 된다 — 팔레트는 흰색.
+   * 치수는 길이 = 1 로 쓴다.
+   */
+  벤치: () => {
+    const SEAT = 0.22, SLAT: RGB = [0.90, 0.88, 0.85], IRON: RGB = [0.16, 0.16, 0.17];
+    return assemble([
+      // ② 앉는 판 — 가로 널 셋
+      ...[-0.085, 0, 0.085].map((z) =>
+        part(new BoxGeometry(0.94, 0.022, 0.072), SLAT, [0, SEAT, z], undefined, TILE.WOOD_C)),
+      // ② 등받이 — 가로 널 셋. 거의 수직으로 선다
+      ...[0, 1, 2].map((i) =>
+        part(new BoxGeometry(0.90, 0.062, 0.020), SLAT, [0, SEAT + 0.085 + i * 0.085, -0.13], [0.12, 0, 0], TILE.WOOD_C)),
+      // ③ 양 끝 주철 옆틀 — 앉는 판 밑에서 등받이까지 한 장, 팔걸이가 앞으로 나온다
+      ...([1, -1] as const).flatMap((k) => [
+        part(new BoxGeometry(0.026, SEAT + 0.30, 0.036), IRON, [k * 0.47, SEAT * 0.5 + 0.15, -0.125], [0.12, 0, 0]),
+        part(new BoxGeometry(0.026, 0.030, 0.30), IRON, [k * 0.47, SEAT + 0.16, -0.01]),
+        part(new TorusGeometry(0.035, 0.013, 3, 8, Math.PI * 1.4), IRON, [k * 0.47, SEAT + 0.13, 0.13], [0, Math.PI / 2, 0]),
+        // ④ 다리 — 앞뒤로 벌어진다
+        ...([1, -1] as const).map((j) =>
+          part(new BoxGeometry(0.030, SEAT, 0.030), IRON, [k * 0.47, SEAT / 2, j * 0.055 - 0.04], [j * 0.12, 0, 0])),
+        part(new BoxGeometry(0.036, 0.022, 0.20), IRON, [k * 0.47, 0.011, -0.04]),
+      ]),
+    ]);
+  },
 
-  그네: () => assemble([
-    // **판이 커야 그네로 읽힌다.** 처음엔 A자 프레임만 보이고 판이 안 보여서
-    // 뒤집힌 A 두 개처럼 읽혔다 — 판을 키우고 줄을 굵혔다.
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, 0.26], [0.42, 0, 0], TILE.METAL),
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [-0.46, 0.56, -0.26], [-0.42, 0, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [0.46, 0.56, 0.26], [0.42, 0, 0]),
-    part(new CylinderGeometry(0.05, 0.05, 1.15, 10), METAL, [0.46, 0.56, -0.26], [-0.42, 0, 0]),
-    part(new CylinderGeometry(0.055, 0.055, 1.05, 10), METAL, [0, 1.08, 0], LIE_Z),
-    part(new CylinderGeometry(0.028, 0.028, 0.58, 10), DARK, [-0.24, 0.78, 0]),
-    part(new CylinderGeometry(0.028, 0.028, 0.58, 10), DARK, [0.24, 0.78, 0]),
-    part(new BoxGeometry(0.66, 0.09, 0.30), WHITE, [0, 0.48, 0]),
-  ]),
+  /**
+   * 그네 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/그네/` (신사 옆 동네 공원의 2 인용 그네)
+   *
+   * 앞의 것은 굵기 0.05 인 다리 넷에 줄을 **막대 둘**로 세우고 판 하나를 붙인 것이었다. 사진과 대보니:
+   *   ① A 자 다리 높이 : 두 발 벌린 폭 = 1 : **0.62**, 강관 굵기는 높이의 **0.026** 뿐이다
+   *   ② 사슬 : 좌판 길이 = **3.3 : 1** — 사슬이 아주 길고 좌판은 거의 땅에 붙는다
+   *   ③ 좌판은 **납작한 고무 널** 하나, 등받이도 안전바도 없다. 그네는 **둘**이 걸린다
+   *   ④ 가로대 · 다리 · 좌판이 같은 계열의 빨강이고 **이음쇠만 노랑**으로 튄다 —
+   *      팔레트(3 · 11)를 곱하면 그 노랑이 사라진다. 팔레트는 흰색
+   * 치수는 윗가로대 길이 = 1 로 쓴다.
+   */
+  그네: () => {
+    const H = 0.86, SPREAD = H * 0.62, T = H * 0.026;
+    const RED: RGB = [0.62, 0.20, 0.16], SEATC: RGB = [0.98, 0.38, 0.38];
+    const YEL: RGB = [0.78, 0.62, 0.18], CHAIN: RGB = [0.60, 0.59, 0.55];
+    return assemble([
+      // ① A 자 다리 — 양 끝에 하나씩, 앞뒤로 벌어진다
+      ...([1, -1] as const).flatMap((k) => ([1, -1] as const).map((j) =>
+        part(new CylinderGeometry(T, T, Math.hypot(H, SPREAD / 2), 6), RED,
+          [k * 0.47, H / 2, j * SPREAD / 4], [j * Math.atan2(SPREAD / 2, H), 0, 0]))),
+      // 다리 끝 신발
+      ...([1, -1] as const).flatMap((k) => ([1, -1] as const).map((j) =>
+        part(new CylinderGeometry(T * 1.4, T * 1.4, 0.022, 6), [0.32, 0.32, 0.30], [k * 0.47, 0.011, j * SPREAD / 2]))),
+      // 윗가로대 + 노란 이음쇠
+      part(new CylinderGeometry(T * 1.15, T * 1.15, 1.0, 8), RED, [0, H, 0], LIE_X, TILE.METAL),
+      ...([1, -1] as const).map((k) =>
+        part(new CylinderGeometry(T * 1.5, T * 1.5, 0.05, 8), YEL, [k * 0.47, H, 0], LIE_X)),
+      // ② ③ 그네 둘 — 사슬 넷과 좌판 둘. 좌판 길이의 3.3 배 사슬
+      ...([-0.22, 0.22] as const).flatMap((cx) => [
+        ...([1, -1] as const).map((j) =>
+          part(new CylinderGeometry(0.006, 0.006, H * 0.80, 5), CHAIN, [cx + j * 0.075, H - H * 0.40, 0], undefined, TILE.METAL)),
+        ...([1, -1] as const).map((j) =>
+          part(new CylinderGeometry(T * 0.9, T * 0.9, 0.035, 6), YEL, [cx + j * 0.075, H - 0.018, 0])),
+        part(new BoxGeometry(0.19, 0.022, 0.075), SEATC, [cx, H * 0.20, 0]),
+      ]),
+    ]);
+  },
 
   // ── 버킷 6 (2.14~4m) ──────────────────────────────────────
-  자판기: () => assemble([
-    part(new BoxGeometry(0.66, 1.10, 0.44), WHITE, [0, 0.55, 0], undefined, TILE.PANEL),
-    // 앞면 유리 + 진열 칸
-    part(new BoxGeometry(0.44, 0.62, 0.04), GLASS, [-0.06, 0.66, 0.23]),
-    ...[0, 1, 2].map((i) => part(
-      new BoxGeometry(0.40, 0.05, 0.03), METAL, [-0.06, 0.44 + i * 0.20, 0.245],
-    )),
-    // 동전 투입구·배출구
-    part(new BoxGeometry(0.14, 0.24, 0.03), DARK, [0.24, 0.68, 0.235]),
-    part(new BoxGeometry(0.50, 0.16, 0.05), DARK, [0, 0.20, 0.23]),
-  ]),
+  /**
+   * 자판기 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/자판기/` (도쿄 길가에 줄지어 선 음료 자동판매기)
+   *
+   * 앞의 것은 너비 : 높이 = 1 : 1.67 인 상자에 유리 한 장과 선반 셋, 네모 구멍 둘이었다. 사진과 대보니:
+   *   ① 너비 : 높이 = 1 : **1.87** 로 더 홀쭉하다
+   *   ② 진열창이 위에서 **0.04~0.48** 을 한 장으로 차지하고(너비의 0.79) 그 안에 음료 줄 세 단
+   *   ③ 단마다 밑에 값 띠 한 줄과 **검은 타원 버튼 열 개**가 늘어선다 — 이 버튼 줄이 자판기의 정체다
+   *   ④ 오른쪽 끝 너비 **9 %** 짜리 세로 검은 띠(지폐 · 동전 · 거스름돈)와 위에서 0.83 자리의
+   *      너비 0.61 짜리 가로 꺼내는 문
+   *   ⑤ 몸통은 차가운 흰색(179,179,186) — 빨강 · 파랑 팔레트(8 · 14)를 곱하면 흰 몸통이 사라진다
+   * 치수는 높이 = 1 로 쓴다.
+   */
+  자판기: () => {
+    const W = 0.535, D = 0.30, BODY: RGB = [0.88, 0.88, 0.90], INK: RGB = [0.20, 0.21, 0.21];
+    const zf = D / 2;
+    return assemble([
+      part(new BoxGeometry(W, 1.0, D), BODY, [0, 0.5, 0], undefined, TILE.PANEL),
+      // ② 진열창 — 위에서 0.04~0.48
+      part(new BoxGeometry(W * 0.79, 0.44, 0.012), [0.30, 0.34, 0.38], [-W * 0.045, 0.74, zf]),
+      // ② 음료 줄 세 단 — 창 안에 겹쳐 놓인다
+      ...[0, 1, 2].map((i) =>
+        part(new BoxGeometry(W * 0.74, 0.085, 0.02), [0.92, 0.86, 0.60], [-W * 0.045, 0.60 + i * 0.135, zf + 0.008])),
+      // ③ 값 띠 + 검은 타원 버튼 열 개 × 세 줄
+      ...[0, 1, 2].flatMap((i) => [
+        part(new BoxGeometry(W * 0.74, 0.022, 0.012), [0.52, 0.54, 0.58], [-W * 0.045, 0.545 + i * 0.135, zf + 0.006]),
+        ...Array.from({ length: 10 }, (_, k) => part(new CylinderGeometry(0.011, 0.011, 0.010, 6).scale(1, 1, 0.6),
+          INK, [-W * 0.40 + k * W * 0.0735, 0.522 + i * 0.135, zf + 0.008], LIE_Z)),
+      ]),
+      // ④ 오른쪽 세로 검은 띠 — 너비의 9 %
+      part(new BoxGeometry(W * 0.09, 0.42, 0.014), INK, [W * 0.435, 0.72, zf]),
+      // ④ 꺼내는 문 — 위에서 0.83
+      part(new BoxGeometry(W * 0.61, 0.11, 0.016), INK, [-W * 0.06, 0.17, zf]),
+      // 아래 광고판
+      part(new BoxGeometry(W * 0.84, 0.22, 0.012), [0.78, 0.80, 0.84], [-W * 0.045, 0.37, zf]),
+    ]);
+  },
 
-  미끄럼틀: () => assemble([
-    // 원작 MaS3 선물이 미끄럼틀 위에 있었다. 여기선 먹는 물건이다
-    // 기둥 둘 + 발판. **기둥 꼭대기(1.00)와 발판 밑면이 같은 평면**이면 z-fighting 이다
-    part(new BoxGeometry(0.10, 1.00, 0.10), METAL, [-0.44, 0.50, 0.22]),
-    part(new BoxGeometry(0.10, 1.00, 0.10), METAL, [-0.44, 0.50, -0.22]),
-    part(new BoxGeometry(0.40, 0.06, 0.54), WHITE, [-0.44, 1.05, 0]),
-    // 경사판 + 난간
-    part(new BoxGeometry(1.10, 0.06, 0.50), WHITE, [0.16, 0.56, 0], [0, 0, -0.52], TILE.METAL),
-    part(new BoxGeometry(1.10, 0.14, 0.05), METAL, [0.16, 0.66, 0.25], [0, 0, -0.52]),
-    part(new BoxGeometry(1.10, 0.14, 0.05), METAL, [0.16, 0.66, -0.25], [0, 0, -0.52]),
-    // 사다리 발판
-    ...[0, 1, 2].map((i) => part(
-      new BoxGeometry(0.34, 0.04, 0.04), METAL, [-0.44, 0.28 + i * 0.24, 0],
-    )),
-  ]),
+  /**
+   * 미끄럼틀 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/미끄럼틀/` (단지 공원의 강철 양방향 미끄럼틀 정옆)
+   *
+   * 앞의 것은 기둥 둘 위 발판에서 **28°** 로 내려가는 판이었고 사다리 발판이 기둥 사이에 떠 있었다.
+   * 사진과 대보니:
+   *   ① 미끄럼판은 **42°**, 사다리는 **90°** — 사다리가 판보다 두 배 이상 가파르다.
+   *      이 기울기 차이가 미끄럼틀의 정체다
+   *   ② 미끄럼판 길이 : 발판 높이 = **1.84 : 1**, 아래 끝만 눕혀 착지부를 만든다
+   *   ③ 발판 위로 발판 높이의 **0.29** 더 솟은 ㄷ 자 안전 난간
+   *   ④ 판은 가장자리를 세운 ㄷ 자 단면이라 옆에서 두께 있는 띠로 보인다
+   *   ⑤ 칠한 색이 아니라 도금 강판의 옅은 청회색(179,197,204) — 노랑 · 초록 팔레트(10 · 11)를 흰색으로
+   * 치수는 전체 길이 = 1 로 쓴다(미끄러져 내려오는 쪽 +x).
+   */
+  미끄럼틀: () => {
+    // 사진의 42° 는 판 «윗도막»의 기울기다. 판 전체(길이 1.84 H)를 42° 로 놓으면 1.23 H 를 내려가
+    // 바닥을 뚫는다 — 사진에서 판 끝까지의 낙차는 발판 높이와 같다. 그러려면 평균 33° 다.
+    const H = 0.60, A = 33 * Math.PI / 180, L = 1.84 * H, ZINC: RGB = [0.76, 0.82, 0.85];
+    const BAR: RGB = [0.42, 0.44, 0.45];
+    const midX = -0.34 + Math.cos(A) * L / 2, midY = H - Math.sin(A) * L / 2;
+    return assemble([
+      // ① 사다리 — 90°. 옆기둥 둘과 가로대 일곱
+      ...([1, -1] as const).map((k) =>
+        part(new CylinderGeometry(0.014, 0.014, H, 6), ZINC, [-0.42, H / 2, k * 0.075], undefined, TILE.METAL)),
+      ...Array.from({ length: 7 }, (_, i) => part(new CylinderGeometry(0.010, 0.010, 0.15, 5), BAR,
+        [-0.42, H * (0.10 + i * 0.128), 0], LIE_Z)),
+      // 발판
+      part(new BoxGeometry(0.17, 0.020, 0.17), ZINC, [-0.39, H, 0], undefined, TILE.METAL),
+      // ③ ㄷ 자 안전 난간 — 발판 높이의 0.29 만큼 더 솟는다
+      ...([1, -1] as const).map((k) =>
+        part(new CylinderGeometry(0.009, 0.009, H * 0.29, 5), BAR, [-0.42, H + H * 0.145, k * 0.085])),
+      part(new CylinderGeometry(0.009, 0.009, 0.17, 5), BAR, [-0.42, H + H * 0.29, 0], LIE_Z),
+      // ② 미끄럼판 — 42°, 길이는 발판 높이의 1.84. ④ 양 가장자리를 세운 ㄷ 자 단면
+      part(new BoxGeometry(L, 0.022, 0.16), ZINC, [midX, midY, 0], [0, 0, -A], TILE.METAL),
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(L, 0.045, 0.014), ZINC, [midX, midY + 0.022, k * 0.080], [0, 0, -A])),
+      // ② 착지부 — 마지막만 37° 로 눕는다
+      part(new BoxGeometry(0.15, 0.020, 0.16), ZINC, [0.63, 0.035, 0], [0, 0, -18 * Math.PI / 180]),
+      // 착지부 받침 기둥
+      part(new CylinderGeometry(0.011, 0.011, 0.05, 5), BAR, [0.66, 0.012, 0]),
+    ]);
+  },
 
-  정글짐: () => assemble([
-    // 기둥 4 + 가로대 8. 빈 격자라 실루엣이 곧 구조다 —
-    // 면으로 채우면 그냥 상자가 되어 미끄럼틀과 구별이 안 된다.
-    // 원작 어친타운의 선물 위치가 "정글짐 옆"이다.
-    ...[[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].map(([x, z]) =>
-      part(new CylinderGeometry(0.035, 0.035, 1.0, 14), WHITE, [x!, 0, z!], undefined, TILE.METAL)),
-    ...[0.16, -0.30].flatMap((y) => [
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0, y, -0.4], LIE_X),
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0, y, 0.4], LIE_X),
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [-0.4, y, 0], LIE_Z),
-      part(new CylinderGeometry(0.03, 0.03, 0.8, 14), WHITE, [0.4, y, 0], LIE_Z),
-    ]),
-  ]),
+  /**
+   * 정글짐 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/정글짐/` (공원의 빨강 · 노랑 강관 격자 정글짐)
+   *
+   * 앞의 것은 기둥 넷에 가로대 여덟을 두른 **한 칸짜리 상자 틀**이었다. 사진과 대보니:
+   *   ① 가로대가 **네 줄**이고 등간격이라 칸이 세로로 **3 층** 쌓인다. 맨 아래 가로대 밑으로
+   *      한 층 높이의 다리가 더 내려와 땅을 짚는다
+   *   ② 앞면 기둥이 세 줄(칸 둘)이고 안쪽으로 격자가 여러 겹 겹쳐 보인다 — 기둥 넷으로는
+   *      격자가 안 생긴다
+   *   ③ 층마다 색이 달라 위 · 아래층은 빨강, 위에서 두 번째 층 한 층만 **노랑**
+   *   ④ 전체 가로 : 세로 = 1 : **0.70** 으로 키보다 옆이 넓다
+   * 초록 · 빨강 팔레트(11 · 8)를 곱하면 노란 층이 사라진다 — 팔레트는 흰색.
+   * 치수는 가로 = 1 로 쓴다.
+   */
+  정글짐: () => {
+    const CELL = 0.5, TOP = 0.70, RED: RGB = [0.80, 0.34, 0.36], YEL: RGB = [0.96, 0.86, 0.18];
+    const xs = [-0.5, 0, 0.5], ys = [TOP, TOP - 0.19, TOP - 0.38, TOP - 0.57], zs = [-0.25, 0.25];
+    const colAt = (y: number): RGB => (Math.abs(y - (TOP - 0.19)) < 0.01 ? YEL : RED);
+    return assemble([
+      // ① 세로 기둥 — 맨 아래 가로대 밑으로 한 층 더 내려와 땅을 짚는다
+      ...xs.flatMap((x) => zs.map((z) =>
+        part(new CylinderGeometry(0.014, 0.014, TOP, 6), RED, [x, TOP / 2, z], undefined, TILE.METAL))),
+      // ③ 가로대 — 층마다 색이 다르다. 가로 · 세로 두 방향
+      ...ys.flatMap((y) => [
+        ...zs.map((z) => part(new CylinderGeometry(0.011, 0.011, 1.0, 6), colAt(y), [0, y, z], LIE_X)),
+        ...xs.map((x) => part(new CylinderGeometry(0.011, 0.011, CELL, 6), colAt(y), [x, y, 0], LIE_Z)),
+      ]),
+    ]);
+  },
 
   사람: () => assemble([
     // 카타마리에서 사람은 배경이 아니라 **물건**이다. 서 있는 자세
@@ -457,11 +648,33 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     part(new BoxGeometry(0.06, 0.10, 0.50), [0.34, 0.35, 0.38], [0.65, 0.23, 0]),
   ]),
 
-  가로수: () => assemble([
-    part(new CylinderGeometry(0.10, 0.14, 0.62, 20), WOOD, [0, 0.31, 0], undefined, TILE.WOOD_C),
-    // 잎은 덩어리 셋 — 하나면 사탕처럼 보인다
-    part(new SphereGeometry(0.40, 20, 13), WHITE, [0, 0.86, 0], undefined, TILE.LEAF),
-    part(new SphereGeometry(0.28, 20, 13), WHITE, [-0.26, 0.72, 0.10]),
-    part(new SphereGeometry(0.26, 20, 13), WHITE, [0.24, 0.76, -0.12]),
-  ]),
+  /**
+   * 가로수(은행나무) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/가로수/` (도쿄 큰길가 은행나무 한 그루, 밑동부터 꼭대기까지)
+   *
+   * 앞의 것은 굵은 줄기(높이의 0.10)에 수관 공 셋을 얹은 **동그란 나무**였다. 사진과 대보니:
+   *   ① 수관 폭 : 높이 = 1 : **2.70** — 둥근 공이 아니라 **세로로 좁고 길게 선** 은행나무 꼴이다
+   *   ② 전체 높이의 **0.28** 만 맨 줄기이고 나머지 0.72 가 수관이다
+   *   ③ 줄기 굵기는 전체 높이의 **0.04**(수관 폭의 0.15)로 아주 가늘고 밑동에서만 1.4 배로 벌어진다
+   *   ④ 잎이 위로 뻗은 가지마다 층층이 뭉쳐 달려 수관 옆선이 매끈하지 않고 울퉁불퉁하다
+   *   ⑤ 줄기 굵기의 5.7 배 되는 네모 맨흙 구덩이에 심겨 있고 버팀목 두 개가 사선으로 박힌다
+   * 치수는 전체 높이 = 1 로 쓴다.
+   */
+  가로수: () => {
+    const TR = 0.04 / 2, CW = 0.27, BARE = 0.28, TRUNK: RGB = [0.52, 0.42, 0.34];
+    return assemble([
+      // ⑤ 네모 맨흙 구덩이 — 줄기 굵기의 5.7 배
+      part(new BoxGeometry(TR * 2 * 5.7, 0.012, TR * 2 * 5.7), [0.42, 0.34, 0.26], [0, 0.006, 0], undefined, TILE.DIRT),
+      // ③ 줄기 — 밑동에서만 1.4 배로 벌어진다. 수관 속까지 이어 올라간다
+      part(new CylinderGeometry(TR, TR * 1.4, 0.92, 8), TRUNK, [0, 0.46, 0], undefined, TILE.WOOD_C),
+      // ② ④ 수관 — 전체의 0.72 를 채우는 세로로 긴 덩어리. 층층이 뭉쳐 옆선이 울퉁불퉁하다
+      ...([[0.40, 1.00], [0.56, 0.92], [0.70, 0.80], [0.82, 0.60], [0.92, 0.38]] as const).map(([y, w], i) =>
+        part(new SphereGeometry(1, 10, 6).scale(CW / 2 * w, 0.115, CW / 2 * w), WHITE,
+          [(i % 2 ? 1 : -1) * CW * 0.05, BARE + y * 0.62, (i % 2 ? -1 : 1) * CW * 0.04], undefined, TILE.LEAF)),
+      // ⑤ 버팀목 둘 — 사선으로 박힌다
+      ...([1, -1] as const).map((k) =>
+        part(new CylinderGeometry(0.008, 0.008, 0.20, 5), [0.50, 0.42, 0.30],
+          [k * 0.048, 0.095, 0], [0, 0, k * 0.45])),
+    ]);
+  },
 };
