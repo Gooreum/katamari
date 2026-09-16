@@ -227,6 +227,8 @@ export const TILE = {
   PETAL: 66,
   /** 골함석 — 세로 골이 촘촘한 판. 창고 벽 · 지붕 */
   CORRUGATE: 67,
+  /** 물확 윗면 — 화강암에 네모 물구멍을 두른 네 글자(吾唯足知) 돋을새김 */
+  TSUKUBAI: 68,
 } as const;
 
 /**
@@ -1777,6 +1779,21 @@ export function buildPrintAtlas(): CanvasTexture {
       const x = k * CELL / 25;
       cx.fillStyle = 'rgba(40,48,40,0.30)'; cx.fillRect(x, 0, CELL / 50, CELL);
       cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillRect(x + CELL / 50, 0, CELL / 100, CELL);
+    }
+  });
+
+  /**
+   * 물확 윗면 — `ref/물확/` (龍安寺형 つくばい). 가운데 네모 물구멍을 사방에서 네 글자가 두른다.
+   * 원판 윗면에 감기므로 칸 가운데가 원 가운데다. 글자는 파 넣은 것이라 바탕보다 짙다.
+   */
+  at(TILE.TSUKUBAI, () => {
+    base();
+    cx.fillStyle = 'rgba(90,86,80,0.30)';
+    for (let i = 0; i < 90; i++) cx.fillRect(rnd(i * 47 + 3, CELL), rnd(i * 31 + i * i + 7, CELL), 2, 2);
+    cx.font = 'bold 26px serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillStyle = 'rgba(70,66,60,0.55)';
+    for (const [ch, x, y] of [['吾', 0.5, 0.17], ['唯', 0.83, 0.5], ['足', 0.5, 0.83], ['知', 0.17, 0.5]] as const) {
+      cx.fillText(ch, CELL * x, CELL * y);
     }
   });
 

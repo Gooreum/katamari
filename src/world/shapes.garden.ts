@@ -7,13 +7,11 @@ import {
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShapeIdGarden } from './generation';
 import {
-  assemble, hollow, invert, part, WHITE,
+  assemble, invert, part, WHITE,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
 
-/** X축으로 돌린 원기둥·토러스 — 축이 Z가 된다 */
-const LIE_Z: readonly [number, number, number] = [Math.PI / 2, 0, 0];
 
 /**
  * ── 일본식 정원 물건 일곱 ────────────────────────────────────
@@ -188,99 +186,92 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
   /** 세로돌(立石) — 삼존석의 주석(主石). 서 있어야 「산」이다 */
   // `flat` 2.05 — **묻는 24% 를 미리 벌어야 한다.** 1.55 로 뽑았더니 밑을 자른 뒤
   // 높이/너비가 1.13 까지 내려와서 「선 돌」이 아니라 「좀 큰 돌」이었다
-  세로돌: () => assemble(rock(3.1, 2.05, 0.09, GRANITE)),
+  // **사진에서 잰 값으로 고쳤다.** `ref/세로돌/` — 높이 : 가운데 폭 = 1 : 0.45, 축은 수직에서 **3°**
+  // (19° 인 비스듬돌과 갈리는 지점이 이 각도다). 앞의 것은 1 : 0.68 로 뭉툭하고 5° 기울어 있었다
+  세로돌: () => assemble(rock(3.1, 2.95, 0.05, GRANITE)),
   /** 가로돌(伏石) — 엎드린 돌. 고요·물. 주석보다 낮고 넓다 */
-  가로돌: () => assemble(rock(7.4, 0.40, 0.05, GRANITE_WARM)),
+  // `ref/가로돌/` — 길이 : 높이 = 1 : 0.31 (잰 값 그대로). 모서리 없이 닳아 둥근 빵 모양
+  가로돌: () => assemble(rock(7.4, 0.37, 0.05, GRANITE_WARM)),
   /** 비스듬돌(斜石) — 기울어 주석을 받치는 협석(脇石) */
-  비스듬돌: () => assemble(rock(5.8, 0.92, 0.30, GRANITE)),
+  // `ref/비스듬돌/` — 축이 수직에서 **19.4°**, 높이 : 폭 = 1 : 0.61. 앞의 것은 높이보다 폭이 넓어
+  // 「기운 돌」이 아니라 「누운 돌」이었다
+  비스듬돌: () => assemble(rock(5.8, 2.45, 0.34, GRANITE)),
 
   /**
-   * 석등 (115cm) — 카스가도로(春日灯籠).
+   * 석등(雪見灯籠) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/석등/` (연못가의 눈 구경 석등)
    *
-   * **정원의 초점이다.** 여섯 마디가 다 있어야 석등으로 읽힌다:
-   * 기단(基礎) · 간(竿, 기둥) · 중대(中台) · 화사석(火袋, 불집) · 갓(笠) · 보주(宝珠).
-   * 하나라도 빼면 「돌기둥에 뭘 얹은 것」이 된다. 특히 **갓이 처마처럼 넓어야** 한다 —
-   * 좁으면 버섯이다.
+   * 앞의 것은 기단 · 긴 기둥 · 중대를 쌓은 **카스가도로**(春日灯籠)였다. 사진은 다리 셋짜리
+   * **유키미도로**라 뼈대가 다르다:
+   *   ① 지붕 폭 : 전체 높이 = **1 : 1.00**, 다리 벌림이 지붕 폭의 **0.82** 인 낮고 넓적한 삼발이
+   *   ② 세로 비율 — 보주 0.07 · 지붕 0.15 · 불집 0.24 · 받침판 0.14 · 밑동 0.04 · **다리 0.36**
+   *   ③ 보주는 구슬이 아니라 지붕 폭의 0.29 × 납작한(4 : 1) **원반**
+   *   ④ 다리는 기둥이 아니라 **아래로 갈수록 바깥으로 휘는 활 셋**(앞 둘 · 뒤 하나), 굵기 0.12
+   * 치수는 전체 높이 = 1 로 쓴다.
    */
-  석등: () => assemble([
-    // 기단 — 아래가 넓은 8각 받침
-    part(new CylinderGeometry(0.15, 0.19, 0.09, 14), STONE, [0, 0.045, 0], undefined, TILE.STONE),
-    // 0.15 → **0.168**. 기단 위(0.15)와 같은 반지름으로 만나면 돌 두 장이
-    // 한 덩어리로 녹는다. 실제 석등은 돌을 «얹는» 것이라 단이 진다
-    part(new CylinderGeometry(0.13, 0.168, 0.04, 14), STONE_DARK, [0, 0.11, 0]),
-    // 간 — 기둥. 가운데가 살짝 잘록해야 «깎은 돌»이다
-    part(new CylinderGeometry(0.062, 0.072, 0.20, 10), STONE, [0, 0.23, 0]),
-    part(new TorusGeometry(0.068, 0.014, 4, 8), STONE_DARK, [0, 0.33, 0], LIE_Z, TILE.STONE),
-    // SEAM-OK: 바로 위 `TorusGeometry` 가 이미 단을 만든다 — 간(竿) 가운데의
-    // 잘록한 마디가 그것이고, 원기둥 반지름이 같은 건 그 마디를 사이에 둔 것이다
-    part(new CylinderGeometry(0.072, 0.062, 0.16, 10), STONE, [0, 0.41, 0]),
-    // 중대 — 화사석 받침. 위로 퍼진다
-    part(new CylinderGeometry(0.125, 0.085, 0.06, 14), STONE, [0, 0.52, 0]),
-    // 화사석 — 불집. **네 벽 사이가 뚫려야 «불이 드는 집»이다**
-    /**
-      * 화사석 네 벽. **축을 손으로 지정한다.**
-      *
-      * 예전엔 `[0, 0.635, ±0.080]` 을 π/2 씩 돌려 네 장을 만들었는데,
-      * `part()` 은 **회전을 먼저, 이동을 나중에** 먹인다 — 돌려도 이동은 여전히
-      * z 축이라 옆벽 둘이 앞뒤 벽 «사이»로 들어가 서로 뚫고 있었다.
-      * 자가 `6×8 7×9 8×9` 로 잡은 게 이것이다. 옆벽은 두께만큼 짧아야 맞물린다.
-      */
-    part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, 0.080]),
-    part(new BoxGeometry(0.19, 0.17, 0.030), STONE, [0, 0.635, -0.080]),
-    part(new BoxGeometry(0.13, 0.17, 0.030), STONE, [0.080, 0.635, 0], [0, Math.PI / 2, 0]),
-    part(new BoxGeometry(0.13, 0.17, 0.030), STONE, [-0.080, 0.635, 0], [0, Math.PI / 2, 0]),
-    // 안쪽 어둠 — 뒤집은 상자. 없으면 구멍 너머로 하늘이 보여서 «집»이 안 된다
-    // 0.13 → **0.126**. 벽 네 장의 안쪽 면(±0.065)과 «같은 평면»이면
-    // z-fighting 이다 — `basin()` 에서 겪은 것과 같은 결함이다
-    // 0.124 — 벽 안쪽 면(±0.065)보다 3mm 안쪽. 딱 맞추면 같은 평면이 된다
-    part(invert(new BoxGeometry(0.124, 0.16, 0.124)), [0.10, 0.09, 0.08],
-      [0, 0.635, 0]),
-    // 갓 — 8각 처마. 넓어야 석등이다
-    part(new CylinderGeometry(0.145, 0.115, 0.035, 14), STONE, [0, 0.738, 0]),
-    part(new CylinderGeometry(0.055, 0.150, 0.085, 14), STONE, [0, 0.798, 0]),
-    // 갓 끝 반전(蕨手) — 여덟 귀퉁이가 살짝 들린다
-    ...Array.from({ length: 8 }, (_, i) => {
-      const a = (i / 8) * Math.PI * 2;
-      return part(new SphereGeometry(0.024, 6, 4), STONE,
-        [Math.cos(a) * 0.148, 0.762, Math.sin(a) * 0.148]);
-    }),
-    // 보주 — 꼭대기 구슬
-    part(new CylinderGeometry(0.030, 0.048, 0.028, 10), STONE_DARK, [0, 0.855, 0]),
-    part(new SphereGeometry(0.042, 10, 7), STONE, [0, 0.905, 0]),
-  ]),
+  석등: () => {
+    const RW = 0.5;                                   // 지붕 반지름(폭 1.0 = 높이)
+    const yLeg = 0.36, yBase = yLeg + 0.04, yFire = yBase + 0.14, yRoof = yFire + 0.24;
+    return assemble([
+      // ④ 활처럼 휜 다리 셋 — 세 토막으로 꺾어 곡선을 낸다
+      ...[0, 1, 2].flatMap((i) => {
+        const a = Math.PI / 2 + (i / 3) * Math.PI * 2;
+        const cx = Math.cos(a), cz = Math.sin(a);
+        return [0, 1, 2].map((k) => {
+          const t = (k + 0.5) / 3, r = 0.10 + 0.31 * t ** 1.6;
+          return part(new CylinderGeometry(0.065, 0.075, yLeg / 3 + 0.01, 6), STONE,
+            [cx * r * RW, yLeg * (1 - t) + yLeg / 6, cz * r * RW], [cz * 0.5 * t, 0, -cx * 0.5 * t], TILE.STONE);
+        });
+      }),
+      // 밑동 기둥 + ② 받침판
+      part(new CylinderGeometry(0.12, 0.14, 0.05, 10), STONE, [0, yLeg + 0.02, 0]),
+      part(new CylinderGeometry(0.24, 0.20, 0.14, 6), STONE, [0, yBase + 0.07, 0], undefined, TILE.STONE),
+      // 불집 — 육각, 뚫린 창
+      part(new CylinderGeometry(0.17, 0.17, 0.24, 6, 1, true), STONE, [0, yFire + 0.12, 0]),
+      part(invert(new CylinderGeometry(0.15, 0.15, 0.22, 6, 1, true)), [0.11, 0.10, 0.07], [0, yFire + 0.12, 0]),
+      ...[0, 1, 2].map((i) => {
+        const a = (i / 3) * Math.PI * 2;
+        return part(new BoxGeometry(0.11, 0.15, 0.06), [0.11, 0.10, 0.07],
+          [Math.cos(a) * 0.15, yFire + 0.12, Math.sin(a) * 0.15], [0, -a, 0]);
+      }),
+      // ① 지붕 — 아주 완만한 삿갓. 끝이 살짝 들린다
+      part(new CylinderGeometry(0.18, RW, 0.13, 6), STONE, [0, yRoof + 0.055, 0], undefined, TILE.STONE),
+      part(new CylinderGeometry(RW, RW * 0.96, 0.02, 6), STONE, [0, yRoof - 0.005, 0]),
+      // ③ 납작한 원반 보주
+      part(new CylinderGeometry(0.13, 0.145, 0.07, 10), STONE, [0, yRoof + 0.145, 0]),
+      part(new SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.12, 0.05, 0.12), STONE, [0, yRoof + 0.18, 0]),
+    ]);
+  },
 
   /**
-   * 물확 / 쓰쿠바이 (55cm) — 손 씻는 돌그릇.
+   * 물확(쓰쿠바이) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/물확/` (네 글자를 두른 龍安寺형 물확에 대나무 꼭지)
    *
-   * **셋이 한 벌이다**: 파인 그릇 · 앞에 딛는 납작 돌(前石) · 물을 떨구는 대나무 물대.
-   * 그릇만 두면 「구멍 난 돌」이고, 물대가 있어야 물이 흐르는 곳으로 읽힌다.
-   * `hollow()` 는 원기둥이라 둥근 돌그릇에 그대로 맞는다.
+   * 앞의 것은 괸 돌 위에 올린 원통 그릇에 앞 디딤돌까지 딸린 «한 벌»이었다. 사진과 대보니:
+   *   ① 지름 : 높이 = **1 : 0.32** 인 납작한 원기둥 **한 덩어리** — 받침도 굽도 없이 통짜로 땅에 놓인다
+   *   ② 윗면 한가운데를 지름의 **0.52 짜리 정사각형**으로 파낸 물구멍(둥근 그릇이 아니다)
+   *   ③ 구멍을 사방으로 두른 **네 글자**가 윗면을 옛 동전처럼 만든다(`TILE.TSUKUBAI`)
+   *   ④ 통 지름의 0.1 인 대나무 꼭지가 수평 **30°** 로 내려와 구멍 안으로 물을 떨군다
+   * 앞 디딤돌은 사진에 없다 — 뺐다. 치수는 지름 = 1 로 쓴다.
    */
-  물확: () => assemble([
-    // 그릇 — 위가 뚫린 원통. 안쪽을 어둡게 해야 «파였다»가 읽힌다
-    // **그릇을 괸 돌 «위»에 올린다.** 둘 다 y=0 이면 밑면 두 장이 같은 평면이다.
-    // 안쪽도 더 짙게 — 물확은 물이 고여 어둡다
-    ...hollow(0.24, 0.26, 0.20, 0.045, 0.05, 12, STONE, [0.16, 0.19, 0.18], TILE.STONE)
-      .map((q) => part(q.geo, q.rgb, [0, 0.05, 0], undefined, q.tile)),
-    // 밑에 괸 돌 — 그릇이 흙에 박힌 게 아니라 «놓인» 것으로 보이게
-    part(new CylinderGeometry(0.27, 0.30, 0.05, 14), STONE_DARK, [0, 0.025, 0]),
-    // 고인 물 — 「파였다」를 확정하는 건 결국 물이다
-    part(new CylinderGeometry(0.185, 0.185, 0.012, 14), [1.05, 1.25, 1.35],
-      [0, 0.175, 0], undefined, TILE.WATER),
-    // 앞에 딛는 납작 돌
-    part(new CylinderGeometry(0.15, 0.16, 0.045, 10), STONE, [0.34, 0.022, 0.16]),
-    // 대나무 물대 — 세운 대 + 기울여 뻗은 홈통. 끝이 그릇 위에 와야 한다
-    /**
-      * 대나무 물대. **`BAMBOO`(0.70,0.74,0.42)는 화강암과 대비가 0.05** 라
-      * 화면에서 돌에 파묻혔다 — 마른 대는 돌보다 확실히 «밝고 노랗다».
-      */
-    // 대를 2cm 띄운다 — 괸 돌과 밑면이 같은 평면이면 z-fighting 이다(자가 `5×8`)
-    ...culm(-0.30, -0.12, 0.44, 0.032, 0, 2, 0, BAMBOO_LIT)
-      .map((q) => part(q.geo, q.rgb, [0, 0.02, 0], undefined, q.tile)),
-    part(new CylinderGeometry(0.028, 0.028, 0.34, 8), BAMBOO_LIT,
-      [-0.17, 0.455, -0.06], [0.32, 0.42, 0.30], TILE.WOOD_F),
-    part(new TorusGeometry(0.032, 0.010, 5, 8), BAMBOO_NODE, [-0.30, 0.46, -0.12], LIE_Z),
-  ]),
+  물확: () => {
+    const R = 0.5, H = 0.32, HOLE = 0.52 * 2 * R;
+    return assemble([
+      // ① 통짜 원기둥 — 옆면 · 윗면
+      part(new CylinderGeometry(R, R * 0.98, H, 16, 1, true), STONE, [0, H / 2, 0], undefined, TILE.STONE),
+      part(new CircleGeometry(R, 16), [0.80, 0.78, 0.74], [0, H, 0], [-Math.PI / 2, 0, 0], TILE.TSUKUBAI),
+      part(new CircleGeometry(R * 0.98, 16), [0.50, 0.48, 0.45], [0, 0.002, 0], [Math.PI / 2, 0, 0]),
+      // ② 파낸 네모 구멍 — 뒤집은 상자로 «안»을 만든다
+      part(invert(new BoxGeometry(HOLE, H * 0.7, HOLE)), [0.16, 0.19, 0.18], [0, H - H * 0.35 + 0.001, 0]),
+      // 고인 물 — 테두리 바로 아래까지 찬다
+      part(new BoxGeometry(HOLE - 0.01, 0.01, HOLE - 0.01), [1.05, 1.25, 1.35], [0, H - 0.03, 0], undefined, TILE.WATER),
+      // ④ 대나무 꼭지 — 뒤 오른쪽 위에서 30° 로 내려와 구멍 위에서 끝난다
+      ...culm(-0.46, -0.30, 0.62, 0.035, 0, 2, 0, BAMBOO_LIT),
+      part(new CylinderGeometry(0.05, 0.05, 0.52, 8), BAMBOO_LIT, [-0.22, 0.52, -0.14],
+        [0.28, 0.52, Math.PI / 2 - 0.52], TILE.WOOD_F),
+      part(new TorusGeometry(0.052, 0.012, 4, 8), BAMBOO_NODE, [-0.40, 0.63, -0.26], [Math.PI / 2, 0, 0]),
+    ]);
+  },
 
   /**
    * 징검돌 (30cm) — 도비이시(飛石).
@@ -293,14 +284,16 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     // SEAM-OK-ALL: 높이 5.6cm 짜리 **납작한 돌**이다. 얇은 판 셋을 겹쳐 두께를 낸
     // 것이라 옆에서 보이는 면이 거의 없다 — 여기에 턱을 주면 돌이 아니라 «케이크»가
     // 된다. 이 형상의 이음매는 전부 «일부러» 이어져 있다
-    part(new CylinderGeometry(0.145, 0.155, 0.036, 10), STONE_DARK, [0, 0.018, 0], undefined, TILE.STONE),
-    part(new CylinderGeometry(0.150, 0.145, 0.016, 10), STONE, [0, 0.044, 0], undefined, TILE.STONE),
+    // **사진에서 잰 값으로 고쳤다.** `ref/징검돌/` — 두께가 폭의 **0.12**(앞의 것은 0.19 라 두툼했다).
+    // 윗면 가장자리가 «장마다 다른 둥근 다각형»이라 10면을 7면으로 줄여 각을 살린다
+    part(new CylinderGeometry(0.145, 0.155, 0.022, 7), STONE_DARK, [0, 0.011, 0], undefined, TILE.STONE),
+    part(new CylinderGeometry(0.150, 0.145, 0.012, 7), STONE, [0, 0.028, 0], undefined, TILE.STONE),
     // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다.
     // `MOSS` 는 돌과 대비가 0.02 였다 — 이끼는 확실히 «어둡고 푸르다»
-    part(new CylinderGeometry(0.153, 0.150, 0.007, 10), MOSS, [0, 0.0495, 0]),
+    part(new CylinderGeometry(0.153, 0.150, 0.006, 7), MOSS, [0, 0.032, 0]),
     // 밟아 닳은 가운데 — 이끼보다 «밝다». 두께를 이끼와 다르게 해서 같은 평면을 피한다
-    part(new CylinderGeometry(0.112, 0.112, 0.010, 8), [1.15, 1.12, 1.05],
-      [0.008, 0.0525, -0.006], undefined, TILE.STONE),
+    part(new CylinderGeometry(0.112, 0.112, 0.008, 7), [1.15, 1.12, 1.05],
+      [0.008, 0.0335, -0.006], undefined, TILE.STONE),
   ]),
 
   /**
