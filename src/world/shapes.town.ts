@@ -5,7 +5,7 @@ import {
 } from 'three';
 import type { ShapeIdTown } from './generation';
 import {
-  assemble, evenProfile, GLASS, invert, METAL, part, warp, WHITE, WOOD, WRAP,
+  assemble, evenProfile, invert, METAL, part, warp, WHITE,
   type RGB,
 } from './shapes.kit';
 
@@ -197,12 +197,36 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     ]);
   },
 
-  '연어 캔': () => assemble([
-    // 납작한 원통 + 뚜껑 링 + 따개 고리
-    part(new CylinderGeometry(0.5, 0.5, 0.36, 20), WHITE),
-    part(new CylinderGeometry(0.46, 0.46, 0.06, 20), METAL, [0, 0.19, 0]),
-    part(new TorusGeometry(0.12, 0.025, 4, 14), METAL, [0.12, 0.24, 0], LIE_Z),
-  ]),
+  /**
+   * 연어 캔 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/연어 캔/` (나무 상판 위 풀탭 연어 통조림을 18° 위에서)
+   *
+   * 앞의 것은 높이가 지름의 0.36 인 민 원통에 금속 원판과 고리를 얹은 것이었다. 사진과 대보니:
+   *   ① 높이 : 지름 = **0.38** — 위아래 **시밍 테가 몸통보다 굵게** 한 번씩 꺾여 나온다
+   *   ② 뚜껑은 평평하지 않고 가운데가 꺼져 있으며 테두리와 나란한 **압인 홈이 3겹** 돈다
+   *   ③ 풀탭 고리는 지름의 **0.33** 이고 뚜껑 한가운데가 아니라 **한쪽으로 치우쳐** 눕는다
+   *   ④ 붉은 종이 라벨이 옆 높이의 **0.95** 를 덮고 바닥에 0.05 만 맨 금속이 남는다
+   * 은색·초록 팔레트(6·11)를 곱하면 붉은 라벨이 회색이 된다 — 팔레트는 흰색, 색은 인쇄가 낸다.
+   * 치수는 지름 = 1 로 쓴다.
+   */
+  '연어 캔': () => {
+    const H = 0.38, GOLD: RGB = [0.62, 0.60, 0.36];
+    return assemble([
+      // ④ 라벨 — 옆 높이의 0.95. 바닥 0.05 만 맨 금속
+      part(new CylinderGeometry(0.482, 0.482, H * 0.95, 16, 1, true), WHITE, [0, H * 0.525, 0], undefined, TILE.CANLABEL),
+      part(new CylinderGeometry(0.482, 0.482, H * 0.08, 16), GOLD, [0, H * 0.04, 0], undefined, TILE.METAL),
+      // ① 위아래 시밍 테 — 몸통보다 굵다
+      part(new CylinderGeometry(0.5, 0.5, H * 0.10, 16), GOLD, [0, H * 0.95, 0], undefined, TILE.METAL),
+      part(new CylinderGeometry(0.5, 0.5, H * 0.08, 16), GOLD, [0, H * 0.05, 0], undefined, TILE.METAL),
+      // ② 뚜껑 — 테보다 한 단 꺼진 원판에 압인 홈 3 겹
+      part(new CylinderGeometry(0.455, 0.455, H * 0.06, 16), GOLD, [0, H * 0.93, 0], undefined, TILE.METAL),
+      ...[0.37, 0.28, 0.19].map((r) =>
+        part(new TorusGeometry(r, 0.012, 3, 14), GOLD, [0, H * 0.955, 0], LIE_Z)),
+      // ③ 풀탭 — 지름의 0.33 짜리 고리가 한쪽으로 치우쳐 눕는다
+      part(new TorusGeometry(0.135, 0.022, 3, 14).scale(1, 0.62, 1), GOLD, [-0.09, H * 0.99, -0.05], LIE_Z),
+      part(new CylinderGeometry(0.05, 0.05, 0.02, 10), GOLD, [0.03, H * 0.99, -0.02]),
+    ]);
+  },
 
   /**
    * 쥐(생쥐) — **사진에서 잰 값으로 다시 만들었다.**
@@ -295,17 +319,38 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     ]);
   },
 
-  페트병: () => assemble([
-    // 몸통 + 어깨 + 목 + 뚜껑. 원작 동선의 "플라스틱 병"
-    part(new CylinderGeometry(0.30, 0.30, 0.56, 20), GLASS, [0, 0.28, 0], undefined, TILE.PLASTIC),
-    // SEAM-OK: 몸통과 어깨는 «한 장으로 성형된» 면이다. 페트병에는 그 자리에
-    // 단이 없고, 병으로 읽히게 하는 건 아래 라벨(0.32)이 만드는 턱이다
-    part(new CylinderGeometry(0.14, 0.30, 0.20, 20), GLASS, [0, 0.66, 0]),
-    part(new CylinderGeometry(0.12, 0.12, 0.14, 14), GLASS, [0, 0.83, 0]),
-    part(new CylinderGeometry(0.14, 0.14, 0.10, 14), WHITE, [0, 0.95, 0]),
-    // 라벨 — 병은 라벨이 있어야 병으로 읽힌다
-    part(new CylinderGeometry(0.32, 0.32, 0.22, 20), WHITE, [0, 0.30, 0]),
-  ]),
+  /**
+   * 페트병 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/페트병/` (KIRIN 午後の紅茶 500 ml 옆모습 + 마개 비례용 한 병 전체)
+   *
+   * 앞의 것은 몸통 위에 어깨 · 목 · 뚜껑을 쌓고 라벨을 몸통보다 굵게 두른 것이었다. 사진과 대보니:
+   *   ① 라벨 띠 높이가 **몸통 지름과 거의 같다(0.99)** — 몸통 한가운데를 넓게 감는다.
+   *      라벨이 몸통보다 굵으면 병이 아니라 실패다
+   *   ② 마개는 지름이 몸통의 **0.54**, 높이가 **0.32** 로 짧고 굵다
+   *   ③ 마개 밑에서 몸통 굵기까지 어깨가 펴지는 데 몸통 지름의 **0.45** 밖에 안 든다 — 가파른 어깨
+   *   ④ 라벨 아래 **0.84** 구간에 마름모 압인 두 줄과 세로 골, 밑동은 몸통의 0.93 으로 좁아진다
+   * 연두 팔레트(12)를 곱하면 홍차 색이 안 나온다 — 팔레트는 흰색, 색은 인쇄와 계수가 낸다.
+   * 치수는 전체 높이 = 1 로 쓴다(가게 규격 높이 : 지름 ≈ 3.1).
+   */
+  페트병: () => {
+    const D = 1 / 3.1, R = D / 2, TEA: RGB = [0.62, 0.28, 0.10];
+    const yLabel = 0.84 * D, hLabel = 0.99 * D, yTop = yLabel + hLabel;
+    return assemble([
+      // ④ 밑동 — 몸통의 0.93 으로 좁아지고 마름모 압인이 돈다
+      part(new CylinderGeometry(R, R * 0.93, yLabel, 18, 1, true), WHITE, [0, yLabel / 2, 0], undefined, TILE.PETFACET),
+      part(new CircleGeometry(R * 0.93, 18), TEA, [0, 0.001, 0], [Math.PI / 2, 0, 0]),
+      // ① 라벨 — 높이가 몸통 지름과 같다. 몸통과 같은 굵기로 감긴다(도드라지지 않는다)
+      part(new CylinderGeometry(R * 1.01, R * 1.01, hLabel, 18, 1, true), WHITE, [0, yLabel + hLabel / 2, 0], undefined, TILE.PETLABEL),
+      // ③ 어깨 — 라벨 위에서 0.45 D 만에 목 굵기로 좁아진다
+      part(new CylinderGeometry(R * 0.30, R, 0.45 * D, 18, 1, true), TEA, [0, yTop + 0.225 * D, 0]),
+      // 목 — 마개 밑까지. 나사산 자리
+      part(new CylinderGeometry(R * 0.27, R * 0.30, 1 - yTop - 0.45 * D - 0.32 * D, 14), TEA,
+        [0, (yTop + 0.45 * D + 1 - 0.32 * D) / 2, 0]),
+      // ② 마개 — 몸통의 0.54 굵기, 0.32 높이. 세로 널이 있어 매끈하지 않다
+      part(new CylinderGeometry(R * 0.54, R * 0.54, 0.32 * D, 14), [0.36, 0.51, 0.26],
+        [0, 1 - 0.16 * D, 0], undefined, TILE.PLASTIC),
+    ]);
+  },
 
   /**
    * 모종삽 — **사진에서 잰 값으로 다시 만들었다.**
@@ -481,26 +526,75 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     ]);
   },
 
-  모래성: () => assemble([
-    // 원작 동선의 모래성. 원통 본체 + 탑 넷 + 총안
-    part(new CylinderGeometry(0.42, 0.5, 0.52, 20), WHITE, [0, 0.26, 0], undefined, TILE.DIRT),
-    ...[[0.34, 0.34], [-0.34, 0.34], [0.34, -0.34], [-0.34, -0.34]].map(
-      ([x, z]) => part(new CylinderGeometry(0.13, 0.15, 0.34, 14), WHITE, [x!, 0.60, z!]),
-    ),
-    ...[[0.34, 0.34], [-0.34, 0.34], [0.34, -0.34], [-0.34, -0.34]].map(
-      ([x, z]) => part(new ConeGeometry(0.16, 0.20, 7), WOOD, [x!, 0.86, z!], undefined, TILE.DIRT),
-    ),
-    part(new CylinderGeometry(0.30, 0.30, 0.22, 20), WHITE, [0, 0.62, 0]),
-  ]),
+  /**
+   * 모래성 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/모래성/` (양동이로 찍어 만든 백사장 모래성, 30° 위에서)
+   *
+   * 앞의 것은 원통 성채 위에 원뿔 지붕 탑 넷을 얹은 «서양 성»이었다. 사진과 대보니:
+   *   ① 높이 : 폭 = **1 : 1.5** 로 뾰족하지 않고 옆으로 퍼진 **둔덕**이다
+   *   ② 탑은 지붕이 없다 — 양동이를 엎어 찍은 **원뿔대**라 위가 아래의 0.83 이고 윗면이 평평하다
+   *   ③ 탑 하나가 성 폭의 **0.095** 굵기에 그 1.46 배 높이, 꼭대기 한 무리와 중턱 · 아래 두 겹
+   *      고리로 나뉘어 **스무 개쯤** 선다
+   *   ④ 노란 모래가 아니라 **푸른 기 도는 회색 젖은 모래**다 — 주황 팔레트(9)를 흰색으로 옮겼다
+   * 치수는 폭 = 1 로 쓴다.
+   */
+  모래성: () => {
+    const RT = 0.0475, HT = 0.139, SAND: RGB = [0.80, 0.80, 0.79], TOP: RGB = [0.90, 0.91, 0.91];
+    // ② 탑 하나 — 위가 아래의 0.83 인 원뿔대. 윗면만 매끈해 제일 밝다
+    const tower = (x: number, z: number, y: number) => [
+      part(new CylinderGeometry(RT * 0.83, RT, HT, 7, 1, true), SAND, [x, y + HT / 2, z], undefined, TILE.DIRT),
+      part(new CircleGeometry(RT * 0.83, 7), TOP, [x, y + HT, z], [-Math.PI / 2, 0, 0]),
+    ];
+    const ring = (n: number, r: number, y: number, phase: number) =>
+      Array.from({ length: n }, (_, k) => 2 * Math.PI * (k + phase) / n)
+        .flatMap((a) => tower(Math.cos(a) * r, Math.sin(a) * r, y));
+    return assemble([
+      // ① 둔덕 — 높이가 폭의 0.667. 위가 평평하게 눌린 돔
+      part(new SphereGeometry(1, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.5, 0.30, 0.5), SAND,
+        [0, 0, 0], undefined, TILE.DIRT),
+      part(new CylinderGeometry(0.26, 0.33, 0.055, 14), SAND, [0, 0.285, 0], undefined, TILE.DIRT),
+      // ③ 탑 스물 — 꼭대기 다섯 · 중턱 일곱 · 아래 여덟
+      ...tower(0, 0, 0.315),
+      ...ring(4, 0.155, 0.30, 0.5),
+      ...ring(7, 0.30, 0.215, 0),
+      ...ring(8, 0.44, 0.055, 0.5),
+      // 둔덕을 두른 파낸 모래 두둑 — 사진의 얕은 도랑이 남긴 테
+      part(new TorusGeometry(0.47, 0.03, 3, 16), SAND, [0, 0.012, 0], LIE_Z, TILE.DIRT),
+    ]);
+  },
 
-  삼각콘: () => assemble([
-    part(new BoxGeometry(0.72, 0.09, 0.72), WHITE, [0, 0.045, 0]),
-    part(new ConeGeometry(0.28, 0.86, 8), WHITE, [0, 0.52, 0], undefined, TILE.PLASTIC),
-    // 반사 띠 둘 — 이게 있어야 공사장 콘이다
-    // 반사 띠 둘 — `PAPER`(대비 0.04)로는 콘과 안 갈린다. 반사 띠는 «흰색»이다
-    part(new ConeGeometry(0.205, 0.14, 8), WRAP, [0, 0.60, 0]),
-    part(new ConeGeometry(0.135, 0.10, 8), WRAP, [0, 0.78, 0]),
-  ]),
+  /**
+   * 삼각콘 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/삼각콘/` (벽돌 보도에 홀로 선 주황 콘 정면)
+   *
+   * 앞의 것은 밑판 0.72 에 밑지름 0.56 인 뭉툭한 원뿔이었다 — 판 위에 고깔을 얹은 꼴이다. 사진과 대보니:
+   *   ① 높이 : 받침 너비 = 1 : **0.371**, 받침 높이는 전체의 **0.166** 인 낮은 계단
+   *   ② 몸통은 100 px 내려갈 때 22 px 벌어지는 **곧은 직선**이라 밑지름이 높이의 **0.25** 뿐이다.
+   *      꼭대기 0.11 구간만 둥글게 마무리된다
+   *   ③ 반사 띠는 몸통과 같은 기울기로 **두 줄** — 위는 0.117 에서 폭 0.166, 아래는 0.49 에서 폭 0.128
+   *   ④ 받침과 몸통이 한 덩어리로 흘러내리듯 이어지고 판 윗면에 몸통을 두른 홈이 한 줄 파인다
+   * 치수는 높이 = 1 로 쓴다.
+   */
+  삼각콘: () => {
+    const BASE = 0.166, ORANGE: RGB = [0.86, 0.82, 0.78], BAND: RGB = [1.04, 1.06, 1.02];
+    // ② 높이 y 에서의 반지름 — 밑(0.125)에서 꼭대기까지 곧게 좁아진다
+    const rAt = (y: number): number => 0.125 * (1 - (y - BASE) / (1 - BASE - 0.05));
+    return assemble([
+      // ① 받침 — 네 귀가 몸통보다 크게 튀어나온 낮은 판
+      part(new BoxGeometry(0.371, BASE * 0.72, 0.371), ORANGE, [0, BASE * 0.36, 0], undefined, TILE.PLASTIC),
+      part(new BoxGeometry(0.33, BASE * 0.35, 0.33), ORANGE, [0, BASE * 0.84, 0]),
+      // ④ 받침 윗면에 몸통을 두른 홈 한 줄
+      part(new TorusGeometry(0.135, 0.008, 3, 16), [0.72, 0.68, 0.64], [0, BASE, 0], LIE_Z),
+      // ② 몸통 — 곧은 직선 테이퍼. 꼭대기 0.11 만 둥글다
+      part(new CylinderGeometry(rAt(0.95), 0.125, 0.95 - BASE, 14, 1, true), ORANGE,
+        [0, (0.95 + BASE) / 2, 0], undefined, TILE.PLASTIC),
+      part(new SphereGeometry(rAt(0.95), 14, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 1.7, 1), ORANGE, [0, 0.95, 0]),
+      // ③ 반사 띠 둘 — 몸통과 같은 기울기로 얇게 덧씌운다
+      ...([[0.117, 0.166], [0.49, 0.128]] as const).map(([y0, h]) =>
+        part(new CylinderGeometry(rAt(1 - y0) * 1.03, rAt(1 - y0 - h) * 1.03, h, 14, 1, true), BAND,
+          [0, 1 - y0 - h / 2, 0])),
+    ]);
+  },
 
   // ── 버킷 6 (60cm~1.2m) ────────────────────────────────────
   /**

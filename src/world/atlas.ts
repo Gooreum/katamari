@@ -229,6 +229,14 @@ export const TILE = {
   CORRUGATE: 67,
   /** 물확 윗면 — 화강암에 네모 물구멍을 두른 네 글자(吾唯足知) 돋을새김 */
   TSUKUBAI: 68,
+  /** 물고기 비늘 — 거의 검은 간장색 바탕에 반달 비늘이 엇갈려 겹친 무늬. 간장 팩 몸통 */
+  SCALE: 69,
+  /** 연어 캔 옆 라벨 — 붉은 종이에 가로로 누운 검정 타원, 그 안에 연어 그림 */
+  CANLABEL: 70,
+  /** 페트병 라벨 — 흰 종이 띠 가운데를 자주 띠가 가로지르고 그 아래 짙은 띠가 한 줄 */
+  PETLABEL: 71,
+  /** 페트병 밑동 압인 — 마름모가 두 줄 돌아가고 그 아래 세로 골이 촘촘하다 */
+  PETFACET: 72,
 } as const;
 
 /**
@@ -1294,18 +1302,29 @@ export function buildPrintAtlas(): CanvasTexture {
       [0, 0, 6, CELL], [CELL - 6, 0, 6, CELL]] as const) cx.fillRect(x, y, w, h);
   });
 
-  /** 골프공 — 육각 딤플. 가장자리에 그늘이 한 줄 있어야 «파인» 것으로 보인다 */
+  /**
+   * 골프공 — 딤플. 가장자리에 그늘이 한 줄 있어야 «파인» 것으로 보인다.
+   * 사진(`ref/골프공/`)에서 딤플 하나가 공 지름의 **0.067** 이고 지름을 가로질러 13~14 개다.
+   * 구의 uv 는 적도를 한 바퀴 도는 데 0~1 을 다 쓰므로, 둘레(π×지름)에 47 개가 들어가야 한다.
+   * R = 9 는 칸에 14 개뿐이라 딤플이 지름의 0.22 — 골프공이 아니라 곰보였다. R = 4 로 32 개.
+   */
   at(TILE.GOLF, () => {
     base();
-    const R = 9;
+    const R = 4;
     for (let r = 0; r < CELL / R + 1; r++) {
       for (let c = 0; c < CELL / R + 1; c++) {
         const x = c * R + (r % 2 ? R / 2 : 0), y = r * R;
-        cx.fillStyle = 'rgba(112,112,118,0.16)';
-        cx.beginPath(); cx.arc(x, y, 3.4, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = 'rgba(112,112,118,0.20)';
+        cx.beginPath(); cx.arc(x, y, 1.7, 0, Math.PI * 2); cx.fill();
         cx.fillStyle = 'rgba(255,255,255,0.55)';
-        cx.beginPath(); cx.arc(x, y - 1.2, 2.2, 0, Math.PI * 2); cx.fill();
+        cx.beginPath(); cx.arc(x, y - 0.6, 1.1, 0, Math.PI * 2); cx.fill();
       }
+    }
+    // 적도에 누운 상표 띠 — 글자는 버리고(`ref/골프공/` 버릴 것) 띠와 양옆 짧은 막대만 남긴다
+    cx.fillStyle = 'rgba(52,50,44,0.85)';
+    cx.beginPath(); cx.roundRect(CELL * 0.40, CELL * 0.47, CELL * 0.16, CELL * 0.055, 3); cx.fill();
+    for (const x of [0.33, 0.60]) for (const dy of [0, 0.035]) {
+      cx.fillRect(CELL * x, CELL * (0.465 + dy), CELL * 0.045, CELL * 0.016);
     }
   });
 
@@ -1794,6 +1813,68 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.fillStyle = 'rgba(70,66,60,0.55)';
     for (const [ch, x, y] of [['吾', 0.5, 0.17], ['唯', 0.83, 0.5], ['足', 0.5, 0.83], ['知', 0.17, 0.5]] as const) {
       cx.fillText(ch, CELL * x, CELL * y);
+    }
+  });
+
+  /**
+   * 물고기 비늘 — `ref/간장 팩/`. 간장이 차서 거의 검은 몸(43,28,28)에 비늘 테두리만
+   * 빛을 받아 밝다. 몸통 정점색은 흰색이라 이 칸의 색이 그대로 몸 색이 된다.
+   * 돌림면 uv 는 u 가 몸을 감고 v 가 꼬리→머리라, 비늘 줄을 u 방향으로 놓으면 몸을 두른다.
+   */
+  at(TILE.SCALE, () => {
+    cx.fillStyle = '#2b1c1c'; cx.fillRect(0, 0, CELL, CELL);
+    const COL = 9, ROW = 7, w = CELL / COL, h = CELL / ROW;
+    for (let r = 0; r < ROW; r++) for (let k = 0; k < COL; k++) {
+      const x = (k + (r % 2) * 0.5) * w, y = (r + 0.5) * h;
+      cx.beginPath(); cx.ellipse(x, y, w * 0.62, h * 0.66, 0, Math.PI * 0.08, Math.PI * 0.92);
+      cx.strokeStyle = 'rgba(176,132,120,0.55)'; cx.lineWidth = 2; cx.stroke();
+      cx.beginPath(); cx.ellipse(x, y - 2, w * 0.58, h * 0.6, 0, Math.PI * 0.12, Math.PI * 0.88);
+      cx.strokeStyle = 'rgba(20,10,10,0.5)'; cx.lineWidth = 1; cx.stroke();
+    }
+  });
+
+  /**
+   * 연어 캔 옆 라벨 — `ref/연어 캔/`. 붉은 바탕 (210,59,46) 한가운데를 검정 타원이
+   * 가로로 길게 가로지르고(라벨 높이의 0.45) 그 안에 청회색 연어가 누워 있다.
+   * 원통 옆면은 u 가 한 바퀴라 타원을 두 번 그려 넣는다 — 한 번이면 뒤쪽이 민 빨강이다.
+   */
+  at(TILE.CANLABEL, () => {
+    cx.fillStyle = '#d23b2e'; cx.fillRect(0, 0, CELL, CELL);
+    for (const cxx of [CELL * 0.25, CELL * 0.75]) {
+      cx.fillStyle = '#221607';
+      cx.beginPath(); cx.ellipse(cxx, CELL * 0.5, CELL * 0.22, CELL * 0.225, 0, 0, Math.PI * 2); cx.fill();
+      cx.fillStyle = '#44454b';                                     // 연어 몸
+      cx.beginPath(); cx.ellipse(cxx, CELL * 0.5, CELL * 0.175, CELL * 0.075, 0, 0, Math.PI * 2); cx.fill();
+      cx.beginPath();                                                // 꼬리
+      cx.moveTo(cxx - CELL * 0.17, CELL * 0.5); cx.lineTo(cxx - CELL * 0.235, CELL * 0.43);
+      cx.lineTo(cxx - CELL * 0.235, CELL * 0.57); cx.closePath(); cx.fill();
+    }
+  });
+
+  /**
+   * 페트병 라벨 — `ref/페트병/`. 흰 종이 (201,210,213) 띠의 위 0.3 은 그대로 희고,
+   * 가운데를 자주 (116,36,71) 가 가로지르며 그 아래 짙은 (64,57,60) 띠가 한 줄 붙는다.
+   */
+  at(TILE.PETLABEL, () => {
+    cx.fillStyle = '#c9d2d5'; cx.fillRect(0, 0, CELL, CELL);
+    cx.fillStyle = '#742447'; cx.fillRect(0, CELL * 0.30, CELL, CELL * 0.38);
+    cx.fillStyle = '#40393c'; cx.fillRect(0, CELL * 0.68, CELL, CELL * 0.10);
+  });
+
+  /**
+   * 페트병 밑동 압인 — `ref/페트병/`. 라벨 아래 몸통에 마름모가 두 줄 돌고
+   * 그 아래에 세로 골이 촘촘하다. 홍차가 비쳐 바탕이 짙은 주황이다.
+   */
+  at(TILE.PETFACET, () => {
+    cx.fillStyle = '#a5501c'; cx.fillRect(0, 0, CELL, CELL);
+    cx.strokeStyle = 'rgba(255,214,170,0.45)'; cx.lineWidth = 2;
+    for (let r = 0; r < 2; r++) for (let k = 0; k < 8; k++) {
+      const x = (k + 0.5) * CELL / 8, y = CELL * (0.30 + r * 0.28), w = CELL / 16, h = CELL * 0.13;
+      cx.beginPath(); cx.moveTo(x, y - h); cx.lineTo(x + w, y); cx.lineTo(x, y + h); cx.lineTo(x - w, y);
+      cx.closePath(); cx.stroke();
+    }
+    for (let k = 0; k < 24; k++) {
+      cx.fillStyle = 'rgba(60,20,4,0.30)'; cx.fillRect(k * CELL / 24, CELL * 0.78, CELL / 48, CELL * 0.22);
     }
   });
 
