@@ -20,7 +20,8 @@
     "housecheck": "tsx tools/housecheck.ts",
     "handling": "tsx tools/handling.ts",
     "spawncheck": "tsx tools/spawncheck.ts",
-    "shot": "node tools/shot.mjs"
+    "shot": "node tools/shot.mjs",
+    "bootcheck": "node tools/bootcheck.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"
