@@ -197,22 +197,23 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
    * 원인은 형상이 아니라 팔레트다. 정점색은 팔레트에 «곱해지므로» 빨간 팔레트(8) 아래에서는
    * 초록 줄기를 만들 방법이 없다 — 빨강 × 초록 = 검붉은 갈색이다. 팔레트를 흰색 하나로 옮기고
    * 꽃잎 색을 계수로 준다(꽃 색이 한 가지로 줄지만, 줄기가 빨간 꽃보다는 낫다).
-   * 그리고 입을 0.42 → **0.30** 으로 오므려 «닫힌 봉오리»로 만든다 — 튤립은 벌어진 잔이 아니다.
+   * 그리고 입을 0.42 → **0.16** 으로 오므려 «닫힌 봉오리»로 만든다 — 튤립은 벌어진 잔이 아니다.
+   * 2 회차 렌더에서 0.30 은 아직 속이 들여다보이는 «컵»이었다. 꽃잎 끝 셋도 0.09 → 0.16 으로 높였다.
    */
   꽃: () => {
     const HH = 0.8, STEM = HH * 2.6, GREEN: RGB = [0.34, 0.52, 0.28], PETAL: RGB = [0.86, 0.22, 0.20];
     // ① 컵 — 밑(좁다) → 위에서 0.25 가장 넓다 → 입. 위 가장자리를 세 번 물결쳐 꽃잎 끝을 세운다
-    const cup = warp(new LatheGeometry(evenProfile([[0.08, 0], [0.30, 0.10], [0.45, 0.30], [0.50, 0.52], [0.44, 0.74], [0.30, HH]], 7)
+    const cup = warp(new LatheGeometry(evenProfile([[0.08, 0], [0.30, 0.10], [0.45, 0.30], [0.50, 0.50], [0.43, 0.72], [0.16, HH]], 7)
       .map(([r, y]) => new Vector2(r, y)), 12), (x, y, z) => {
-      const t = Math.max(0, (y - HH * 0.6) / (HH * 0.4));
-      return [x, y + 0.09 * t * Math.max(0, Math.cos(3 * Math.atan2(z, x))) ** 2, z];
+      const t = Math.max(0, (y - HH * 0.55) / (HH * 0.45));
+      return [x, y + 0.16 * t * Math.max(0, Math.cos(3 * Math.atan2(z, x))) ** 2, z];
     });
     return assemble([
       part(cup, PETAL, [0, STEM, 0]),
       // 꽃잎 밑동의 노랑 — 컵 밑을 감싼 짧은 띠
       part(new CylinderGeometry(0.31, 0.10, 0.10, 12, 1, true), [0.95, 0.80, 0.18], [0, STEM + 0.05, 0]),
       // 속 — 오므린 입 안쪽이 어둡게 보인다
-      part(new CircleGeometry(0.28, 12), [0.36, 0.14, 0.12], [0, STEM + HH - 0.04, 0], [-Math.PI / 2, 0, 0]),
+      part(new CircleGeometry(0.15, 12), [0.36, 0.14, 0.12], [0, STEM + HH - 0.02, 0], [-Math.PI / 2, 0, 0]),
       // ② 줄기
       part(new CylinderGeometry(0.032, 0.040, STEM, 6), GREEN, [0, STEM / 2, 0]),
       // ③ 잎 둘 — 줄기 밑에서 감싸고 올라와 꽃머리 밑까지. 한 장은 거의 서고 한 장은 비스듬히
