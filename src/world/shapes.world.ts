@@ -1,9 +1,9 @@
 import {
-  BoxGeometry, CylinderGeometry, LatheGeometry, SphereGeometry, TorusGeometry, Vector2,
+  BoxGeometry, CircleGeometry, CylinderGeometry, LatheGeometry, SphereGeometry, TorusGeometry, Vector2,
   type BufferGeometry,
 } from 'three';
 import type { ShapeIdWorld } from './generation';
-import { assemble, DARK, METAL, part, WHITE, WRAP, type RGB } from './shapes.kit';
+import { assemble, DARK, METAL, part, WHITE, type RGB } from './shapes.kit';
 import { TILE } from './atlas';
 
 const LIE_X: readonly [number, number, number] = [0, 0, Math.PI / 2];
@@ -598,55 +598,104 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     ]);
   },
 
-  사람: () => assemble([
-    // 카타마리에서 사람은 배경이 아니라 **물건**이다. 서 있는 자세
-    // 다리 둘. **굵기를 다르게** — 같으면 옆면 두 장이 같은 평면이고 z 로 겹친다
-    // 다리 둘. **z 로도 안 겹치게 벌린다** — 밑면 두 장이 같은 평면(y=0)인데
-    // 발판이 겹치면 z-fighting 이다
-    part(new CylinderGeometry(0.095, 0.095, 0.44, 14), WHITE, [0, 0.22, -0.105]),
-    part(new CylinderGeometry(0.095, 0.095, 0.44, 14), WHITE, [0, 0.22, 0.105]),
-    part(new BoxGeometry(0.30, 0.46, 0.20), WHITE, [0, 0.66, 0], undefined, TILE.CLOTH),
-    // 얼굴 — 옷(WHITE)과 대비가 0.08 이었다. 살빛은 옷보다 확실히 짙거나 밝아야 한다
-    // 얼굴 — 인쇄를 뺀다. `TILE.CLOTH`(천 짜임)를 물려놨더니 얼굴에 격자가 찍혔다
-    part(new SphereGeometry(0.15, 14, 9), [0.74, 0.56, 0.44], [0, 1.02, 0]),
-    // 머리 — 얼굴을 다 덮으면 안 된다. 위 절반만 얹는다
-    part(new SphereGeometry(0.155, 14, 9).scale(1, 0.52, 1), DARK, [0, 1.10, 0]),
-    // 눈 둘 — 이게 있어야 이쪽이 «앞»이다
-    ...([1, -1] as const).map((k) =>
-      part(new SphereGeometry(0.022, 6, 5), DARK, [0.135, 1.03, k * 0.055])),
-    // 팔 둘
-    part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, -0.21], [0.12, 0, 0]),
-    part(new CylinderGeometry(0.06, 0.06, 0.42, 14), WHITE, [0, 0.64, 0.21], [-0.12, 0, 0]),
-  ]),
+  /**
+   * 사람 — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/사람/` (1985 아사쿠사, 선 채로 기다리는 어른 옆모습)
+   *
+   * 앞의 것은 원기둥 다리 둘에 네모 몸통 · 지름 0.30 짜리 머리를 얹은 «눈사람»이었다 —
+   * 머리가 키의 0.30 이면 사람이 아니라 인형이다. 사진과 대보니:
+   *   ① 키 : 머리 = **6.5 : 1** (머리 높이 0.155), 키 : 어깨너비 = **4.9 : 1**(0.204)
+   *   ② 위가 좁고 아래로 벌어지는 **종 모양** — 어깨(0.204)보다 옷자락(0.253)이 넓고 허리가 잘록하지 않다
+   *   ③ 목이 거의 안 보인다. 옷깃이 턱 바로 아래에서 바로 어깨로 이어진다
+   *   ④ 팔이 몸통 실루엣 «안»에 붙고 손은 배꼽 높이(키의 0.43)에서 몸 앞으로 모인다.
+   *      가장 넓은 곳은 어깨가 아니라 소매가 벌어지는 키의 0.55 자리(0.298)
+   *   ⑤ 발밑이 평평한 판(게타)이고 두 발이 앞뒤로 벌어진다. 어두운 실루엣에서 발밑 흰 버선만 밝다
+   * 파랑 · 빨강 · 초록 팔레트(14 · 8 · 11)를 곱하면 얼굴이 파랗게 된다 — 팔레트는 흰색.
+   *
+   * **못 잰 것**: 이 사람은 발목까지 오는 기모노를 입어 다리가 안 보인다. 가랑이 · 무릎 높이는
+   * 사진에 없어서 넣지 않았다 — 종 모양 옷자락이 다리를 덮는 그대로 만들었다.
+   * 치수는 키 = 1 로 쓴다.
+   */
+  사람: () => {
+    const HEAD = 0.155, SH = 0.204, HEM = 0.253, yShoulder = 1 - HEAD - 0.049;
+    const CLOTH: RGB = [0.22, 0.19, 0.21], SKIN: RGB = [0.80, 0.62, 0.53];
+    const HAIR: RGB = [0.16, 0.13, 0.13], TABI: RGB = [0.92, 0.90, 0.94];
+    return assemble([
+      // ② 종 모양 몸 — 어깨에서 옷자락으로 벌어진다. 앞뒤로는 얇다
+      part(new CylinderGeometry(SH / 2, HEM / 2, yShoulder - 0.035, 14, 1, true).scale(1, 1, 0.66), CLOTH,
+        [0, (yShoulder + 0.035) / 2, 0], undefined, TILE.CLOTH),
+      part(new CircleGeometry(HEM / 2, 14).scale(1, 1, 0.66), CLOTH, [0, 0.036, 0], [Math.PI / 2, 0, 0]),
+      // ④ 소매 — 가장 넓은 곳(0.298)을 만든다. 몸에 붙어 실루엣 안에 든다
+      ...([1, -1] as const).map((k) =>
+        part(new SphereGeometry(1, 8, 6).scale(0.055, 0.115, 0.048), CLOTH, [k * 0.098, 0.55, 0])),
+      // ④ 모아 쥔 손 — 배꼽 높이, 몸 앞으로
+      part(new SphereGeometry(0.030, 6, 5), SKIN, [0.01, 0.435, 0.068]),
+      // ③ 어깨 — 옷깃이 턱 밑에서 바로 이어진다
+      part(new SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2).scale(SH / 2, 0.05, SH / 2 * 0.66), CLOTH,
+        [0, yShoulder - 0.01, 0]),
+      // ① 머리 — 키의 0.155. 앞뒤(0.128)가 폭보다 길다
+      part(new SphereGeometry(1, 12, 8).scale(0.058, HEAD / 2, 0.064), SKIN, [0, 1 - HEAD / 2, 0]),
+      // 머리카락 — 위와 뒤를 덮는다. 이목구비는 3 m 크기에서 안 보인다(버릴 것)
+      part(new SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.62).scale(0.061, HEAD / 2 * 1.02, 0.067), HAIR,
+        [0, 1 - HEAD / 2 - 0.004, -0.004]),
+      // ⑤ 게타 — 앞뒤로 벌어진 평평한 판 둘. 그 위 흰 버선
+      ...([[0.055, 1], [-0.055, -1]] as const).map(([z, k]) => [
+        part(new BoxGeometry(0.052, 0.020, 0.114), [0.72, 0.60, 0.58], [k * 0.022, 0.010, z]),
+        part(new BoxGeometry(0.044, 0.028, 0.080), TABI, [k * 0.022, 0.034, z]),
+      ]).flat(),
+    ]);
+  },
 
-  승용차: () => assemble([
-    // 낮은 물체라 위쪽을 비운다 (shapes.kit 규약 2번)
-    /**
-     * 몸통 + 유리 + 지붕. **화면에서 「창도 앞유리도 없는 베이지 상자」였다** —
-     * 유리 띠(`GLASS`)가 몸통보다 «넓어야» 창으로 보이는데 0.54 로 몸통(0.60)보다
-     * 좁았고, 지붕이 그 위를 0.56 으로 덮어서 유리가 4mm 만 보였다.
-     * 유리를 몸통 폭까지 넓히고 지붕을 좁혀 «창 띠»가 한 바퀴 돌게 한다.
-     */
-    part(new BoxGeometry(1.30, 0.30, 0.60), WHITE, [0, 0.30, 0], undefined, TILE.METAL),
-    part(new BoxGeometry(0.70, 0.24, 0.605), [0.26, 0.30, 0.36], [-0.06, 0.57, 0]),
-    // 지붕 — 유리보다 «좁아야» 창이 한 바퀴 도는 걸로 보인다
-    part(new BoxGeometry(0.60, 0.09, 0.545), WHITE, [-0.06, 0.665, 0]),
-    // 앞유리 — 비스듬히 눕는다. 상자 셋을 쌓으면 트럭이고, 이 경사 하나가 «승용차»다
-    part(new BoxGeometry(0.24, 0.05, 0.575), [0.26, 0.30, 0.36], [0.34, 0.58, 0], [0, 0, -0.62]),
-    ...[[-0.42, 0.31], [-0.42, -0.31], [0.42, 0.31], [0.42, -0.31]].map(
-      ([x, z]) => part(new CylinderGeometry(0.17, 0.17, 0.10, 20), DARK, [x!, 0.17, z!], LIE_Z),
-    ),
-    // 헤드라이트 둘 — `PAPER`(대비 0.04)로는 차체와 안 갈린다. 등은 «빛난다»
-    // 헤드라이트 — 차체 팔레트가 밝은 쪽이라 `WRAP` 도 대비가 0.06 이다.
-    // 등은 «테두리가 짙어야» 등으로 읽힌다
-    part(new SphereGeometry(0.085, 20, 13), [0.34, 0.36, 0.40], [0.635, 0.32, 0.20]),
-    part(new SphereGeometry(0.085, 20, 13), [0.34, 0.36, 0.40], [0.635, 0.32, -0.20]),
-    part(new SphereGeometry(0.058, 14, 9), WRAP, [0.665, 0.32, 0.20], undefined, TILE.GLASSY),
-    part(new SphereGeometry(0.058, 14, 9), WRAP, [0.665, 0.32, -0.20]),
-    // 범퍼 — 앞뒤에 짙은 띠 하나면 「차 앞」이 어디인지 읽힌다
-    // 범퍼 — 차체 밑면(y 0.15)보다 위에서 시작해야 밑면이 같은 평면이 안 된다
-    part(new BoxGeometry(0.06, 0.10, 0.50), [0.34, 0.35, 0.38], [0.65, 0.23, 0]),
-  ]),
+  /**
+   * 승용차(1980년대 일본 소형 세단) — **사진에서 잰 값으로 다시 만들었다.**
+   * 근거: `.design-bounce/ref/승용차/` (토요타 카롤라 E70 정측면 + 1980 년 45° 사진)
+   *
+   * 앞의 것은 전장 : 전고 = 1.30 : 0.69 (1.9 : 1) 인 **뭉툭한 상자**에 반구 헤드라이트를 박고
+   * 바퀴를 지름 0.34 로 키운 것이었다 — 장난감 자동차 비례다. 사진과 대보니:
+   *   ① 전장 : 전고 = **2.93 : 1** — 훨씬 길고 낮다
+   *   ② 바퀴 지름이 전장의 **0.138** 뿐이고 휠베이스 : 바퀴 지름 = 4.5 : 1.
+   *      타이어 윗면과 펜더 사이 틈이 거의 없어 바퀴가 몸통에 꽉 낀다
+   *   ③ 전고를 세로로 쪼개면 **유리대 0.31 · 옆판 0.50 · 로커 아래 0.18** 이다 — 유리가 전고의 1/3
+   *   ④ 뒤 오버행(0.227)이 앞(0.153)보다 1.5 배 길다. 평평한 지붕 구간은 전장의 0.32
+   *   ⑤ 완전히 각진 3 박스에 앞뒤로 튀어나온 **검은 고무 범퍼**
+   * 헤드라이트를 반구 넷(면 480 개씩)으로 박아 형태 하나가 1788 삼각형이었다 — 그 시절 얼굴은
+   * 둥근 등이 아니라 **네모 등**이라 상자로 바꾼다. 면 수도 같이 내려간다.
+   * 치수는 전장 = 1 로 쓴다(앞 +x).
+   */
+  승용차: () => {
+    const H = 0.341, RW = 0.138 / 2, W = 0.40;
+    const yRock = H * 0.18, yBelt = H * 0.69, BODY: RGB = [0.86, 0.86, 0.88];
+    const GLASSY: RGB = [0.26, 0.30, 0.34], RUB: RGB = [0.18, 0.18, 0.19];
+    return assemble([
+      // ⑤ 옆판 — 로커 위에서 벨트라인까지. 전장을 꽉 채운다
+      part(new BoxGeometry(1.0, yBelt - yRock, W), BODY, [0, (yBelt + yRock) / 2, 0], undefined, TILE.METAL),
+      // 로커 아래 — 조금 좁혀 바닥이 떠 보이게
+      part(new BoxGeometry(0.94, yRock, W * 0.92), [0.62, 0.62, 0.64], [0, yRock / 2, 0]),
+      // ③ 유리대 — 전고의 0.31. 지붕보다 넓어야 «창 띠»가 한 바퀴 돈다
+      part(new BoxGeometry(0.46, H - yBelt - 0.022, W * 1.005), GLASSY, [-0.055, (H + yBelt) / 2 - 0.011, 0]),
+      // ④ 평평한 지붕 — 전장의 0.32, 휠베이스 한가운데보다 조금 뒤
+      part(new BoxGeometry(0.32, 0.024, W * 0.92), BODY, [-0.055, H - 0.012, 0], undefined, TILE.METAL),
+      // ② 앞유리 · 뒷유리 기둥 — 거의 곧게 선다
+      part(new BoxGeometry(0.10, H - yBelt, W * 0.95), GLASSY, [0.145, (H + yBelt) / 2, 0], [0, 0, -0.40]),
+      part(new BoxGeometry(0.09, H - yBelt, W * 0.95), GLASSY, [-0.245, (H + yBelt) / 2, 0], [0, 0, 0.42]),
+      // ③ 프레스 라인 두 줄 — 벨트라인 아래와 손잡이 높이
+      ...[yBelt - 0.012, yBelt - 0.062].map((y) =>
+        part(new BoxGeometry(0.86, 0.008, W * 1.01), [0.74, 0.74, 0.76], [0, y, 0])),
+      // ② 바퀴 넷 — 전장의 0.138. 펜더에 꽉 낀다
+      ...([[0.31, 1], [0.31, -1], [-0.31, 1], [-0.31, -1]] as const).map(([x, k]) =>
+        part(new CylinderGeometry(RW, RW, 0.055, 12), RUB, [x, RW, k * W / 2], LIE_Z, TILE.RUBBER)),
+      ...([[0.31, 1], [0.31, -1], [-0.31, 1], [-0.31, -1]] as const).map(([x, k]) =>
+        part(new CylinderGeometry(RW * 0.58, RW * 0.58, 0.058, 10), [0.70, 0.70, 0.70], [x, RW, k * W / 2], LIE_Z)),
+      // ⑤ 검은 고무 범퍼 — 앞뒤 끝을 어두운 띠로 마감한다
+      ...([0.505, -0.505] as const).map((x) =>
+        part(new BoxGeometry(0.030, 0.055, W * 1.02), RUB, [x, yRock + 0.035, 0])),
+      // 네모 헤드라이트 · 뒷등 — 그 시절 얼굴은 둥근 등이 아니다
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(0.014, 0.030, 0.075), [1.0, 0.97, 0.86], [0.497, yBelt - 0.055, k * 0.12])),
+      ...([1, -1] as const).map((k) =>
+        part(new BoxGeometry(0.014, 0.034, 0.070), [0.78, 0.20, 0.18], [-0.497, yBelt - 0.055, k * 0.12])),
+    ]);
+  },
 
   /**
    * 가로수(은행나무) — **사진에서 잰 값으로 다시 만들었다.**
