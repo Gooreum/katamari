@@ -562,7 +562,9 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    */
   욕조: () => {
     const TW = 0.777, TD = 0.68, TH = 0.63, WALL = 0.05, TX = -0.5 + TW / 2;
-    const AQUA: RGB = [0.45, 0.56, 0.59], RIM: RGB = [0.52, 0.64, 0.67];
+    // 판정자가 2회차에 「회색 기계 상자」라고 했다(2026-09-16) — 통 색을 맑은 청록 쪽으로 올리고,
+    // 뚜껑을 0.6 → 0.45 로 줄여 물이 더 보이게 한다. 물 색도 한 단 밝게
+    const AQUA: RGB = [0.38, 0.60, 0.64], RIM: RGB = [0.46, 0.70, 0.74];
     const KW = 1 - TW - 0.008, KX = 0.5 - KW / 2, KD = 0.42, KZ = TD / 2 - KD / 2, KH = TH * 0.98;
     return assemble([
       // ① 깊은 통
@@ -574,10 +576,10 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       part(soft(TW + 0.02, 0.04, 0.05, 0.45), RIM, [TX, TH - 0.02, -TD / 2 + 0.015]),
       ...([1, -1] as const).map((k) => part(soft(0.05, 0.04, TD - 0.05, 0.45), RIM, [TX + k * (TW / 2 - 0.015), TH - 0.02, 0])),
       // 수면 — 테에서 한 뼘 아래
-      part(new BoxGeometry(TW - WALL * 2 - 0.012, 0.012, TD - WALL * 2 - 0.012), [0.55, 0.78, 0.95], [TX, TH * 0.74, 0], undefined, TILE.WATER),
+      part(new BoxGeometry(TW - WALL * 2 - 0.012, 0.012, TD - WALL * 2 - 0.012), [0.62, 0.86, 1.05], [TX, TH * 0.74, 0], undefined, TILE.WATER),
       // ③ 뚜껑 판 두 장 — 왼쪽 0.6, 위 판은 조금 비껴
-      part(new BoxGeometry(TW * 0.6, 0.03, TD + 0.02), [0.70, 0.74, 0.72], [-0.5 + TW * 0.3, TH + 0.017, 0]),
-      part(new BoxGeometry(TW * 0.45, 0.03, TD + 0.02), [0.80, 0.84, 0.82], [-0.5 + TW * 0.25 + 0.05, TH + 0.047, 0]),
+      part(new BoxGeometry(TW * 0.45, 0.03, TD + 0.02), [0.70, 0.74, 0.72], [-0.5 + TW * 0.225, TH + 0.017, 0]),
+      part(new BoxGeometry(TW * 0.34, 0.03, TD + 0.02), [0.80, 0.84, 0.82], [-0.5 + TW * 0.19, TH + 0.047, 0]),
       // ② 가마 — 몸통 · 검은 조작 띠 · 점화 창 · 윗면 홈판 · ⊓ 급탕관
       part(new BoxGeometry(KW, KH, KD), [0.60, 0.60, 0.56], [KX, KH / 2, KZ]),
       part(new BoxGeometry(KW + 0.004, KH * 0.11, 0.006), [0.07, 0.07, 0.07], [KX, KH * (1 - 0.055), TD / 2 + 0.003]),
@@ -609,7 +611,9 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
     const bowl = warp(new CylinderGeometry(1, 1, RIM_Y, 16, 3), (x, y, z) => {
       const t = y / RIM_Y + 0.5;
       // 그릇 뒤가 탱크까지 닿게 중심을 뒤로 — 앞의 것은 그릇이 탱크와 떨어져 따로 섰다(트랙 D)
-      const rx = 0.14 + (0.22 - 0.14) * t, rz = 0.26 + (0.30 - 0.26) * t, cz = 0.04 + (0.10 - 0.04) * t;
+      // 발은 더 가늘게, 허리 위는 불룩하게 — 곧은 원통이라 「휴지통」으로 읽혔다(트랙 D 2회차)
+      const bulge = 1 + 0.16 * Math.sin(Math.PI * t);
+      const rx = (0.11 + (0.225 - 0.11) * t) * bulge, rz = (0.20 + (0.30 - 0.20) * t) * bulge, cz = 0.04 + (0.10 - 0.04) * t;
       return [x * rx, y, z * rz + cz];
     });
     return assemble([
@@ -620,7 +624,9 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       part(new TorusGeometry(1, 0.1, 5, 18).scale(0.21, 0.29, 0.22), SEAT, [0, RIM_Y + 0.012, 0.10], [Math.PI / 2, 0, 0]),
       part(new CylinderGeometry(1, 1, 0.022, 18).scale(0.205, 1, 0.28), [1.0, 0.99, 0.95], [0, RIM_Y + 0.035, 0.10]),
       // 탱크 받침 — 그릇 뒤를 탱크 밑까지 잇는다
-      part(soft(0.30, RIM_Y, 0.20, 0.3), IVORY, [0, RIM_Y / 2, -0.20]),
+      // 받침 — 0.30 × 0.20 짜리는 그릇 뒤에 가려 탱크가 「공중에 떠 있다」로 보였다(트랙 D 2회차).
+      // 탱크 폭·깊이에 가깝게 키워 옆에서도 탱크를 받치는 게 보이게 한다
+      part(soft(0.42, RIM_Y, 0.30, 0.25), IVORY, [0, RIM_Y / 2, -0.27]),
       // ① 탱크 몸통 + 넓은 뚜껑
       part(soft(0.52, 0.49, 0.26, 0.12), IVORY, [0, TANK_Y + 0.245, -0.29], undefined, TILE.CERAMIC),
       part(soft(0.54, 0.045, 0.275, 0.3), IVORY, [0, 0.9775, -0.29]),

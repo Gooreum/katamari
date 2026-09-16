@@ -606,24 +606,27 @@ export const SMALL_BUILDERS: Record<ShapeIdSmall, () => BufferGeometry> = {
     return assemble([
       part(body, WHITE, [-0.06, 0.20, 0]),
       // 머리 — 몸통 앞끝에서 이어져 주둥이로 모인다
-      part(new SphereGeometry(0.17, 8, 6).scale(1.0, 0.85, 1.0), WHITE, [0.30, 0.30, 0]),
+      // 머리 — 몸통에 더 깊이 물리고 크게. 앞의 것은 「앞쪽 작은 혹」이라 머리로 안 읽혔다(트랙 D 2회차)
+      part(new SphereGeometry(0.19, 8, 6).scale(1.0, 0.85, 1.0), WHITE, [0.27, 0.30, 0]),
       // ③ 베이지 배 — 몸통 아래 절반
       // 배는 몸통보다 조금 넓게 — 안에 묻혀 온몸이 초록으로 보였다(트랙 D)
       part(new SphereGeometry(1, 8, 3, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(0.42, 0.14, 0.29), BEIGE, [0.02, 0.14, 0]),
       ...([1, -1] as const).flatMap((k) => [
         // ② 눈 — 초록 눈두덩 위로 까만 눈이 옆을 본다
-        part(new SphereGeometry(0.065, 6, 4), WHITE, [0.37, 0.40, k * 0.12]),
-        part(new SphereGeometry(0.045, 6, 4), [0.25, 0.18, 0.60], [0.39, 0.41, k * 0.165]),
+        // 눈 — 머리 위에 «솟은 눈두덩»으로 물린다. 앞의 것은 얼굴 옆에 따로 붙은 공이었다(트랙 D)
+        part(new SphereGeometry(0.07, 6, 4), WHITE, [0.30, 0.40, k * 0.10]),
+        part(new SphereGeometry(0.045, 6, 4), [0.25, 0.18, 0.60], [0.32, 0.425, k * 0.135]),
         // ③ 갈색 줄(콧구멍 → 눈 아래 → 고막) + 고막
         // 줄 — 머리 밖으로 막대처럼 튀어나왔다(트랙 D). 짧게, 머리 면에 붙인다
-        part(new SphereGeometry(1, 4, 3).scale(0.08, 0.014, 0.015), BROWN, [0.36, 0.345, k * 0.150], [0, 0, 0.30]),
+        part(new SphereGeometry(1, 4, 3).scale(0.07, 0.013, 0.013), BROWN, [0.33, 0.325, k * 0.128], [0, 0, 0.30]),
         part(new SphereGeometry(0.03, 4, 3).scale(1, 1, 0.5), BROWN, [0.24, 0.32, k * 0.19]),
         // ④ 접은 허벅지 + 발가락
         part(new SphereGeometry(1, 6, 4).scale(0.15, 0.10, 0.085), WHITE, [-0.28, 0.12, k * 0.24]),
         // 발 — 허벅지 끝에 붙인다(따로 떨어진 판으로 읽혔다). 앞다리를 세운다
-        part(new SphereGeometry(1, 4, 3).scale(0.13, 0.025, 0.06), TAN, [-0.14, 0.03, k * 0.28], [0, k * 0.5, 0]),
+        // 발 — 판때기로 읽혀(트랙 D) 작고 도톰하게
+        part(new SphereGeometry(1, 5, 4).scale(0.09, 0.035, 0.05), TAN, [-0.14, 0.035, k * 0.26], [0, k * 0.5, 0]),
         part(new CylinderGeometry(0.025, 0.03, 0.12, 5), TAN, [0.22, 0.07, k * 0.19], [k * 0.3, 0, 0]),
-        part(new SphereGeometry(1, 4, 3).scale(0.06, 0.02, 0.05), TAN, [0.25, 0.015, k * 0.22]),
+        part(new SphereGeometry(1, 5, 4).scale(0.06, 0.03, 0.045), TAN, [0.25, 0.02, k * 0.21]),
       ]),
     ]);
   },
