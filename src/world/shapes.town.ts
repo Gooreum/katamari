@@ -58,7 +58,10 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
       // 2회차에도 「파임 없는 매끈한 아몬드」였다. 홈 폭 0.22 는 «판 좌표» 기준이라
       // 끝에서 실제 반폭이 0.128 뿐인 자리에서는 ±0.028 짜리 실금이었다. 0.6 으로 넓힌다
       const notch = Math.max(0, 1 - Math.abs(zn) / 0.6) * 0.20 * Math.max(0, (t - 0.74) / 0.26);
-      return [x - notch, 0.12 * zn * zn + 0.05 * t * t, zn * half(t)];
+      // 3회차에도 「홈이 없는 길쭉한 조각」이었다. 홈은 깊어졌지만 판이 바닥에 납작히 누워
+      // 14° 카메라에서는 **옆날만** 보였다 — 홈이 있어도 화면에 안 닿는다.
+      // 가장자리를 0.12 → 0.26 으로 크게 들어 올려 꽃잎 «얼굴»이 위를 보게 한다(떨어진 벚꽃잎은 실제로 말린다)
+      return [x - notch, 0.26 * zn * zn + 0.06 * t * t, zn * half(t)];
     });
     return assemble([part(petal, WHITE, [0, 0.001, 0], undefined, TILE.PETAL)]);
   },
@@ -100,11 +103,12 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     // ② 치마 — 원뿔대 옆면을 21번 물결치게 민다(아래로 갈수록 깊게)
     // 1회차는 진폭 0.07(지름의 1.6%)이라 주름이 아예 안 보였고, 2회차에 삼각파 0.085 로 올렸더니
     // 이번에는 「검은 톱니 원반 · 양옆으로 날개가 삐져나왔다」가 됐다 — 마루가 뾰족해 삐죽삐죽했다.
-    // 실물의 주름은 뾰족한 톱니가 아니라 **둥근 골**이다. 코사인으로 되돌리되 진폭을 0.05 로,
+    // 실물의 주름은 뾰족한 톱니가 아니라 **둥근 골**이다. 코사인으로 되돌리되 진폭을 0.075 로,
+    // (0.05 를 제곱으로 깎았더니 3회차에 다시 「윗면에 줄 몇 개뿐인 원뿔대」로 사라졌다)
     // 그리고 위쪽은 거의 매끈하고 **아래로 갈수록 깊어지게** 한다. 골 하나에 두 면씩 42 면.
     const skirt = warp(new CylinderGeometry(TOP, 0.5, H * 0.8, 42, 2, true), (x, y, z) => {
       const a = Math.atan2(z, x), t = 0.5 - y / (H * 0.8);             // 0 = 위, 1 = 아래
-      const k = 1 + 0.05 * t * t * Math.cos(21 * a);
+      const k = 1 + 0.075 * t * Math.cos(21 * a);
       return [x * k, y, z * k];
     });
     return assemble([
@@ -130,15 +134,18 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     // 깍정이를 1.25 로 늘여 놓고 19° 비틀었더니 한쪽만 알을 덮고 반대쪽이 벌어졌다 —
     // 비틀기를 8° 로 줄이고 깍정이를 알 두께의 1.06 배로 키워 뒤 0.37 을 감싼다.
     // 알은 굵기를 0.21 로 낮춰 길이 : 두께 = 1 : 0.42 로, 꼭지는 깍정이 끝에 붙인다.
-    const R = 0.21, NUT: RGB = [0.92, 0.68, 0.42], CAP: RGB = [0.84, 0.73, 0.68];
+    // 3회차에 「껍질이 한쪽 끝에만 얕게 · 몸통이 지나치게 길다」로 되돌아갔다 —
+    // 알을 0.23 → 0.21 로 줄이고 깍정이를 1.55 로 늘인 것이 둘 다 나쁘게 겹쳤다.
+    // 2회차에 통과했던 알 굵기 0.23 · 깍정이 1.25 로 되돌리고 비틀기 8° 만 남긴다.
+    const R = 0.23, NUT: RGB = [0.92, 0.68, 0.42], CAP: RGB = [0.84, 0.73, 0.68];
     // ③ 알 — 앞 1/3 이 가장 굵고 끝이 뭉툭한 돌림면. y 가 알 길이(깍정이 속 0 → 끝 0.66)
-    const nut = [[0.185, 0], [0.205, 0.1], [0.21, 0.25], [0.20, 0.42], [0.175, 0.54], [0.13, 0.62], [0.065, 0.68], [0.001, 0.70]]
+    const nut = [[0.20, 0], [0.225, 0.1], [0.23, 0.25], [0.22, 0.4], [0.19, 0.5], [0.14, 0.58], [0.07, 0.64], [0.001, 0.66]]
       .map(([r, y]) => new Vector2(r!, y!));
     return assemble([
       part(new LatheGeometry(nut, 12), NUT, [-0.16, R, 0], [0, 0, -Math.PI / 2]),
       // ② 깍정이 — 반구 껍질을 뒤(−x)로 열고 19° 비튼다. 알 두께의 1.02 배
-      part(new SphereGeometry(R * 1.06, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 1.55, 1), CAP,
-        [-0.155, R, 0], [0, 0, Math.PI / 2 + 0.14], TILE.CUPULE),
+      part(new SphereGeometry(R * 1.06, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 1.25, 1), CAP,
+        [-0.145, R, 0], [0, 0, Math.PI / 2 + 0.14], TILE.CUPULE),
       // 깍정이 끝 꼭지 — 깍정이 바깥면에 붙는다(떨어져 있으면 「옆에 뜬 조각」이다)
       part(new CylinderGeometry(0.028, 0.034, 0.055, 6), [0.55, 0.45, 0.38], [-0.485, R + 0.045, 0], [0, 0, Math.PI / 2 + 0.14]),
     ]);
@@ -409,7 +416,7 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     const hw = (t: number): number => (t < 0.45 ? BW : BW * Math.sqrt(Math.max(0, 1 - ((t - 0.45) / 0.58) ** 2)));
     const blade = (): BufferGeometry => warp(new PlaneGeometry(1, 1, 8, 4).rotateX(-Math.PI / 2), (x, _y, z) => {
       const t = x + 0.5, zn = z * 2;
-      return [F1 + t * BL, 0.14 * zn * zn, zn * Math.max(0.004, hw(t))];
+      return [F1 + t * BL, 0.10 * zn * zn, zn * Math.max(0.004, hw(t))];
     });
     return assemble([
       part(new LatheGeometry(handle, 8), WOODY, [H0, Y, 0], [0, 0, -Math.PI / 2]),
@@ -646,11 +653,13 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
    */
   개: () => {
     const RED: RGB = [0.97, 0.69, 0.40], CREAM: RGB = [1.02, 0.99, 0.92];
-    const BODY_L = 0.70, SH = 0.72 * BODY_L, LEG = 0.43 * SH, BT = 0.24 * BODY_L;
+    // 3회차 트랙 D 가 「몸통이 머리보다 가는 막대 · 다리가 젓가락」이라 했다.
+    // 몸 두께 0.24 는 사진의 «어깨 높이 대비» 값을 몸길이에 잘못 건 값이다 — 0.31 로 올린다
+    const BODY_L = 0.70, SH = 0.72 * BODY_L, LEG = 0.43 * SH, BT = 0.31 * BODY_L;
     const HEAD: [number, number, number] = [0.33, SH + 0.07, 0];
     return assemble([
       // 몸통 — 옆으로 누운 캡슐, 어깨가 조금 높다
-      part(new CapsuleGeometry(BT * 0.52, BODY_L - BT, 4, 10).scale(1, 1, 0.85), RED, [-0.08, LEG + BT / 2, 0], [0, 0, Math.PI / 2 - 0.08]),
+      part(new CapsuleGeometry(BT * 0.52, BODY_L - BT, 4, 10), RED, [-0.08, LEG + BT / 2, 0], [0, 0, Math.PI / 2 - 0.08]),
       // ③ 가슴 · 엉덩이 크림
       part(new SphereGeometry(1, 8, 6).scale(0.08, 0.11, 0.10), CREAM, [0.23, LEG + BT * 0.45, 0]),
       part(new SphereGeometry(1, 8, 6).scale(0.08, 0.10, 0.10), CREAM, [-0.41, LEG + BT * 0.55, 0]),
