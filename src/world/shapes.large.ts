@@ -184,11 +184,13 @@ export const LARGE_BUILDERS: Record<ShapeIdLarge, () => BufferGeometry> = {
    */
   스툴: () => {
     const H = 1, DIA = 1 / 1.3, SEAT_T = 0.1 * DIA, R = 0.057 * DIA / 2, LEGR = DIA / 2 - 0.035;
-    const LEGC: RGB = [0.10, 0.10, 0.11];
+    // 사진(`ref/스툴/`)의 초록 비닐 좌판 (64,90,61) 과 검은 칠 쇠파이프 다리.
+    // 팔레트를 흰색으로 옮겼으므로 색은 여기서 다 낸다
+    const LEGC: RGB = [0.10, 0.10, 0.11], SEATC: RGB = [0.30, 0.44, 0.28];
     return assemble([
       // ② 비닐 쿠션 — 원판 + 둥글게 말린 가장자리
-      part(new CylinderGeometry(DIA / 2 - SEAT_T / 2, DIA / 2 - SEAT_T / 2, SEAT_T, 14), [0.8, 0.53, 0.88], [0, H - SEAT_T / 2, 0]),
-      part(new TorusGeometry(DIA / 2 - SEAT_T / 2, SEAT_T / 2, 4, 14), [0.8, 0.53, 0.88], [0, H - SEAT_T / 2, 0], LIE_Z),
+      part(new CylinderGeometry(DIA / 2 - SEAT_T / 2, DIA / 2 - SEAT_T / 2, SEAT_T, 14), SEATC, [0, H - SEAT_T / 2, 0]),
+      part(new TorusGeometry(DIA / 2 - SEAT_T / 2, SEAT_T / 2, 4, 14), SEATC, [0, H - SEAT_T / 2, 0], LIE_Z),
       // ③ 다리 넷 — 곧게. 좌판 밑 X 틀
       ...[0, 1, 2, 3].map((k) => {
         const a = Math.PI / 4 + k * Math.PI / 2;

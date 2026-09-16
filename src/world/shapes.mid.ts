@@ -740,7 +740,9 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
    */
   화분: () => {
     const H = 0.78, RT = 0.5, RB = 0.29, BAND = 0.29 * H, OUT = 0.085 * 2 * RT / 2;
-    const BODY: RGB = [0.66, 0.35, 0.25], BANDC: RGB = [0.42, 0.18, 0.13], INNER: RGB = [0.77, 0.45, 0.39];
+    // 2회차 트랙 D 가 「선명한 테라코타가 아니라 어두운 자줏빛 갈색」이라 했다 — 사진값(162,84,59)을
+    // 그대로 계수로 넣었더니 게임의 따뜻하지만 어두운 빛에서 한 단 더 내려앉았다. 한 단 올린다
+    const BODY: RGB = [0.80, 0.43, 0.29], BANDC: RGB = [0.52, 0.22, 0.16], INNER: RGB = [0.86, 0.52, 0.44];
     const rAt = (y: number): number => RB + (RT - OUT - RB) * (y / (H - BAND));   // 띠 아래 몸통 반지름
     return assemble([
       // ① 몸통 — 바닥에서 띠 밑까지 곧은 원뿔대
@@ -753,7 +755,8 @@ export const MID_BUILDERS: Record<ShapeIdMid, () => BufferGeometry> = {
       part(new TorusGeometry(RT - 0.025, 0.025, 3, 16), [0.76, 0.50, 0.46], [0, H, 0], [Math.PI / 2, 0, 0]),
       part(invert(new CylinderGeometry(RT - 0.05, RB - 0.03, H - 0.06, 16, 1, true)), INNER, [0, H / 2 + 0.03, 0]),
       // 흙
-      part(new CircleGeometry(RT - 0.07, 16), [0.30, 0.22, 0.16], [0, H - 0.10, 0], [-Math.PI / 2, 0, 0], TILE.DIRT),
+      // 흙 — 사진의 화분은 비어 있다. 바닥이 그대로 보이면 「통」이라 흙은 두되 깊이 내린다
+      part(new CircleGeometry(RT - 0.09, 16), [0.30, 0.22, 0.16], [0, H - 0.24, 0], [-Math.PI / 2, 0, 0], TILE.DIRT),
     ]);
   },
 
