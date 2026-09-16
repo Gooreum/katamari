@@ -52,8 +52,11 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     };
     const petal = warp(new PlaneGeometry(1, 1, 10, 6).rotateX(-Math.PI / 2), (x, _y, z) => {
       const t = x + 0.5, zn = z * 2;                                  // zn ∈ [-1, 1]
-      const notch = Math.max(0, 1 - Math.abs(zn) / 0.35) * 0.08 * Math.max(0, (t - 0.85) / 0.15);
-      return [x - notch, 0.07 * zn * zn + 0.03 * t * t, zn * half(t)];
+      // 1회차 판정이 「납작한 렌즈꼴 흰 덩어리」였다. 홈이 길이의 0.08 이라 화면에서 사라졌고
+      // 휨도 0.07 뿐이라 종잇장이었다. 벚꽃잎의 정체는 **끝의 V 홈**이다 — 0.18 로 깊게 파고
+      // 가운데로 좁혀(0.22) 갈라진 두 귀를 세우며, 가장자리 휨도 1.7 배로 키운다.
+      const notch = Math.max(0, 1 - Math.abs(zn) / 0.22) * 0.18 * Math.max(0, (t - 0.78) / 0.22);
+      return [x - notch, 0.12 * zn * zn + 0.05 * t * t, zn * half(t)];
     });
     return assemble([part(petal, WHITE, [0, 0.001, 0], undefined, TILE.PETAL)]);
   },
@@ -69,9 +72,14 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
    * 치수는 긴 지름 = 1 로 쓴다.
    */
   자갈: () => {
-    const stone = warp(new SphereGeometry(1, 12, 8).scale(0.5, 0.176, 0.375), (x, y, z) =>
-      // ② 위아래를 초타원 쪽으로 밀어 평평하게 — 옆 가장자리만 둥글다
-      [x, Math.sign(y) * 0.176 * Math.abs(y / 0.176) ** 0.55, z]);
+    // 1회차 판정이 「납작한 원반 · 윤곽이 다각형」이었다. 두께(0.35)는 사진대로였지만
+    // 위아래를 초타원 0.55 로 «깎아» 접시가 됐고, 12 면이라 테두리가 각졌다.
+    // 지수를 0.8 로 눅이고 면을 16 으로 늘렸으며, 윤곽을 각도마다 흔들어 공장 원반을 지운다.
+    const stone = warp(new SphereGeometry(1, 16, 10).scale(0.5, 0.176, 0.375), (x, y, z) => {
+      const a = Math.atan2(z, x);
+      const k = 1 + 0.06 * Math.cos(2 * a + 0.7) + 0.035 * Math.cos(3 * a + 2.1);
+      return [x * k, Math.sign(y) * 0.176 * Math.abs(y / 0.176) ** 0.8, z * k];
+    });
     return assemble([part(stone, WHITE, undefined, undefined, TILE.STONE)]);
   },
 
@@ -88,9 +96,13 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   병뚜껑: () => {
     const H = 0.23, TOP = 0.40;
     // ② 치마 — 원뿔대 옆면을 21번 물결치게 민다(아래로 갈수록 깊게)
-    const skirt = warp(new CylinderGeometry(TOP, 0.5, H * 0.8, 42, 2, true), (x, y, z) => {
+    // 1회차 판정이 「옆면 주름이 전혀 없는 매끈한 원뿔대」였다. 진폭 0.07 은 지름의 1.6% 라
+    // 화면에서 안 보였고, 코사인이라 골과 마루가 뭉툭했다. 진폭을 0.085 로 올리고
+    // **삼각파**로 바꿔 마루를 세운다. 톱니 하나에 세 면이 가도록 63 면으로 뽑는다.
+    const skirt = warp(new CylinderGeometry(TOP, 0.5, H * 0.8, 63, 2, true), (x, y, z) => {
       const a = Math.atan2(z, x), t = 0.5 - y / (H * 0.8);             // 0 = 위, 1 = 아래
-      const k = 1 + 0.07 * t * Math.cos(21 * a);
+      const saw = Math.abs(((21 * a / Math.PI + 1) % 2) - 1) * 2 - 1;  // −1 ~ 1 삼각파
+      const k = 1 + 0.085 * (0.30 + 0.70 * t) * saw;
       return [x * k, y, z * k];
     });
     return assemble([
@@ -112,17 +124,21 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
    * 치수는 길이 = 1 로 쓴다(알 끝 +x).
    */
   도토리: () => {
-    const R = 0.23, NUT: RGB = [0.85, 0.64, 0.49], CAP: RGB = [0.84, 0.73, 0.68];
+    // 1회차 판정이 「깍정이가 초승달 껍질 한 조각 · 알이 뚱뚱 · 꼭지가 옆에 떠 있다」였다.
+    // 깍정이를 1.25 로 늘여 놓고 19° 비틀었더니 한쪽만 알을 덮고 반대쪽이 벌어졌다 —
+    // 비틀기를 8° 로 줄이고 깍정이를 알 두께의 1.06 배로 키워 뒤 0.37 을 감싼다.
+    // 알은 굵기를 0.21 로 낮춰 길이 : 두께 = 1 : 0.42 로, 꼭지는 깍정이 끝에 붙인다.
+    const R = 0.21, NUT: RGB = [0.92, 0.68, 0.42], CAP: RGB = [0.84, 0.73, 0.68];
     // ③ 알 — 앞 1/3 이 가장 굵고 끝이 뭉툭한 돌림면. y 가 알 길이(깍정이 속 0 → 끝 0.66)
-    const nut = [[0.20, 0], [0.225, 0.1], [0.23, 0.25], [0.22, 0.4], [0.19, 0.5], [0.14, 0.58], [0.07, 0.64], [0.001, 0.66]]
+    const nut = [[0.185, 0], [0.205, 0.1], [0.21, 0.25], [0.20, 0.42], [0.175, 0.54], [0.13, 0.62], [0.065, 0.68], [0.001, 0.70]]
       .map(([r, y]) => new Vector2(r!, y!));
     return assemble([
       part(new LatheGeometry(nut, 12), NUT, [-0.16, R, 0], [0, 0, -Math.PI / 2]),
       // ② 깍정이 — 반구 껍질을 뒤(−x)로 열고 19° 비튼다. 알 두께의 1.02 배
-      part(new SphereGeometry(R * 1.02, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 1.25, 1), CAP,
-        [-0.14, R, 0], [0, 0, Math.PI / 2 + 0.33], TILE.CUPULE),
-      // 깍정이 밑 꼭지
-      part(new CylinderGeometry(0.03, 0.035, 0.05, 6), [0.55, 0.45, 0.38], [-0.475, R + 0.08, 0], [0, 0, Math.PI / 2 + 0.33]),
+      part(new SphereGeometry(R * 1.06, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 1.55, 1), CAP,
+        [-0.155, R, 0], [0, 0, Math.PI / 2 + 0.14], TILE.CUPULE),
+      // 깍정이 끝 꼭지 — 깍정이 바깥면에 붙는다(떨어져 있으면 「옆에 뜬 조각」이다)
+      part(new CylinderGeometry(0.028, 0.034, 0.055, 6), [0.55, 0.45, 0.38], [-0.485, R + 0.045, 0], [0, 0, Math.PI / 2 + 0.14]),
     ]);
   },
 
@@ -139,17 +155,20 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
   솔방울: () => {
     const PLATE: RGB = [1.05, 1.09, 1.27], BODY: RGB = [0.55, 0.50, 0.63];
     const rAt = (y: number): number => 0.36 * Math.sin(Math.PI * Math.min(1, Math.max(0, (y - 0.04) / 0.96)) ** 0.75);
-    const tiers = [0.14, 0.30, 0.46, 0.62, 0.78];
+    const tiers = [0.12, 0.26, 0.40, 0.54, 0.68, 0.82];
     return assemble([
       // 속 — 어두운 달걀(비늘 사이 틈으로 보인다)
       part(new SphereGeometry(1, 10, 6).scale(0.28, 0.46, 0.28), BODY, [0, 0.5, 0]),
       part(new CylinderGeometry(0.04, 0.05, 0.06, 6), BODY, [0, 0.03, 0]),
       // ③ 비늘 끝 판 — 층마다 8장, 반 칸씩 엇갈린다. ② 위층일수록 바깥 · 위로 벌어진다
-      ...tiers.flatMap((y, ti) => Array.from({ length: 8 }, (_, k) => {
-        const a = (k + (ti % 2) * 0.5) * Math.PI / 4, open = 0.15 + 0.55 * (ti / (tiers.length - 1));
-        const r = rAt(y) + 0.02 + 0.05 * open;
-        // 판은 바깥을 보는 넓은 면(접선 0.16 × 높이 0.09, 두께 0.07). 먼저 위로 젖히고(Z) 그다음 둘레로 돌린다(Y)
-        return part(new BoxGeometry(0.07, 0.09, 0.2 * 0.8).rotateZ(open), PLATE, [Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0]);
+      // 1회차 판정이 「비늘이 몸통에서 떨어진 낱개 상자」였다. 접선 폭이 0.16 뿐이라 한 층 여덟 장
+      // 사이가 벌어졌고(둘레 1.9 ÷ 8 = 0.24 가 있어야 맞닿는다), 바깥으로 0.05 더 밀어 띄웠다.
+      // 폭을 0.26 으로 넓혀 서로 겹치게 하고, 안쪽 끝이 몸통에 박히도록 반지름을 당겼다.
+      ...tiers.flatMap((y, ti) => Array.from({ length: 9 }, (_, k) => {
+        const a = (k + (ti % 2) * 0.5) * 2 * Math.PI / 9, open = 0.15 + 0.55 * (ti / (tiers.length - 1));
+        const r = rAt(y) - 0.01 + 0.035 * open;
+        // 판은 바깥을 보는 넓은 면(접선 0.26 × 높이 0.10, 두께 0.09). 먼저 위로 젖히고(Z) 그다음 둘레로 돌린다(Y)
+        return part(new BoxGeometry(0.09, 0.10, 0.26).rotateZ(open), PLATE, [Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0]);
       })),
     ]);
   },
@@ -171,29 +190,35 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
    *      위 가장자리에 **꽃잎 끝 셋**이 뾰족하게 솟는다. 꽃잎 밑동에만 노랑
    *   ② 꽃머리 너비의 0.05~0.06 굵기로 **곧게** 선 초록 줄기
    *   ③ 줄기 밑을 감싸고 올라와 끝이 꽃머리 바로 아래까지 닿는 넓은 **피침꼴 잎**(길이 : 폭 = 1 : 0.3)
-   * **줄기만 사진(꽃머리 높이의 3.6배)보다 짧게 — 2배로 두었다.** 이 꽃은 4~16cm 칸이라 사진대로면
+   * **줄기만 사진(꽃머리 높이의 3.6배)보다 짧게 — 2.6배로 두었다.** 이 꽃은 4~16cm 칸이라 사진대로면
    * 꽃머리가 폭 4cm 밖에 안 되어 판정 크기에서 점이 된다. 치수는 꽃머리 너비 = 1 로 쓴다.
+   *
+   * 1회차 판정이 「붉은 굽 달린 잔 — **줄기와 잎이 빨강**, 꽃봉오리는 속이 보이는 빈 컵」이었다.
+   * 원인은 형상이 아니라 팔레트다. 정점색은 팔레트에 «곱해지므로» 빨간 팔레트(8) 아래에서는
+   * 초록 줄기를 만들 방법이 없다 — 빨강 × 초록 = 검붉은 갈색이다. 팔레트를 흰색 하나로 옮기고
+   * 꽃잎 색을 계수로 준다(꽃 색이 한 가지로 줄지만, 줄기가 빨간 꽃보다는 낫다).
+   * 그리고 입을 0.42 → **0.30** 으로 오므려 «닫힌 봉오리»로 만든다 — 튤립은 벌어진 잔이 아니다.
    */
   꽃: () => {
-    const HH = 0.8, STEM = HH * 2.0, GREEN: RGB = [0.40, 0.58, 0.34];
+    const HH = 0.8, STEM = HH * 2.6, GREEN: RGB = [0.34, 0.52, 0.28], PETAL: RGB = [0.86, 0.22, 0.20];
     // ① 컵 — 밑(좁다) → 위에서 0.25 가장 넓다 → 입. 위 가장자리를 세 번 물결쳐 꽃잎 끝을 세운다
-    const cup = warp(new LatheGeometry(evenProfile([[0.08, 0], [0.30, 0.10], [0.44, 0.28], [0.50, 0.55], [0.47, 0.75], [0.42, HH]], 7)
+    const cup = warp(new LatheGeometry(evenProfile([[0.08, 0], [0.30, 0.10], [0.45, 0.30], [0.50, 0.52], [0.44, 0.74], [0.30, HH]], 7)
       .map(([r, y]) => new Vector2(r, y)), 12), (x, y, z) => {
       const t = Math.max(0, (y - HH * 0.6) / (HH * 0.4));
       return [x, y + 0.09 * t * Math.max(0, Math.cos(3 * Math.atan2(z, x))) ** 2, z];
     });
     return assemble([
-      part(cup, WHITE, [0, STEM, 0]),
+      part(cup, PETAL, [0, STEM, 0]),
       // 꽃잎 밑동의 노랑 — 컵 밑을 감싼 짧은 띠
-      part(new CylinderGeometry(0.31, 0.10, 0.10, 12, 1, true), [1.2, 1.1, 0.25], [0, STEM + 0.05, 0]),
-      // 속 — 입 안쪽이 어둡게 보인다
-      part(new CircleGeometry(0.40, 12), [0.45, 0.30, 0.20], [0, STEM + HH - 0.04, 0], [-Math.PI / 2, 0, 0]),
+      part(new CylinderGeometry(0.31, 0.10, 0.10, 12, 1, true), [0.95, 0.80, 0.18], [0, STEM + 0.05, 0]),
+      // 속 — 오므린 입 안쪽이 어둡게 보인다
+      part(new CircleGeometry(0.28, 12), [0.36, 0.14, 0.12], [0, STEM + HH - 0.04, 0], [-Math.PI / 2, 0, 0]),
       // ② 줄기
-      part(new CylinderGeometry(0.03, 0.035, STEM, 6), GREEN, [0, STEM / 2, 0]),
+      part(new CylinderGeometry(0.032, 0.040, STEM, 6), GREEN, [0, STEM / 2, 0]),
       // ③ 잎 둘 — 줄기 밑에서 감싸고 올라와 꽃머리 밑까지. 한 장은 거의 서고 한 장은 비스듬히
-      ...([[0.10, 0.12, 1.0], [-0.12, -0.35, 0.8]] as const).map(([x, tilt, len]) =>
-        part(new SphereGeometry(1, 8, 4).scale(0.14, STEM * 0.5 * len, 0.03), [0.46, 0.60, 0.44],
-          [x, STEM * 0.5 * len, 0.02], [0, 0.6, tilt])),
+      ...([[0.10, 0.10, 0.95], [-0.12, -0.28, 0.78]] as const).map(([x, tilt, len]) =>
+        part(new SphereGeometry(1, 8, 4).scale(0.15, STEM * 0.52 * len, 0.03), [0.40, 0.56, 0.34],
+          [x, STEM * 0.52 * len, 0.02], [0, 0.6, tilt])),
     ]);
   },
 
@@ -364,8 +389,12 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
    * 은색 팔레트(6)에 곱하면 파란 날이 안 나온다 — 팔레트는 흰색. 치수는 길이 = 1 로 쓴다(날 끝 +x).
    */
   모종삽: () => {
-    const BLUE: RGB = [0.0, 0.31, 0.60], WOODY: RGB = [0.93, 0.83, 0.67];
-    const H0 = -0.5, H1 = H0 + 0.435, F1 = H1 + 0.125, BL = 0.44, BW = 0.162 / 2, Y = 0.052;
+    const BLUE: RGB = [0.0, 0.24, 0.55], WOODY: RGB = [0.93, 0.83, 0.67];
+    // 1회차 판정이 「오목한 국자가 아니라 평평한 칼날 · 폭이 절반 · 청록」이었다.
+    // 폭 0.162 는 «날 길이» 기준이라 전체 길이로 치면 0.071 뿐이었다 — 사진의 날 폭은
+    // 길이 : 폭 = 1 : 0.37 이므로 날 길이 0.44 × 0.37 = **0.163** 이 반폭이 아니라 온폭이다.
+    // 온폭을 0.163 으로 두고 오목한 깊이를 0.02 → 0.075 로 키운다.
+    const H0 = -0.5, H1 = H0 + 0.435, F1 = H1 + 0.125, BL = 0.44, BW = 0.163, Y = 0.075;
     // ③ 자루 — 끝 굵고(0.103) 허리(0.069) 잘록, 쇠 고리 앞 0.082. y 가 자루 길이
     const handle = evenProfile([[0.001, 0], [0.045, 0.004], [0.0515, 0.04], [0.045, 0.12], [0.0345, 0.22], [0.037, 0.33], [0.041, 0.435]], 8)
       .map(([r, y]) => new Vector2(r, y));
@@ -373,15 +402,15 @@ export const TOWN_BUILDERS: Record<ShapeIdTown, () => BufferGeometry> = {
     const hw = (t: number): number => (t < 0.57 ? BW : BW * Math.sqrt(Math.max(0, 1 - ((t - 0.57) / 0.43) ** 2)));
     const blade = (): BufferGeometry => warp(new PlaneGeometry(1, 1, 8, 4).rotateX(-Math.PI / 2), (x, _y, z) => {
       const t = x + 0.5, zn = z * 2;
-      return [F1 + t * BL, 0.02 * zn * zn, zn * Math.max(0.004, hw(t))];
+      return [F1 + t * BL, 0.075 * zn * zn, zn * Math.max(0.004, hw(t))];
     });
     return assemble([
       part(new LatheGeometry(handle, 8), WOODY, [H0, Y, 0], [0, 0, -Math.PI / 2]),
       part(new CylinderGeometry(0.043, 0.043, 0.125, 8), [0.0, 0.26, 0.52], [H1 + 0.0625, Y, 0], [0, 0, Math.PI / 2]),
-      part(blade(), BLUE, [0, Y - 0.02, 0]),
-      part(invert(blade()), [0.0, 0.28, 0.56], [0, Y - 0.023, 0]),
+      part(blade(), BLUE, [0, Y - 0.075, 0]),
+      part(invert(blade()), [0.0, 0.20, 0.44], [0, Y - 0.081, 0]),
       // 등뼈 줄 — 날 길이의 0.55 까지
-      part(new BoxGeometry(BL * 0.55, 0.012, 0.014), BLUE, [F1 + BL * 0.275, Y - 0.012, 0]),
+      part(new BoxGeometry(BL * 0.55, 0.014, 0.016), BLUE, [F1 + BL * 0.275, Y - 0.086, 0]),
     ]);
   },
 

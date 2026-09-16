@@ -425,14 +425,17 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * 치수는 전체 길이 = 1 로 쓴다(머리가 위, 세워 둔다).
    */
   갈퀴: () => {
-    const POLE = 0.67, HEAD = 0.34, HALF = 0.52, N = 29;
+    // 1회차 판정이 「빗자루(대나무 비)」였다. 살을 굵기 0.004 짜리 «수염» 29 개로 촘촘히 세웠더니
+    // 부채가 메워져 비의 솔이 됐다. 사진의 살은 **납작한 대나무 쪽**이고 사이가 벌어져 하나하나 보인다 —
+    // 수를 22 로 줄이고 폭을 0.013 인 판으로 넓혔으며, 끝의 갈고리를 3 배로 키워 세운다.
+    const POLE = 0.67, HEAD = 0.34, HALF = 0.52, N = 22;
     const tine = (i: number): Part[] => {
       const a = -HALF + (2 * HALF * i) / (N - 1);
       const dx = Math.sin(a), dy = Math.cos(a);
       return [
-        part(new CylinderGeometry(0.0035, 0.004, HEAD, 3), BAMBOO, [dx * HEAD / 2, POLE + dy * HEAD / 2, 0], [0, 0, -a]),
-        // 갈고리 — 끝이 앞으로 꺾인다
-        part(new BoxGeometry(0.006, 0.006, 0.03), BAMBOO_NODE, [dx * HEAD, POLE + dy * HEAD, 0.012]),
+        part(new BoxGeometry(0.013, HEAD, 0.005), BAMBOO, [dx * HEAD / 2, POLE + dy * HEAD / 2, 0], [0, 0, -a]),
+        // 갈고리 — 끝이 앞으로 꺾여 올라온다. 이게 비와 갈퀴를 가른다
+        part(new BoxGeometry(0.013, 0.010, 0.05), BAMBOO_NODE, [dx * HEAD, POLE + dy * HEAD - 0.004, 0.022], [0.5, 0, -a]),
       ];
     };
     return assemble([
