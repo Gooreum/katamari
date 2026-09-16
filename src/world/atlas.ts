@@ -225,6 +225,8 @@ export const TILE = {
   CUPULE: 65,
   /** 벚꽃잎 — 거의 흰 몸에 밑동(u=0) 쪽 0.2 만 분홍, 밑동에서 퍼지는 옅은 잎맥 */
   PETAL: 66,
+  /** 골함석 — 세로 골이 촘촘한 판. 창고 벽 · 지붕 */
+  CORRUGATE: 67,
 } as const;
 
 /**
@@ -1765,6 +1767,16 @@ export function buildPrintAtlas(): CanvasTexture {
     cx.strokeStyle = 'rgba(170,165,165,0.35)'; cx.lineWidth = 1;
     for (let k = -3; k <= 3; k++) {
       cx.beginPath(); cx.moveTo(0, CELL / 2); cx.lineTo(CELL * 0.9, CELL / 2 + k * CELL * 0.11); cx.stroke();
+    }
+  });
+
+  /** 골함석 — `ref/창고/`. 세로 골이 앞면 폭의 1/90 간격(사진)이라 128px 칸에 25줄로 줄여 그린다 */
+  at(TILE.CORRUGATE, () => {
+    base();
+    for (let k = 0; k < 25; k++) {
+      const x = k * CELL / 25;
+      cx.fillStyle = 'rgba(40,48,40,0.30)'; cx.fillRect(x, 0, CELL / 50, CELL);
+      cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillRect(x + CELL / 50, 0, CELL / 100, CELL);
     }
   });
 
