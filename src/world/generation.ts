@@ -884,6 +884,8 @@ export interface ObjectSpec {
   tiltZ?: number;
   /** 돌아다니는 범위 `[x 반쪽, z 반쪽]`(m). `StageProp.roam` 이 그대로 실려 온다 */
   roam?: readonly [number, number];
+  /** 왕복 구간 `[x0, z0, x1, z1, 속도]`. `StageProp.patrol` 이 그대로 실려 온다 */
+  patrol?: readonly [number, number, number, number, number];
 }
 
 /** 재현 가능한 난수. 같은 시드 = 같은 월드 (튜닝의 전제조건). */

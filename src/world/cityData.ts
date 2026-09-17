@@ -158,6 +158,21 @@ export interface StageProp {
    * 읽으므로(`Game.resolveCollisions`) **충돌·흡수 코드는 한 줄도 안 바뀐다.**
    */
   readonly roam?: readonly [number, number];
+  /**
+   * 이 물건이 **왕복하는 구간** `[x0, z0, x1, z1, 속도(m/s)]`. 없으면 제자리다.
+   *
+   * `roam` 과 무엇이 다른가: `roam` 은 **타원 안을 어슬렁거린다.** 개한테는 그게 맞지만
+   * **차는 길을 따라가야 한다** — 타원으로 돌면 광장을 빙빙 도는 것이지 주행이 아니다.
+   * 두 점 사이를 오가고, 끝에 닿으면 방향을 뒤집고, 가는 쪽을 본다.
+   *
+   * `roam` 과 배타적이다. 둘 다 주면 `patrol` 이 이긴다.
+   *
+   * `roam` 과 같은 급의 「손배치 물건의 성질」이라 처리도 같은 자리에서 한다 —
+   * `World.stepWander` 가 매 프레임 `pos` 를 옮기고, 넓은 판정(공간 해시)은
+   * 처음부터 **구간 전체**를 덮어 넣는다. 좁은 판정(구 vs AABB)이 어차피
+   * «지금 `pos`» 를 읽으므로(`Game.resolveCollisions`) **충돌·흡수 코드는 한 줄도 안 바뀐다.**
+   */
+  readonly patrol?: readonly [number, number, number, number, number];
 }
 
 export interface CityBuilding {

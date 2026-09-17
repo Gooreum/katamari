@@ -81,6 +81,29 @@ const WANDER_ACCEL = 2.2;
 
 /** 해시에 «넓게» 넣을 때 재사용하는 그릇. `insert` 가 읽기만 하므로 하나면 된다 */
 const WIDE = new Vector3();
+/**
+ * 왕복 구간의 **가운데**. 넓게 넣을 때 중심이 물체의 지금 자리가 아니라
+ * 구간 한가운데여야 구간 양 끝이 다 덮인다.
+ */
+const WIDE_POS = new Vector3();
+
+/**
+ * 길을 따라 왕복하는 물체 하나. `Wanderer` 와 같은 급이되 **경로가 있다.**
+ *
+ * `u` 는 구간 위의 진행도(0~1)다. 거리로 들고 있으면 구간 길이를 매 프레임
+ * 다시 재야 한다.
+ */
+interface Patroller {
+  readonly index: number;
+  readonly x0: number; readonly z0: number;
+  readonly x1: number; readonly z1: number;
+  /** m/s */
+  readonly speed: number;
+  /** 구간 위 진행도 0~1 */
+  u: number;
+  /** +1 이면 (x0,z0) → (x1,z1) */
+  dir: 1 | -1;
+}
 
 /**
  * 건물 막힘 판정용 격자 한 칸(m).
@@ -220,6 +243,7 @@ function buildProps(
     spec.colHalf = [halfX, (top - lo) / 2, halfZ];
     spec.colOffsetY = (lo + top) / 2 - baseY;
     if (p.roam !== undefined) spec.roam = p.roam;
+    if (p.patrol !== undefined) spec.patrol = p.patrol;
     return spec;
   });
 }
@@ -294,6 +318,11 @@ export class World {
    * (`nudged` 와 같은 규약).
    */
   private readonly wanderers: Wanderer[] = [];
+  /**
+   * 길을 따라 왕복하는 물체. **비어 있는 게 보통**이라 `stepWander` 가 즉시 빠진다
+   * (`wanderers` 와 같은 규약).
+   */
+  private readonly patrollers: Patroller[] = [];
   /** 돌아다니는 물체의 방향을 고르는 난수. 씨앗을 쓰므로 판마다 같은 걸음이다 */
   private readonly wanderRnd: () => number;
   /** 트랜스폼을 다시 쓸 때 재사용하는 그릇. 프레임마다 new 하지 않는다 */
@@ -481,7 +510,23 @@ export class World {
       };
       this.objects.push(obj);
       const index = this.objects.length - 1;
-      if (spec.roam === undefined) {
+      if (spec.patrol !== undefined) {
+        /**
+         * **왕복하는 물체는 «구간 전체»로 넣는다.** `roam` 과 같은 이유다 —
+         * 해시는 넣을 때 한 번 셀을 계산하고 지우는 수단이 없다.
+         * 가운데를 중심으로 구간을 덮는 상자를 넣으면 좁은 판정이 어차피
+         * «지금 `pos`» 를 읽으므로 결과가 정확히 같다.
+         */
+        const [px0, pz0, px1, pz1, speed] = spec.patrol;
+        this.hash.insert(index, WIDE_POS.set((px0 + px1) / 2, obj.pos.y, (pz0 + pz1) / 2),
+          WIDE.set(obj.half.x + Math.abs(px1 - px0) / 2, obj.half.y,
+            obj.half.z + Math.abs(pz1 - pz0) / 2));
+        this.patrollers.push({
+          index, x0: px0, z0: pz0, x1: px1, z1: pz1, speed,
+          // 여럿을 같은 길에 놓으면 줄지어 붙어 다닌다. 씨앗 난수로 흩어 놓는다
+          u: this.wanderRnd(), dir: 1,
+        });
+      } else if (spec.roam === undefined) {
         this.hash.insert(index, obj.pos, obj.half);
       } else {
         /**
@@ -615,6 +660,7 @@ export class World {
    * 그건 좌표를 고를 때 지키고 검사가 잰다(`wander.mts`).
    */
   stepWander(dt: number): void {
+    this.stepPatrol(dt);
     if (this.wanderers.length === 0) return;      // 보통은 여기서 빠진다
     for (const w of this.wanderers) {
       const o = this.objects[w.index]!;
@@ -680,6 +726,43 @@ export class World {
        */
       o.rotY = w.heading - Math.PI / 2;
       this.applyTransform(o, pitch + w.nose, roll, bob);
+    }
+  }
+
+  /**
+   * 길을 따라 왕복하는 것들 — 지나가는 차, 걸어가는 사람.
+   *
+   * ## 왜 `stepWander` 와 따로인가
+   *
+   * 산책은 **걸음**이다 — 몸통이 오르내리고(bob) 앞뒤로 기운다(pitch).
+   * 차에 그걸 먹이면 노면이 아니라 파도 위를 간다. 여기서는 자세를 안 흔든다.
+   *
+   * ## 끝에서 «되돌아간다»
+   *
+   * 감아 도는(0 → 1 → 0) 방식은 끝에서 **순간이동**한다. 방향을 뒤집으면
+   * 차가 길 끝에서 돌아 나오는 것으로 보인다 — 왕복 2차선 한 줄이면 그게 맞다.
+   *
+   * 방향은 `Wanderer` 와 같은 규약이다: 승용차·오토바이·사람 형상이 전부
+   * `rotY 0` 에서 **+X** 를 보고(개와 같다), `heading 0` 은 +Z 로 가므로 **θ = h − π/2**.
+   */
+  private stepPatrol(dt: number): void {
+    if (this.patrollers.length === 0) return;     // 보통은 여기서 빠진다
+    for (const p of this.patrollers) {
+      const o = this.objects[p.index]!;
+      if (o.picked) continue;                     // 먹혔으면 그만 — 공에 붙어 간다
+
+      const dx = p.x1 - p.x0, dz = p.z1 - p.z0;
+      const len = Math.hypot(dx, dz);
+      if (len < 1e-6) continue;                   // 길이 0 인 구간 — 나눗셈이 죽는다
+
+      p.u += (p.dir * p.speed * dt) / len;
+      if (p.u >= 1) { p.u = 1; p.dir = -1; }
+      else if (p.u <= 0) { p.u = 0; p.dir = 1; }
+
+      o.pos.x = p.x0 + dx * p.u;
+      o.pos.z = p.z0 + dz * p.u;
+      o.rotY = Math.atan2(dx * p.dir, dz * p.dir) - Math.PI / 2;
+      this.applyTransform(o, 0, 0, 0);
     }
   }
 
@@ -801,8 +884,9 @@ export class World {
     for (const p of city.placement?.props ?? []) {
       if (p.underPass !== undefined) continue;
       // 돌아다니는 물건은 **「있던 자리」가 없다** — 막으면 마당에 빈 구멍이 남고
-      // 정작 개는 거기 없다
-      if (p.roam !== undefined) continue;
+      // 정작 개는 거기 없다. 길을 왕복하는 것도 마찬가지고, 그쪽은 구간 전체가
+      // 빈 띠가 되므로 더 크게 어긋난다
+      if (p.roam !== undefined || p.patrol !== undefined) continue;
       const geo = this.geometries[geoIndexOf(p.label) ?? -1];
       if (geo === undefined) continue;
       const [hx, hz] = propFootprint(p, geo);
