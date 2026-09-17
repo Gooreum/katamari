@@ -39,7 +39,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
    * 치수는 길이 = 1 로 쓴다.
    */
   벽돌: () => assemble([
-    part(new BoxGeometry(1.0, 0.30, 0.48), [0.98, 0.87, 0.56], undefined, undefined, TILE.STONE),
+    // 2회차 판정이 「지그재그 선이 그어진 납작한 덩어리 — 모르겠다」였다(2026-09-17).
+    // `TILE.STONE` 은 **돌에 간 금**이라 벽돌 위에 얹으면 갈라진 자국이 된다 —
+    // 사진의 벽돌 표면은 금이 아니라 **고른 모래알 요철**이다(`intent.md` ③). `TILE.SUGAR` 로 바꾼다
+    part(new BoxGeometry(1.0, 0.30, 0.48), [0.98, 0.87, 0.56], undefined, undefined, TILE.SUGAR),
   ]),
 
   /**
@@ -101,15 +104,23 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       part(new LatheGeometry(prof, 20), RUB),
       // ③ 접지면 어깨 블록 — 가운데 한 줄만. 다섯 줄을 두르면 옆에서 «엮은 바구니 테»로 읽혔다
       part(new TorusGeometry(0.502, 0.016, 3, 20), [0.26, 0.26, 0.27], [0, 0, 0], LIE_Z),
-      // ① 휠 — 바깥 지름의 0.71. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다.
-      //   높이 0.20 은 옆벽(0.29)보다 얕지만 옆벽이 안으로 기울어 «솟은 고원»으로 보였다 — 0.15 로 낮춘다
-      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.12, 18), [0.70, 0.71, 0.73]),
-      // 허브 — 휠 면보다 한 단 솟는다. 이게 없으면 휠이 그냥 뚜껑이다
-      part(new CylinderGeometry(0.085, 0.085, 0.15, 12), [0.55, 0.56, 0.58]),
-      // 볼트 넷 — 휠 면에 박힌다
-      ...Array.from({ length: 4 }, (_, k) => (k * Math.PI) / 2).map((a) =>
-        part(new CylinderGeometry(0.018, 0.018, 0.13, 6), [0.48, 0.49, 0.51],
-          [Math.cos(a) * 0.19, 0, Math.sin(a) * 0.19])),
+      // ① 휠 — 2회차 판정이 「얕은 접시 안에 놓인 밝은 원판」이라며 이름을 못 댔다(2026-09-17).
+      //   밝은 원판 하나로 안을 통째로 메우니 고무는 «접시 벽»이, 휠은 «뚜껑»이 됐다.
+      //   실물 휠은 **살 사이가 뚫려** 그 너머가 어둡다 — 그 구멍이 타이어와 그릇을 가른다.
+      //   어두운 바닥판을 깔고 그 위에 허브 · 테 · 살 다섯만 얹어 사이를 비운다
+      part(new CylinderGeometry(RIM, RIM, 0.10, 18), [0.10, 0.10, 0.11]),
+      // 휠 바깥 테 — 고무 안쪽 테에 맞물린다
+      part(new TorusGeometry(RIM - 0.035, 0.038, 4, 18), [0.66, 0.67, 0.69], [0, 0.028, 0], LIE_Z),
+      // 허브 — 휠 면보다 한 단 솟는다
+      part(new CylinderGeometry(0.085, 0.085, 0.14, 12), [0.58, 0.59, 0.61], [0, 0.012, 0]),
+      // 살 다섯 — 허브에서 테까지. 사이가 어두운 바닥판이라 «뚫린 구멍»으로 보인다
+      ...Array.from({ length: 5 }, (_, k) => (k * Math.PI * 2) / 5).map((a) =>
+        part(new BoxGeometry(RIM - 0.10, 0.055, 0.085), [0.62, 0.63, 0.65],
+          [Math.cos(a) * (RIM - 0.035) / 2, 0.030, Math.sin(a) * (RIM - 0.035) / 2], [0, -a, 0])),
+      // 볼트 넷 — 허브 둘레에 박힌다
+      ...Array.from({ length: 4 }, (_, k) => (k * Math.PI) / 2 + 0.6).map((a) =>
+        part(new CylinderGeometry(0.016, 0.016, 0.16, 6), [0.45, 0.46, 0.48],
+          [Math.cos(a) * 0.055, 0, Math.sin(a) * 0.055])),
     ]);
   },
 

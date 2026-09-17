@@ -573,11 +573,16 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       part(soft(TW + 0.02, 0.04, 0.05, 0.45), RIM, [TX, TH - 0.02, TD / 2 - 0.015]),
       part(soft(TW + 0.02, 0.04, 0.05, 0.45), RIM, [TX, TH - 0.02, -TD / 2 + 0.015]),
       ...([1, -1] as const).map((k) => part(soft(0.05, 0.04, TD - 0.05, 0.45), RIM, [TX + k * (TW / 2 - 0.015), TH - 0.02, 0])),
-      // 수면 — 테에서 한 뼘 아래
-      part(new BoxGeometry(TW - WALL * 2 - 0.012, 0.012, TD - WALL * 2 - 0.012), [0.62, 0.86, 1.05], [TX, TH * 0.74, 0], undefined, TILE.WATER),
-      // ③ 뚜껑 판 두 장 — 왼쪽 0.6, 위 판은 조금 비껴
-      part(new BoxGeometry(TW * 0.45, 0.03, TD + 0.02), [0.70, 0.74, 0.72], [-0.5 + TW * 0.225, TH + 0.017, 0]),
-      part(new BoxGeometry(TW * 0.34, 0.03, TD + 0.02), [0.80, 0.84, 0.82], [-0.5 + TW * 0.19, TH + 0.047, 0]),
+      // 수면 — 테에서 한 뼘 아래.
+      // 3회차 판정이 「동심원 무늬가 있는 평평한 판」이라며 통째로 기계로 읽었다(2026-09-17).
+      // `TILE.WATER` 의 물결 고리가 이 크기에서 **계기판 눈금**이 된다 — 인쇄를 빼고,
+      // 수면을 통 높이의 0.74 → **0.50** 으로 내려 안쪽 벽이 드러나게 한다. 통을 통으로 읽히게 하는 건
+      // 물빛이 아니라 «들여다보이는 깊이»다
+      part(new BoxGeometry(TW - WALL * 2 - 0.012, 0.012, TD - WALL * 2 - 0.012), [0.62, 0.86, 1.05], [TX, TH * 0.50, 0]),
+      // ③ 뚜껑 판 — 사진처럼 왼쪽 0.34 만 덮는다. 0.45 + 0.34 로 두 장을 겹쳐 놓았더니
+      // 열린 자리가 좁아 윗면이 통째로 막힌 상자가 됐다
+      part(new BoxGeometry(TW * 0.34, 0.03, TD + 0.02), [0.70, 0.74, 0.72], [-0.5 + TW * 0.17, TH + 0.017, 0]),
+      part(new BoxGeometry(TW * 0.30, 0.03, TD - 0.06), [0.80, 0.84, 0.82], [-0.5 + TW * 0.16, TH + 0.047, 0]),
       // ② 가마 — 몸통 · 검은 조작 띠 · 점화 창 · 윗면 홈판 · ⊓ 급탕관
       part(new BoxGeometry(KW, KH, KD), [0.60, 0.60, 0.56], [KX, KH / 2, KZ]),
       part(new BoxGeometry(KW + 0.004, KH * 0.11, 0.006), [0.07, 0.07, 0.07], [KX, KH * (1 - 0.055), TD / 2 + 0.003]),
@@ -687,8 +692,12 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 치수는 앞면 폭 = 1 로 쓴다(입구 +z).
    */
   개집: () => {
-    const W = 0.99, H = 1.0, WALL_H = 0.48 * H, LOG = WALL_H / 10, D = 0.95;
-    const DOORW = 0.34 * W, DOORH = 0.90 * WALL_H;
+    // 사진 대조가 셋을 짚었다(2026-09-17): 지붕 : 벽 높이가 사진은 **1 : 1** 인데 1.75 : 1 이었고,
+    // 입구가 벽 높이의 0.40 짜리로 «가운데 떠 있었으며»(사진은 바닥까지 뚫려 0.93),
+    // 처마가 벽 폭의 1.47 배로 과했다(사진 1.24). 벽을 0.48 → 0.55 로 올리고 지붕을 0.52 → 0.42 로
+    // 낮추며, 입구를 바닥에서 시작해 벽 높이의 0.90 까지 뚫는다
+    const W = 0.99, H = 1.0, WALL_H = 0.55 * H, LOG = WALL_H / 10, D = 0.95;
+    const DOORW = 0.43 * W, DOORH = 0.90 * WALL_H;
     const LOGC: RGB = [0.72, 0.60, 0.44], DARKC: RGB = [0.09, 0.07, 0.06];
     const logs: Part[] = [];
     for (let i = 0; i < 10; i++) {
@@ -709,7 +718,7 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
         }
       }
     }
-    const ROOF_H = 0.52 * H, RISE = ROOF_H - 0.06, SLOPE = Math.atan2(RISE, W / 2 + 0.10);
+    const ROOF_H = 0.42 * H, RISE = ROOF_H - 0.06, SLOPE = Math.atan2(RISE, W / 2 + 0.06);
     return assemble([
       part(soft(W, 0.04, D, 0.3), [0.55, 0.45, 0.34], [0, 0.02, 0]),
       ...logs,
@@ -717,8 +726,8 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       part(invert(new BoxGeometry(DOORW, DOORH, 0.30)), DARKC, [0, DOORH / 2, D / 2 - 0.16]),
       // ② 박공 지붕 — 40° 두 경사면 + 옆 삼각면
       ...([1, -1] as const).map((k) =>
-        part(new BoxGeometry(W * 0.60 + 0.24, 0.05, D + 0.14), [0.42, 0.34, 0.28],
-          [k * (W / 4 + 0.04), WALL_H + RISE / 2, 0], [0, 0, -k * SLOPE], TILE.WOOD_C)),
+        part(new BoxGeometry(W * 0.60 + 0.14, 0.05, D + 0.10), [0.42, 0.34, 0.28],
+          [k * (W / 4 + 0.02), WALL_H + RISE / 2, 0], [0, 0, -k * SLOPE], TILE.WOOD_C)),
       ...([1, -1] as const).map((k) =>
         part(new CylinderGeometry(RISE, RISE, 0.03, 3, 1, false, Math.PI / 2).scale(1, 1, (W / 2) / (RISE * Math.sqrt(3) / 2) * 0.58), LOGC,
           [0, WALL_H + RISE / 3, k * (D / 2 - 0.02)], [Math.PI / 2, 0, 0])),
@@ -780,12 +789,18 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
       ...([[0.5, 0.3], [-0.6, -0.2], [0.1, -0.7]] as const).map(([ax, az]) =>
         part(new CylinderGeometry(R * 0.6, R * 0.95, 0.30, 6), BARK,
           [ax * 0.10, TRUNK + 0.12, az * 0.10], [az * 0.5, 0, -ax * 0.5])),
-      // ① 수관 — 옆으로 퍼진 납작한 덩어리 하나에 작은 덩어리 셋. ④ 줄기보다 0.08 치우친다
-      part(new SphereGeometry(1, 14, 9).scale(CW / 2, 0.30, CW / 2), LEAF1,
+      // ① 수관 — 옆으로 퍼진 납작한 덩어리 하나에 작은 덩어리 셋. ④ 줄기보다 0.08 치우친다.
+      // 사진 대조가 「퍼진 우산이 아니라 세로로 선 달걀」이라고 했다(2026-09-17) — 반지름 0.225 에
+      // 반높이를 0.30 으로 줘서 **폭보다 키가 컸다.** 폭은 담 때문에 못 넓히지만 **누르는 건 공짜다**.
+      // 0.30 → 0.19 로 눌러 폭 : 높이를 1.2 : 1 로 되돌린다
+      // **키는 그대로 두어야 한다.** 눌러 놓고 꼭대기를 안 올렸더니 전체 높이가 0.98 → 0.83 이 되고,
+      // `normalize` 가 키를 1 로 되돌리면서 폭까지 같이 커져 뒷마당 담을 6cm 넘었다(`housecheck`).
+      // 위 덩이를 올려 꼭대기를 0.98 에 되돌린다
+      part(new SphereGeometry(1, 14, 9).scale(CW / 2, 0.19, CW / 2), LEAF1,
         [-CW * 0.08, TRUNK + 0.36, 0.02], undefined, TILE.LEAF),
-      part(new SphereGeometry(1, 10, 6).scale(0.14, 0.13, 0.14), LEAF2, [0.15, TRUNK + 0.22, 0.09]),
-      part(new SphereGeometry(1, 10, 6).scale(0.13, 0.12, 0.13), LEAF2, [-0.16, TRUNK + 0.18, -0.10]),
-      part(new SphereGeometry(1, 10, 6).scale(0.18, 0.15, 0.18), LEAF3, [-0.08, TRUNK + 0.55, -0.08]),
+      part(new SphereGeometry(1, 10, 6).scale(0.15, 0.10, 0.15), LEAF2, [0.16, TRUNK + 0.22, 0.09]),
+      part(new SphereGeometry(1, 10, 6).scale(0.14, 0.09, 0.14), LEAF2, [-0.17, TRUNK + 0.19, -0.10]),
+      part(new SphereGeometry(1, 10, 6).scale(0.17, 0.11, 0.17), LEAF3, [-0.08, TRUNK + 0.55, -0.08]),
       // 뿌리목
       part(new CylinderGeometry(R * 1.5, R * 2.6, 0.05, 10), BARK, [0, 0.025, 0]),
     ]);
@@ -804,7 +819,10 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
    * 공이 못 지나간다. 다리를 0.27 로 두어 밑이 0.30 m 트인다. 치수는 길이 = 1 로 쓴다.
    */
   평상: () => {
-    const TOP = 0.075, LEG = 0.27, D = 0.33, N = 14, PITCH = (D - 0.02) / N;
+    // 1·2회차 모두 「벤치」로 읽혔다(2026-09-17). 이름이 틀린 게 아니라 **비율이 벤치**다 —
+    // 길이 1 에 깊이 0.33 이면 앉는 자리지 눕는 자리가 아니다. 사진의 평상은 깊이가 길이의 **0.50** 이라
+    // 거의 네모난 마루다. 깊이를 0.33 → 0.50 으로 넓히고 널을 14 → 20 장으로 늘린다
+    const TOP = 0.075, LEG = 0.27, D = 0.50, N = 20, PITCH = (D - 0.02) / N;
     return assemble([
       ...Array.from({ length: N }, (_, i) =>
         part(soft(0.98, TOP, PITCH * 0.82, 0.25), WOOD, [0, LEG + TOP / 2, -D / 2 + 0.01 + PITCH * (i + 0.5)], undefined, TILE.WOOD_C)),
@@ -845,6 +863,21 @@ export const ROOM_BUILDERS: Record<ShapeIdRooms, () => BufferGeometry> = {
         part(new TorusGeometry(R * 1.6, R * 0.4, 3, 8, Math.PI), [0.55, 0.57, 0.58], [(k - 0.5) * 0.05, y - R * 1.2, 0], [0, Math.PI / 2, 0])),
       // 콘크리트 밑동 — 사진에는 땅에 박힌 기둥만 보인다. 게임에서는 세워 두므로 밑동을 남긴다
       part(new CylinderGeometry(0.09, 0.12, 0.10, 12), [0.36, 0.35, 0.33], [0, 0.05, 0], undefined, TILE.STONE),
+      // **걸린 빨래** — 2회차 판정이 「원뿔 받침에 꽂힌 막대에 가는 막대 두 개가 걸친 것」이라며
+      // 이름을 못 댔다(2026-09-17). 기둥과 장대만으로는 무엇을 거는 물건인지 나오지 않는다.
+      // 사진에도 옷이 널려 있다 — 장대에 걸쳐 늘어뜨린 천 셋을 얹는다.
+      // 천은 장대 방향(z)으로 넓고 x 로는 얇아, 기둥 밑동(반지름 0.12)보다 밖으로 나가지 않는다
+      ...([
+        [-0.30, 0.26, 0.34, [0.86, 0.84, 0.78]],      // 흰 수건
+        [0.02, 0.30, 0.40, [0.55, 0.62, 0.72]],       // 셔츠
+        [0.32, 0.22, 0.30, [0.72, 0.52, 0.42]],       // 물 빠진 붉은 천
+      ] as const).map(([z, w, drop, rgb]) => [
+        // 장대에 걸친 마루 — 위는 장대를 감싸고
+        part(new BoxGeometry(0.055, 0.02, w), rgb as RGB, [0, 0.955, z], undefined, TILE.CLOTH),
+        // 늘어진 두 폭
+        ...([1, -1] as const).map((k) =>
+          part(new BoxGeometry(0.008, drop, w), rgb as RGB, [k * 0.024, 0.945 - drop / 2, z], undefined, TILE.CLOTH)),
+      ]).flat(),
     ]);
   },
 };

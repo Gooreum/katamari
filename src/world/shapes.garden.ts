@@ -7,7 +7,7 @@ import {
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShapeIdGarden } from './generation';
 import {
-  assemble, invert, part, WHITE,
+  assemble, invert, part, warp, WHITE,
   type Part, type RGB,
 } from './shapes.kit';
 import { TILE } from './atlas';
@@ -210,36 +210,48 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * 치수는 전체 높이 = 1 로 쓴다.
    */
   석등: () => {
-    const RW = 0.5;                                   // 지붕 반지름(폭 1.0 = 높이)
-    const yLeg = 0.36, yBase = yLeg + 0.04, yFire = yBase + 0.14, yRoof = yFire + 0.24;
+    // 2회차 판정이 「모르겠다 — 납작한 육각 판 가운데 반구가 솟고 아래로 회색 블록이 쌓인 것」이었다
+    // (2026-09-17). 불집(火袋)이 지붕 그늘에 묻혀 **창이 하나도 안 보였고**, 다리는 세 토막씩
+    // 어긋난 채 쌓여 «돌무더기»가 됐다. 석등을 석등으로 만드는 건 삿갓이 아니라
+    // **뚫린 창으로 속이 들여다보이는 불집**이다. 셋을 고친다:
+    //   ⓐ 불집을 0.17 → 0.21 로 키우고 높이를 0.24 → 0.27, 여섯 모서리 **기둥만 남겨** 창을 연다
+    //   ⓑ 지붕을 0.50 → 0.44 로 줄여 불집이 처마 밖으로 드러나게 한다
+    //   ⓒ 다리는 토막을 여섯으로 늘리고 굵기를 0.075 → 0.05 로 줄여 «휜 활»로 잇는다
+    const RW = 0.44;                                  // 지붕 반지름
+    const RF = 0.21;                                  // 불집 반지름
+    const DARK: RGB = [0.10, 0.09, 0.07];             // 불집 속 그늘
+    const yLeg = 0.34, yBase = yLeg + 0.04, yFire = yBase + 0.13, yRoof = yFire + 0.27;
     return assemble([
-      // ④ 활처럼 휜 다리 셋 — 세 토막으로 꺾어 곡선을 낸다
+      // ⓒ 활처럼 휜 다리 셋 — 여섯 토막으로 꺾어 곡선을 낸다
       ...[0, 1, 2].flatMap((i) => {
         const a = Math.PI / 2 + (i / 3) * Math.PI * 2;
         const cx = Math.cos(a), cz = Math.sin(a);
-        return [0, 1, 2].map((k) => {
-          const t = (k + 0.5) / 3, r = 0.10 + 0.31 * t ** 1.6;
-          return part(new CylinderGeometry(0.065, 0.075, yLeg / 3 + 0.01, 6), STONE,
-            [cx * r * RW, yLeg * (1 - t) + yLeg / 6, cz * r * RW], [cz * 0.5 * t, 0, -cx * 0.5 * t], TILE.STONE);
+        return [0, 1, 2, 3, 4, 5].map((k) => {
+          const t = (k + 0.5) / 6, r = 0.10 + 0.34 * t ** 1.7;
+          return part(new CylinderGeometry(0.048, 0.056, yLeg / 6 + 0.012, 6), STONE,
+            [cx * r, yLeg * (1 - t) + yLeg / 12, cz * r], [cz * 0.7 * t, 0, -cx * 0.7 * t], TILE.STONE);
         });
       }),
-      // 밑동 기둥 + ② 받침판
-      part(new CylinderGeometry(0.12, 0.14, 0.05, 10), STONE, [0, yLeg + 0.02, 0]),
-      part(new CylinderGeometry(0.24, 0.20, 0.14, 6), STONE, [0, yBase + 0.07, 0], undefined, TILE.STONE),
-      // 불집 — 육각, 뚫린 창
-      part(new CylinderGeometry(0.17, 0.17, 0.24, 6, 1, true), STONE, [0, yFire + 0.12, 0]),
-      part(invert(new CylinderGeometry(0.15, 0.15, 0.22, 6, 1, true)), [0.11, 0.10, 0.07], [0, yFire + 0.12, 0]),
-      ...[0, 1, 2].map((i) => {
-        const a = (i / 3) * Math.PI * 2;
-        return part(new BoxGeometry(0.11, 0.15, 0.06), [0.11, 0.10, 0.07],
-          [Math.cos(a) * 0.15, yFire + 0.12, Math.sin(a) * 0.15], [0, -a, 0]);
+      // 밑동 기둥 + 받침판(中台)
+      part(new CylinderGeometry(0.11, 0.13, 0.05, 10), STONE, [0, yLeg + 0.02, 0]),
+      part(new CylinderGeometry(0.26, 0.21, 0.13, 6), STONE, [0, yBase + 0.065, 0], undefined, TILE.STONE),
+      // ⓐ 불집 — 여섯 모서리 기둥 사이가 **비어 있다**. 그 틈으로 보이는 속을 어둡게 깔아
+      //    창이 «뚫린 구멍»으로 읽히게 한다
+      part(new CylinderGeometry(RF * 0.82, RF * 0.82, 0.25, 6), DARK, [0, yFire + 0.135, 0]),
+      ...[0, 1, 2, 3, 4, 5].map((i) => {
+        const a = ((i + 0.5) / 6) * Math.PI * 2;
+        return part(new BoxGeometry(0.052, 0.27, 0.052), STONE,
+          [Math.cos(a) * RF * 0.92, yFire + 0.135, Math.sin(a) * RF * 0.92], [0, -a, 0], TILE.STONE);
       }),
-      // ① 지붕 — 아주 완만한 삿갓. 끝이 살짝 들린다
-      part(new CylinderGeometry(0.18, RW, 0.13, 6), STONE, [0, yRoof + 0.055, 0], undefined, TILE.STONE),
-      part(new CylinderGeometry(RW, RW * 0.96, 0.02, 6), STONE, [0, yRoof - 0.005, 0]),
-      // ③ 납작한 원반 보주
-      part(new CylinderGeometry(0.13, 0.145, 0.07, 10), STONE, [0, yRoof + 0.145, 0]),
-      part(new SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.12, 0.05, 0.12), STONE, [0, yRoof + 0.18, 0]),
+      // 불집 위아래 테 — 기둥만 여섯이면 «우리»가 된다. 위아래를 돌로 막아 상자로 만든다
+      part(new CylinderGeometry(RF, RF, 0.03, 6), STONE, [0, yFire + 0.015, 0], undefined, TILE.STONE),
+      part(new CylinderGeometry(RF, RF, 0.03, 6), STONE, [0, yFire + 0.255, 0], undefined, TILE.STONE),
+      // ⓑ 지붕 — 완만한 삿갓. 처마 밑을 어둡게 해 불집과 갈라 놓는다
+      part(new CylinderGeometry(0.17, RW, 0.15, 6), STONE, [0, yRoof + 0.075, 0], undefined, TILE.STONE),
+      part(new CylinderGeometry(RW, RW * 0.94, 0.025, 6), [0.46, 0.45, 0.42], [0, yRoof - 0.012, 0]),
+      // 납작한 원반 보주
+      part(new CylinderGeometry(0.115, 0.13, 0.065, 10), STONE, [0, yRoof + 0.183, 0]),
+      part(new SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.105, 0.045, 0.105), STONE, [0, yRoof + 0.215, 0]),
     ]);
   },
 
@@ -255,27 +267,38 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * 앞 디딤돌은 사진에 없다 — 뺐다. 치수는 지름 = 1 로 쓴다.
    */
   물확: () => {
-    const R = 0.5, H = 0.32, HOLE = 0.52 * 2 * R;
+    // 2회차 판정이 「둥근 사발 위에 글자 새긴 사각 판이 얹힌 것」이라며 이름을 못 댔다(2026-09-17).
+    // 두 군데가 틀렸다:
+    //   ⓐ 윗면을 **네모 판 넉 장**으로 짰더니 모서리가 둥근 몸통 밖으로 41% 나가
+    //      「통 위에 얹은 널판」이 됐다. 구멍 뚫린 **둥근 테 한 장**으로 바꾼다
+    //   ⓑ 지름 : 높이를 0.32 로 잡았는데 사진을 다시 재니 **0.58** 이다 — 납작한 접시가 아니라
+    //      땅에 놓인 **돌 북**이다. 낮으면 「파낸 그릇」이 아니라 「구멍 뚫린 뚜껑」으로 보인다
+    const R = 0.5, H = 0.58, HOLE = 0.52 * 2 * R;
+    // ⓐ 둥근 윗면에 네모 구멍 — 원 바깥선에 사각 구멍을 뚫어 한 장으로 뽑는다
+    const top = new Shape();
+    top.absarc(0, 0, R * 0.99, 0, Math.PI * 2, false);
+    const hole = new Shape();
+    hole.moveTo(-HOLE / 2, -HOLE / 2); hole.lineTo(HOLE / 2, -HOLE / 2);
+    hole.lineTo(HOLE / 2, HOLE / 2); hole.lineTo(-HOLE / 2, HOLE / 2); hole.closePath();
+    top.holes.push(hole);
     return assemble([
       // ① 통짜 원기둥 — 옆면 · 윗면
       part(new CylinderGeometry(R, R * 0.98, H, 16, 1, true), STONE, [0, H / 2, 0], undefined, TILE.STONE),
-      // 1회차 트랙 D 가 「윗면이 평평하고 파인 자리가 선만 남았다」고 했다 — 윗면을 **온전한 원판**으로
-      // 덮어서 그 아래 파낸 상자가 통째로 가려졌다. 원판 대신 네모 구멍을 두른 **테 네 장**으로 짠다
-      ...([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).map(([dx, dz]) =>
-        part(new BoxGeometry(dx ? (R - HOLE / 2) : 2 * R, 0.012, dz ? (R - HOLE / 2) : HOLE),
-          [0.80, 0.78, 0.74],
-          [dx * (HOLE / 2 + (R - HOLE / 2) / 2), H - 0.006, dz * (HOLE / 2 + (R - HOLE / 2) / 2)],
-          undefined, TILE.TSUKUBAI)),
+      part(mergeVertices(new ExtrudeGeometry(top, { depth: 0.014, bevelEnabled: false })),
+        [0.80, 0.78, 0.74], [0, H, 0], [Math.PI / 2, 0, 0], TILE.TSUKUBAI),
       part(new CircleGeometry(R * 0.98, 16), [0.50, 0.48, 0.45], [0, 0.002, 0], [Math.PI / 2, 0, 0]),
       // ② 파낸 네모 구멍 — 뒤집은 상자로 «안»을 만든다
       part(invert(new BoxGeometry(HOLE, H * 0.7, HOLE)), [0.16, 0.19, 0.18], [0, H - H * 0.35 + 0.001, 0]),
-      // 고인 물 — 테두리 바로 아래까지 찬다
-      part(new BoxGeometry(HOLE - 0.01, 0.01, HOLE - 0.01), [1.05, 1.25, 1.35], [0, H - 0.03, 0], undefined, TILE.WATER),
+      // 고인 물 — 테에서 한 뼘 아래.
+      // `TILE.WATER` 의 물결 고리를 뺐다. 욕조와 같은 실패였다 — 이 크기에서 동심원은 물이 아니라
+      // **계기판 눈금**으로 읽힌다(판정 근거가 「동심원이 그려진 회색 사각 면」이었다).
+      // 물을 조금 내려 파낸 벽이 한 단 보이게 한다
+      part(new BoxGeometry(HOLE - 0.01, 0.01, HOLE - 0.01), [0.62, 0.86, 1.05], [0, H - 0.10, 0]),
       // ④ 대나무 꼭지 — 뒤 오른쪽 위에서 30° 로 내려와 구멍 위에서 끝난다
-      ...culm(-0.46, -0.30, 0.62, 0.035, 0, 2, 0, BAMBOO_LIT),
-      part(new CylinderGeometry(0.05, 0.05, 0.52, 8), BAMBOO_LIT, [-0.22, 0.52, -0.14],
+      ...culm(-0.46, -0.30, 0.88, 0.035, 0, 3, 0, BAMBOO_LIT),
+      part(new CylinderGeometry(0.05, 0.05, 0.52, 8), BAMBOO_LIT, [-0.22, 0.78, -0.14],
         [0.28, 0.52, Math.PI / 2 - 0.52], TILE.WOOD_F),
-      part(new TorusGeometry(0.052, 0.012, 4, 8), BAMBOO_NODE, [-0.40, 0.63, -0.26], [Math.PI / 2, 0, 0]),
+      part(new TorusGeometry(0.052, 0.012, 4, 8), BAMBOO_NODE, [-0.40, 0.89, -0.26], [Math.PI / 2, 0, 0]),
     ]);
   },
 
@@ -286,21 +309,33 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * 열린 마당 한가운데 걸림돌 일곱이 생긴다. 낮게 깔고 윗면에 이끼를 한 겹 얹어
    * 「길」로 읽히게 한다 — 이끼가 없으면 그냥 회색 원반이다.
    */
-  징검돌: () => assemble([
+  징검돌: () => {
+    // 2회차 판정이 「팔각 테두리 안에 베이지 팔각 면 — 모르겠다」였다(2026-09-17).
+    // 1회차의 「낮은 팔각 단」과 같은 말이다. 칠각형을 반듯하게 뽑아 놓아 **깎아 만든 받침**으로
+    // 읽힌다 — 사진의 도비이시는 **가장자리가 제각각인 자연석**이다.
+    // 둘레를 각마다 흔들어 「다듬은 판」에서 「주워다 놓은 돌」로 옮긴다
+    const wob = (g: BufferGeometry): BufferGeometry => warp(g, (x, y, z) => {
+      const a = Math.atan2(z, x);
+      const k = 1 + 0.15 * Math.sin(3 * a + 0.7) + 0.09 * Math.cos(5 * a - 1.2);
+      return [x * k, y, z * k];
+    });
+    return assemble([
     // SEAM-OK-ALL: 높이 5.6cm 짜리 **납작한 돌**이다. 얇은 판 셋을 겹쳐 두께를 낸
     // 것이라 옆에서 보이는 면이 거의 없다 — 여기에 턱을 주면 돌이 아니라 «케이크»가
     // 된다. 이 형상의 이음매는 전부 «일부러» 이어져 있다
     // **사진에서 잰 값으로 고쳤다.** `ref/징검돌/` — 두께가 폭의 **0.12**(앞의 것은 0.19 라 두툼했다).
     // 윗면 가장자리가 «장마다 다른 둥근 다각형»이라 10면을 7면으로 줄여 각을 살린다
-    part(new CylinderGeometry(0.145, 0.155, 0.022, 7), STONE_DARK, [0, 0.011, 0], undefined, TILE.STONE),
-    part(new CylinderGeometry(0.150, 0.145, 0.012, 7), STONE, [0, 0.028, 0], undefined, TILE.STONE),
-    // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다.
-    // `MOSS` 는 돌과 대비가 0.02 였다 — 이끼는 확실히 «어둡고 푸르다»
-    part(new CylinderGeometry(0.153, 0.150, 0.006, 7), MOSS, [0, 0.032, 0]),
-    // 밟아 닳은 가운데 — 이끼보다 «밝다». 두께를 이끼와 다르게 해서 같은 평면을 피한다
-    part(new CylinderGeometry(0.112, 0.112, 0.008, 7), [1.15, 1.12, 1.05],
-      [0.008, 0.0335, -0.006], undefined, TILE.STONE),
-  ]),
+      part(wob(new CylinderGeometry(0.145, 0.155, 0.022, 9)), STONE_DARK, [0, 0.011, 0], undefined, TILE.STONE),
+      part(wob(new CylinderGeometry(0.150, 0.145, 0.012, 9)), STONE, [0, 0.028, 0], undefined, TILE.STONE),
+      // 이끼 — 가장자리에만 낀다. 가운데는 밟아서 닳는다.
+      // `MOSS` 는 돌과 대비가 0.02 였다 — 이끼는 확실히 «어둡고 푸르다»
+      part(wob(new CylinderGeometry(0.153, 0.150, 0.006, 9)), MOSS, [0, 0.032, 0]),
+      // 밟아 닳은 가운데 — 이끼보다 «밝다». 두께를 이끼와 다르게 해서 같은 평면을 피한다.
+      // 가운데는 흔들지 않는다 — 발이 닿아 닳은 자리라 테두리보다 반듯하다
+      part(new CylinderGeometry(0.108, 0.108, 0.008, 9), [1.15, 1.12, 1.05],
+        [0.008, 0.0335, -0.006], undefined, TILE.STONE),
+    ]);
+  },
 
   /**
    * 대나무 — **사진에서 잰 값으로 다시 만들었다.**
@@ -314,11 +349,15 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    */
   대나무: () => {
     // 대 수는 사진(열 대 안팎)보다 적은 일곱 — 마디 고리가 대마다 넷이라 열 대면 1,900 삼각형이 넘는다
-    const N = 7, R = 0.009;
+    // 2회차 판정이 다시 「풀」이었다 — 근거가 「가는 세로 줄기 여러 가닥에 뾰족한 잎」이다(2026-09-17).
+    // 대나무를 풀과 가르는 건 잎이 아니라 **마디진 굵은 대**다. 사진의 0.007 은 대숲을 멀리서 잰 값이라
+    // 한 포기에 그대로 쓰면 풀줄기가 된다. 대를 일곱 → 다섯으로 줄이고 굵기를 0.009 → 0.016 으로,
+    // 마디를 셋 → 다섯으로 늘려 마디 고리가 보이게 한다
+    const N = 5, R = 0.016;
     const culms = Array.from({ length: N }, (_, i) => {
       const a = (i / (N - 1) - 0.5) * 2;                       // −1 … 1
       const x = a * 0.08, z = ((i % 3) - 1) * 0.045;
-      return culm(x, z, 0.86 + ((i * 7) % 5) * 0.03, R * (1 - Math.abs(a) * 0.2), a * 0.10, 3, (i * 0.37) % 1);
+      return culm(x, z, 0.86 + ((i * 7) % 5) * 0.03, R * (1 - Math.abs(a) * 0.2), a * 0.10, 5, (i * 0.37) % 1);
     }).flat();
     return assemble([
       ...culms,
@@ -346,10 +385,15 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
    * 치수는 높이 = 1 로 쓴다.
    */
   소나무: () => {
-    const s0 = stem([0, 0, 0], 0.16, 0.30, 0.065, 0.053);
-    const s1 = stem(s0.end, -0.24, 0.24, 0.053, 0.043);
-    const s2 = stem(s1.end, 0.28, 0.20, 0.043, 0.034);
-    const s3 = stem(s2.end, -0.12, 0.14, 0.034, 0.026);
+    // 2회차 판정이 「가는 갈색 기둥 하나 위에 납작한 초록 덩어리 세 장 — 버섯」이었다(2026-09-17).
+    // 맨 줄기가 0.30 밖에 안 되는데 맨 아래 잎덩이가 그 위에 바로 얹혀 **줄기를 가렸고**,
+    // 굵기 0.065 로는 덩이(0.65~0.75) 옆에서 대꼬치로 보인다. 소나무를 버섯과 가르는 건
+    // 잎 모양이 아니라 **덩이 사이로 드러난 굵고 굽은 줄기**다.
+    // 줄기를 0.30 → 0.40 으로 올리고 0.065 → 0.090 으로 굵히며, 굽이도 키워 S자를 드러낸다
+    const s0 = stem([0, 0, 0], 0.20, 0.40, 0.090, 0.072);
+    const s1 = stem(s0.end, -0.34, 0.24, 0.072, 0.056);
+    const s2 = stem(s1.end, 0.36, 0.20, 0.056, 0.042);
+    const s3 = stem(s2.end, -0.16, 0.14, 0.042, 0.030);
     /**
      * ① · ④ 잎 층 — 폭은 사진 값(0.65 · 0.75 · 0.57), 두께는 폭의 1/3.
      * 밑면이 평평해야 「다듬은 층」이고, 반구를 얹으면 솜사탕이 된다.
@@ -364,9 +408,10 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     ];
     return assemble([
       s0.part, s1.part, s2.part, s3.part,
-      ...pad(s0.end, 0.16, -0.05, 0.65),
-      ...pad(s1.end, -0.18, 0.06, 0.75),
-      ...pad(s2.end, 0.13, 0.04, 0.57),
+      // 덩이를 한 뼘씩 밖으로 밀고 폭을 줄인다 — 줄기 둘레에 하늘이 남아야 «층진 가지»가 된다
+      ...pad(s0.end, 0.24, -0.08, 0.54),
+      ...pad(s1.end, -0.26, 0.09, 0.62),
+      ...pad(s2.end, 0.20, 0.06, 0.46),
       // 꼭대기 — 가지 없이 줄기 끝에 바로
       part(new SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.13, 0.09, 0.13), PINE,
         [s3.end[0], s3.end[1], s3.end[2]], undefined, TILE.LEAF),
