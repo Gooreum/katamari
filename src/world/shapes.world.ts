@@ -103,8 +103,13 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       part(new TorusGeometry(0.502, 0.016, 3, 20), [0.26, 0.26, 0.27], [0, 0, 0], LIE_Z),
       // ① 휠 — 바깥 지름의 0.71. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다.
       //   높이 0.20 은 옆벽(0.29)보다 얕지만 옆벽이 안으로 기울어 «솟은 고원»으로 보였다 — 0.15 로 낮춘다
-      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.15, 18), [0.82, 0.82, 0.84]),
-      part(new CylinderGeometry(0.085, 0.085, 0.17, 12), [0.62, 0.62, 0.64]),
+      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.12, 18), [0.70, 0.71, 0.73]),
+      // 허브 — 휠 면보다 한 단 솟는다. 이게 없으면 휠이 그냥 뚜껑이다
+      part(new CylinderGeometry(0.085, 0.085, 0.15, 12), [0.55, 0.56, 0.58]),
+      // 볼트 넷 — 휠 면에 박힌다
+      ...Array.from({ length: 4 }, (_, k) => (k * Math.PI) / 2).map((a) =>
+        part(new CylinderGeometry(0.018, 0.018, 0.13, 6), [0.48, 0.49, 0.51],
+          [Math.cos(a) * 0.19, 0, Math.sin(a) * 0.19])),
     ]);
   },
 
@@ -696,8 +701,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       // 여전히 «뚜껑 없는 통»이었다. 유리보다 확실히 넓고 두껍게 덮는다
       part(new BoxGeometry(0.50, 0.050, W * 1.03), BODY, [-0.055, H - 0.025, 0], undefined, TILE.METAL),
       // ② 앞유리 · 뒷유리 기둥 — 거의 곧게 선다
-      part(new BoxGeometry(0.10, H - yBelt, W * 0.95), GLASSY, [0.145, (H + yBelt) / 2, 0], [0, 0, -0.40]),
-      part(new BoxGeometry(0.09, H - yBelt, W * 0.95), GLASSY, [-0.245, (H + yBelt) / 2, 0], [0, 0, 0.42]),
+      // 앞뒤 유리는 «기울어» 있어서 상자 대각선이 지붕 위로 4mm 삐져나왔다 —
+      // 그 4mm 가 지붕 앞뒤에 «턱»으로 보여 뚜껑 없는 통처럼 읽혔다. 높이를 0.8 로 줄이고 낮춘다
+      part(new BoxGeometry(0.10, (H - yBelt) * 0.8, W * 0.95), GLASSY, [0.145, (H + yBelt) / 2 - 0.012, 0], [0, 0, -0.40]),
+      part(new BoxGeometry(0.09, (H - yBelt) * 0.8, W * 0.95), GLASSY, [-0.245, (H + yBelt) / 2 - 0.012, 0], [0, 0, 0.42]),
       // ③ 프레스 라인 두 줄 — 벨트라인 아래와 손잡이 높이
       ...[yBelt - 0.012, yBelt - 0.062].map((y) =>
         part(new BoxGeometry(0.86, 0.008, W * 1.01), [0.74, 0.74, 0.76], [0, y, 0])),
