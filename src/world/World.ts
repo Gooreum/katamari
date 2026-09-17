@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, BufferGeometry, CanvasTexture, Color, ConeGeometry, CylinderGeometry,
+  Box3, BoxGeometry, BufferGeometry, CanvasTexture, Color, ConeGeometry, CylinderGeometry,
   Material, Mesh, MeshBasicMaterial, MeshLambertMaterial, NearestFilter, Object3D, PlaneGeometry,
   RepeatWrapping, Scene, SphereGeometry, SRGBColorSpace, Vector3,
 } from 'three';
@@ -178,19 +178,6 @@ function buildProps(
     }
     const s = p.size;
     const baseY = (p.y ?? 0) + s / 2;
-    const spec: ObjectSpec = {
-      x: p.x,
-      // `y` 를 주면 그 높이에 얹는다 — TV장 위의 텔레비전
-      y: baseY,
-      z: p.z,
-      sx: s, sy: s, sz: s,
-      rotY: p.rotY ?? 0,
-      geo,
-      color: colorOf(p.label),
-      size: s,
-      volume: s ** 3,
-      label: p.label,
-    };
 
     // **충돌 상자를 형상 실측에 맞춘다.**
     //
@@ -204,6 +191,20 @@ function buildProps(
     }
     if (!g.boundingBox) g.computeBoundingBox();
     const bb = g.boundingBox!;
+
+    const spec: ObjectSpec = {
+      x: p.x,
+      // `y` 를 주면 그 높이에 얹는다 — TV장 위의 텔레비전
+      y: baseY,
+      z: p.z,
+      sx: s, sy: s, sz: s,
+      rotY: p.rotY ?? 0,
+      geo,
+      color: colorOf(p.label),
+      size: s,
+      volume: propVolume(s, bb),
+      label: p.label,
+    };
 
     const floor = p.y ?? 0;                              // 물건이 얹힌 면
     const top = floor + (bb.max.y - bb.min.y) * s;       // 형상 상단
@@ -221,6 +222,28 @@ function buildProps(
     if (p.roam !== undefined) spec.roam = p.roam;
     return spec;
   });
+}
+
+/**
+ * 손배치 물건의 **부피(m³)** — 형상 실측 × `size³`.
+ *
+ * 여태 `size ** 3` 짜리 정육면체였다. 발판에서 이미 겪은 것과 **같은 종류의 거짓말**이고
+ * (바로 아래 `propFootprint` 주석), 이쪽이 더 비싸다 — 부피는 공이 얼마나 커지는지를
+ * 정한다. 키만 큰 물건일수록 어긋난다: 가로수(3m)가 1.9m³ 대신 **27m³** 였다.
+ *
+ * 길가 물건 열일곱을 압출 상자에서 형상으로 옮기면서 드러났다. 상자는
+ * 가로×세로×높이로 세는데 형상은 정육면체로 세니, 같은 물건이 옮겨지기만 해도
+ * 부피가 **7.6배**로 뛰었다(합계 22.3m³ → 170.2m³). 별을 만들어라 8이
+ * 345초에서 280초로 빨라지고 곡선 편차(CV)가 0.610 → 0.693 으로 나빠졌다.
+ * 형상 실측으로 세면 22.3m³ → **20.5m³**(0.92배)라 맞춰둔 곡선이 제자리에 있다.
+ *
+ * `boundingBox` 는 `normalize()` 가 최장축을 1.0 으로 구워둔 상자라
+ * 그 부피가 곧 **「정육면체 대비 얼마나 찼는가」** 다.
+ *
+ * 두 곳이 이걸 쓴다. **같은 자를 써야 한다** — `tools/curve.ts` 가 같은 식을 쓴다.
+ */
+export function propVolume(size: number, bb: Box3): number {
+  return (bb.max.x - bb.min.x) * (bb.max.y - bb.min.y) * (bb.max.z - bb.min.z) * size ** 3;
 }
 
 /**

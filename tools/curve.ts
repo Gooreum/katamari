@@ -8,7 +8,8 @@
  * 목표는 로그 스케일에서 직선 — 즉 두 배 되는 데 걸리는 시간이 일정한 것.
  * 계단이 나오면 크기 분포에 벽이 있다는 뜻이다.
  */
-import { generateWorld, GENERATION, type GenerationParams, type ObjectSpec } from '../src/world/generation';
+import { generateWorld, GENERATION, SHAPE_IDS, type GenerationParams, type ObjectSpec } from '../src/world/generation';
+import { buildShapeGeometries } from '../src/world/shapes';
 import { TUNING, canAbsorb, radiusFromVolume, speedAt, volumeFromRadius } from '../src/game/tuning';
 import { buildHouseStage } from '../src/world/stage.house';
 import { buildTownStage } from '../src/world/stage.town';
@@ -57,14 +58,48 @@ const ROOMS = PLACE ? [...PLACE.rooms, ...(PLACE.spots ?? [])] : undefined;
  * `buildingSpecs` 가 `buildings` 만 보기 때문이다. 도구가 게임과 다른 월드를 재면
  * 그 숫자는 거짓말이다.
  */
+/**
+ * 형상 이름 → **정규화 바운딩박스 부피**. `normalize()` 가 최장축을 1.0 으로
+ * 구워둔 상자라, 그 부피가 곧 「정육면체 대비 얼마나 찼는가」다.
+ *
+ * 146종을 다 짓는 값이라 **손배치 물건이 있을 때만** 짓는다 —
+ * `--donut` 이나 손배치가 없는 판에서 공연히 몇 초를 쓰지 않는다.
+ */
+let GEO_BOX_CACHE: Map<string, number> | null = null;
+function geoBox(): Map<string, number> {
+  if (GEO_BOX_CACHE !== null) return GEO_BOX_CACHE;
+  const m = new Map<string, number>();
+  const geos = buildShapeGeometries();
+  SHAPE_IDS.forEach((id, i) => {
+    const g = geos[i]!;
+    g.computeBoundingBox();
+    const b = g.boundingBox!;
+    m.set(id, (b.max.x - b.min.x) * (b.max.y - b.min.y) * (b.max.z - b.min.z));
+  });
+  GEO_BOX_CACHE = m;
+  return m;
+}
+
+/**
+ * **부피는 형상 실측으로 낸다** — `World.propVolume` 과 같은 식이다.
+ *
+ * `size ** 3`(정육면체)을 쓰면 키만 큰 물건이 통째로 부풀어서, 같은 물건을
+ * 압출 상자에서 형상으로 옮기기만 해도 곡선이 움직인다. 실제로 길가 열일곱을
+ * 옮겼더니 부피 합계가 22.3m³ → 170.2m³ 로 뛰고 별을 만들어라 8이 65초 빨라졌다.
+ * 도구가 게임과 다른 자를 쓰면 그 숫자는 거짓말이다.
+ */
 function propSpecs(): ObjectSpec[] {
   if (process.argv.includes('--donut')) return [];
-  return (STAGE.placement?.props ?? []).map((p) => ({
-    x: p.x, z: p.z, size: p.size, volume: p.size ** 3,
-    // 아래는 시뮬이 안 쓰는 값이다. 스키마를 맞추려고 채운다
-    sx: p.size, sy: p.size, sz: p.size,
-    y: (p.y ?? 0) + p.size / 2, rotY: p.rotY ?? 0, geo: 0, color: 0, label: p.label,
-  } as ObjectSpec));
+  return (STAGE.placement?.props ?? []).map((p) => {
+    const g = geoBox().get(p.label);
+    if (g === undefined) throw new Error(`'${p.label}' 의 지오메트리가 SHAPE_IDS 에 없습니다`);
+    return {
+      x: p.x, z: p.z, size: p.size, volume: g * p.size ** 3,
+      // 아래는 시뮬이 안 쓰는 값이다. 스키마를 맞추려고 채운다
+      sx: p.size, sy: p.size, sz: p.size,
+      y: (p.y ?? 0) + p.size / 2, rotY: p.rotY ?? 0, geo: 0, color: 0, label: p.label,
+    } as ObjectSpec;
+  });
 }
 
 function buildingSpecs(): ObjectSpec[] {
