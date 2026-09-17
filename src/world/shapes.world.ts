@@ -90,18 +90,21 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
    * 치수는 바깥 지름 = 1 로 쓴다(눕혀 놓는다).
    */
   타이어: () => {
-    const RUB: RGB = [0.24, 0.19, 0.16], RIM = 0.355;
+    // 1회차 판정이 「나무 통 · 바구니」였다. 사진값(35,25,21)의 «따뜻한 갈색끼»를 그대로 계수로 넣고
+    // 돌림면에 고무 인쇄까지 물렸더니, 게임의 따뜻한 빛에서 나뭇결로 읽혔다.
+    // 고무는 중성 검정으로 내리고 인쇄를 뺀다 — 늘어난 uv 에서 점 무늬가 «엮은 결»이 됐다.
+    const RUB: RGB = [0.17, 0.17, 0.18], RIM = 0.355;
     // ② 단면 — 안쪽 테에서 옆벽이 부풀었다가 평평한 접지면으로. 눕혀 놓으므로 돌림축이 y 다
     const prof = [[RIM, 0.105], [0.45, 0.145], [0.492, 0.132], [0.5, 0.09], [0.5, -0.09],
       [0.492, -0.132], [0.45, -0.145], [RIM, -0.105]].map(([r, y]) => new Vector2(r!, y!));
     return assemble([
-      part(new LatheGeometry(prof, 20), RUB, [0, 0, 0], undefined, TILE.RUBBER),
+      part(new LatheGeometry(prof, 20), RUB),
       // ③ 접지면 어깨 블록 — 세로 홈 넷을 사이에 두고 다섯 줄
       ...[-0.072, -0.036, 0, 0.036, 0.072].map((y) =>
-        part(new TorusGeometry(0.502, 0.013, 3, 20), [0.30, 0.24, 0.20], [0, y, 0], LIE_Z)),
+        part(new TorusGeometry(0.502, 0.013, 3, 20), [0.26, 0.26, 0.27], [0, y, 0], LIE_Z)),
       // ① 휠 — 바깥 지름의 0.71. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다
-      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.20, 18), [0.66, 0.56, 0.50], undefined, undefined, TILE.METAL),
-      part(new CylinderGeometry(0.10, 0.10, 0.22, 12), [0.52, 0.46, 0.44]),
+      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.20, 18), [0.80, 0.80, 0.82]),
+      part(new CylinderGeometry(0.10, 0.10, 0.22, 12), [0.62, 0.62, 0.64]),
     ]);
   },
 
@@ -186,7 +189,9 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
    * 치수는 전체 높이 = 1 로 쓴다.
    */
   입간판: () => {
-    const H = 0.78, W = H / 1.52, TILT = 0.20, CREAM: RGB = [0.85, 0.79, 0.60];
+    // 1회차 판정이 「다리 달린 캐비닛」이었다 — 벌어짐 0.20 rad(11°)로는 옆에서 A 자가 안 보이고
+    // 앞뒤 판 두 장이 두꺼운 상자 한 짝으로 뭉친다. 사진의 벌어짐(밑변 0.65 : 높이)에 맞춰 0.32 로 벌린다
+    const H = 0.78, W = H / 1.52, TILT = 0.32, CREAM: RGB = [0.85, 0.79, 0.60];
     const yMid = 0.21 + H / 2;
     // ③ 앞뒤 두 판 — 위에서 만나 아래로 벌어진다. 폭을 달리해야 옆면 두 장이 같은 평면이 아니다
     const board = (k: 1 | -1, w: number) => part(new BoxGeometry(w, H, 0.022), CREAM,
@@ -623,13 +628,15 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     return assemble([
       // ② 종 모양 몸 — 어깨에서 옷자락으로 벌어진다. 앞뒤로는 얇다
       part(new CylinderGeometry(SH / 2, HEM / 2, yShoulder - 0.035, 14, 1, true).scale(1, 1, 0.66), CLOTH,
-        [0, (yShoulder + 0.035) / 2, 0], undefined, TILE.CLOTH),
+        // 1회차 판정이 「격자 무늬가 촘촘한 세로 원통」이었다 — 천 짜임 인쇄가 이 크기에서
+        // 옷이 아니라 «그물»로 읽힌다. 인쇄를 뺀다
+        [0, (yShoulder + 0.035) / 2, 0]),
       part(new CircleGeometry(HEM / 2, 14).scale(1, 1, 0.66), CLOTH, [0, 0.036, 0], [Math.PI / 2, 0, 0]),
       // ④ 소매 — 가장 넓은 곳(0.298)을 만든다. 몸에 붙어 실루엣 안에 든다
       ...([1, -1] as const).map((k) =>
         part(new SphereGeometry(1, 8, 6).scale(0.055, 0.115, 0.048), CLOTH, [k * 0.098, 0.55, 0])),
       // ④ 모아 쥔 손 — 배꼽 높이, 몸 앞으로
-      part(new SphereGeometry(0.030, 6, 5), SKIN, [0.01, 0.435, 0.068]),
+      part(new SphereGeometry(1, 6, 5).scale(0.030, 0.022, 0.018), SKIN, [0.01, 0.42, 0.052]),
       // ③ 어깨 — 옷깃이 턱 밑에서 바로 이어진다
       part(new SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2).scale(SH / 2, 0.05, SH / 2 * 0.66), CLOTH,
         [0, yShoulder - 0.01, 0]),
@@ -672,9 +679,12 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       // 로커 아래 — 조금 좁혀 바닥이 떠 보이게
       part(new BoxGeometry(0.94, yRock, W * 0.92), [0.62, 0.62, 0.64], [0, yRock / 2, 0]),
       // ③ 유리대 — 전고의 0.31. 지붕보다 넓어야 «창 띠»가 한 바퀴 돈다
-      part(new BoxGeometry(0.46, H - yBelt - 0.022, W * 1.005), GLASSY, [-0.055, (H + yBelt) / 2 - 0.011, 0]),
-      // ④ 평평한 지붕 — 전장의 0.32, 휠베이스 한가운데보다 조금 뒤
-      part(new BoxGeometry(0.32, 0.024, W * 0.92), BODY, [-0.055, H - 0.012, 0], undefined, TILE.METAL),
+      // 1회차 판정이 「위가 뚫린 작은 상자」였다 — 유리대를 몸통보다 «넓게»(W×1.005) 두르고
+      // 지붕을 그보다 짧게(0.32) 얹어, 유리 벽이 지붕 둘레로 솟은 욕조가 됐다.
+      // 유리는 몸통보다 좁게 넣고 지붕이 유리를 «덮게» 한다
+      part(new BoxGeometry(0.46, H - yBelt - 0.022, W * 0.97), GLASSY, [-0.055, (H + yBelt) / 2 - 0.011, 0]),
+      // ④ 평평한 지붕 — 유리대를 덮는다. 전장의 0.32 는 «평평한 구간»이지 지붕 전체가 아니다
+      part(new BoxGeometry(0.47, 0.026, W * 0.99), BODY, [-0.055, H - 0.013, 0], undefined, TILE.METAL),
       // ② 앞유리 · 뒷유리 기둥 — 거의 곧게 선다
       part(new BoxGeometry(0.10, H - yBelt, W * 0.95), GLASSY, [0.145, (H + yBelt) / 2, 0], [0, 0, -0.40]),
       part(new BoxGeometry(0.09, H - yBelt, W * 0.95), GLASSY, [-0.245, (H + yBelt) / 2, 0], [0, 0, 0.42]),
@@ -683,7 +693,7 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
         part(new BoxGeometry(0.86, 0.008, W * 1.01), [0.74, 0.74, 0.76], [0, y, 0])),
       // ② 바퀴 넷 — 전장의 0.138. 펜더에 꽉 낀다
       ...([[0.31, 1], [0.31, -1], [-0.31, 1], [-0.31, -1]] as const).map(([x, k]) =>
-        part(new CylinderGeometry(RW, RW, 0.055, 12), RUB, [x, RW, k * W / 2], LIE_Z, TILE.RUBBER)),
+        part(new CylinderGeometry(RW, RW, 0.055, 12), RUB, [x, RW, k * W / 2], LIE_Z)),
       ...([[0.31, 1], [0.31, -1], [-0.31, 1], [-0.31, -1]] as const).map(([x, k]) =>
         part(new CylinderGeometry(RW * 0.58, RW * 0.58, 0.058, 10), [0.70, 0.70, 0.70], [x, RW, k * W / 2], LIE_Z)),
       // ⑤ 검은 고무 범퍼 — 앞뒤 끝을 어두운 띠로 마감한다
