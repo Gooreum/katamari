@@ -415,7 +415,200 @@ export function buildTileTexture(): CanvasTexture {
   return finish(cv);
 }
 
-/** 방 정의(`StageRoom.floorTex`)가 고르는 이름 → 생성 함수. */
+/* ═══════════════════════════════════════════════════════════════
+ * 야외 — 동네·거리 맵의 바닥
+ *
+ * 위의 일곱은 전부 **실내**용이다. 동네 열두 구역과 거리 여덟 구역은
+ * `floorTex` 가 하나도 없어서 `MeshLambertMaterial({ color })` 단색 평면이었다.
+ * 「호숫가 도로」가 회색 사각형 한 장인 게 그 결과다.
+ *
+ * 규약은 실내와 같다 — 128px 이 `TILE_M`(1.8m)을 덮으므로 **1px = 1.4cm**,
+ * 무작위 대신 결정적 수열, 마지막에 `finish()`.
+ *
+ * **`fillStyle` 과 `fillRect` 만 쓴다.** `tools/citycheck.ts` 의 document 스텁이
+ * 그 둘만 흉내내기 때문이다 — 그라디언트나 `strokeRect` 를 쓰면 도구가 통째로 죽는다.
+ * ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * 아스팔트. **정체는 골재 알갱이다.**
+ *
+ * 차도를 단색으로 두면 회색 종이가 된다. 1px 짜리 골재를 1,100개 뿌리면
+ * 1px = 1.4cm 라 실제 아스팔트 골재 한 알 크기와 맞는다.
+ * 차선·파선은 여기 안 그린다 — 그건 `Roads.ts` 가 중심선을 따라 그리는 것이라
+ * 바닥 타일에 넣으면 길이 없는 데도 차선이 생긴다.
+ */
+export function buildAsphaltTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#8f8c86';
+  cx.fillRect(0, 0, 128, 128);
+
+  // 골재. 밝은 알과 어두운 알을 섞어야 «자갈을 굳힌 것»으로 읽힌다
+  for (let i = 0; i < 1100; i++) {
+    const v = 128 + ((i * 6151) % 32);
+    cx.fillStyle = `rgb(${v},${v},${v - 5})`;
+    cx.fillRect((i * 29) % 128, (i * 47) % 128, 1, 1);
+  }
+  for (let i = 0; i < 420; i++) {
+    const v = 106 + ((i * 3571) % 18);
+    cx.fillStyle = `rgb(${v},${v - 1},${v - 4})`;
+    cx.fillRect((i * 53) % 128, (i * 31) % 128, 1, 1);
+  }
+  return finish(cv);
+}
+
+/**
+ * 보도블록. **정체는 어긋나게 깐 줄눈이다.**
+ *
+ * 격자로 깔면 부엌 타일과 구분이 안 된다. 실제 보도블록은 한 줄씩 **절반 어긋나게**
+ * 깔린다(러닝 본드) — 그 어긋남이 「길바닥」과 「실내 타일」을 가른다.
+ *
+ * 128 / 8 = 16px 이 한 장의 가로(22.5cm), 128 / 16 = 8px 이 세로(11.25cm)다.
+ * 둘 다 정수라 타일 이음매에서 줄눈이 안 어긋난다.
+ */
+export function buildPavementTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#c3bcae';
+  cx.fillRect(0, 0, 128, 128);
+
+  const BW = 16, BH = 8;
+  for (let r = 0; r < 128 / BH; r++) {
+    // 홀수 줄을 반 장 밀어 러닝 본드를 만든다
+    const shift = (r % 2) * (BW / 2);
+    for (let c = -1; c < 128 / BW + 1; c++) {
+      const x = c * BW + shift, y = r * BH;
+      // 장마다 옅은 명도 흔들림. 전부 같으면 인쇄한 종이가 된다
+      const k = ((r * 8 + c + 2) * 37) % 9;
+      const v = 190 + k * 3;
+      cx.fillStyle = `rgb(${v},${v - 4},${v - 14})`;
+      cx.fillRect(x + 1, y + 1, BW - 2, BH - 2);
+    }
+  }
+  return finish(cv);
+}
+
+/**
+ * 흙길. 다져진 흙바닥이라 자갈보다 잘고 고르다.
+ * 바큇자국 같은 큰 무늬는 안 넣는다 — 1.8m 타일이라 반복이 바로 드러난다.
+ */
+export function buildDirtTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#b09566';
+  cx.fillRect(0, 0, 128, 128);
+
+  // 마른 흙의 밝은 얼룩 — 2px 는 실제 2.8cm
+  for (let i = 0; i < 520; i++) {
+    const v = 192 + ((i * 6151) % 26);
+    cx.fillStyle = `rgb(${v},${v - 26},${v - 68})`;
+    cx.fillRect((i * 29) % 128, (i * 47) % 128, 2, 2);
+  }
+  // 박힌 잔돌
+  for (let i = 0; i < 260; i++) {
+    const v = 138 + ((i * 3571) % 22);
+    cx.fillStyle = `rgb(${v},${v - 16},${v - 44})`;
+    cx.fillRect((i * 53) % 128, (i * 31) % 128, 1, 1);
+  }
+  return finish(cv);
+}
+
+/**
+ * 잔디. 이끼(`buildMossTexture`)와 다른 점은 **풀잎이 서 있다는 것**이다 —
+ * 세로로 긴 1×3px 획을 두 색으로 겹쳐 뿌린다. 이끼는 엎드린 얼룩이다.
+ */
+export function buildGrassTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#87ab53';
+  cx.fillRect(0, 0, 128, 128);
+
+  // 밝은 잎
+  for (let i = 0; i < 900; i++) {
+    const g = 178 + ((i * 6151) % 30);
+    cx.fillStyle = `rgb(${g - 60},${g},${g - 106})`;
+    cx.fillRect((i * 29) % 128, (i * 47) % 128, 1, 3);
+  }
+  // 어두운 잎 — 겹쳐야 두께가 생긴다
+  for (let i = 0; i < 620; i++) {
+    const g = 118 + ((i * 3571) % 26);
+    cx.fillStyle = `rgb(${g - 44},${g},${g - 74})`;
+    cx.fillRect((i * 53) % 128, (i * 31) % 128, 1, 3);
+  }
+  return finish(cv);
+}
+
+/**
+ * 모래·마사토. 공사장과 야구장 내야 바닥이다.
+ * 흙길보다 밝고 알갱이가 잘다 — 2px 얼룩 없이 1px 만 쓴다.
+ */
+export function buildSandTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const cx = cv.getContext('2d')!;
+
+  cx.fillStyle = '#c2a878';
+  cx.fillRect(0, 0, 128, 128);
+
+  for (let i = 0; i < 1400; i++) {
+    const v = 206 + ((i * 6151) % 28);
+    cx.fillStyle = `rgb(${v},${v - 24},${v - 62})`;
+    cx.fillRect((i * 29) % 128, (i * 47) % 128, 1, 1);
+  }
+  for (let i = 0; i < 300; i++) {
+    const v = 156 + ((i * 3571) % 20);
+    cx.fillStyle = `rgb(${v},${v - 20},${v - 52})`;
+    cx.fillRect((i * 53) % 128, (i * 31) % 128, 1, 1);
+  }
+  return finish(cv);
+}
+
+/**
+ * 횡단보도 **한 장**. 다른 여섯과 달리 **반복하지 않는다** —
+ * `CityRug.fit` 으로 쓰는 그림이라 이 한 장이 깔개 사각형을 통째로 덮는다
+ * (카레산스이와 같은 규약).
+ *
+ * ## 배경이 알파 0 이어야 한다
+ *
+ * 흰 띠 사이로 **아스팔트가 보여야** 횡단보도다. 배경을 회색으로 칠하면
+ * 길 위에 회색 판을 얹은 게 된다. `World.buildRug` 의 `alphaTest: 0.5` 가
+ * 알파 0 인 픽셀을 버리므로 칠하지 않은 데는 그냥 뚫린다.
+ *
+ * ## 띠는 «차가 가는 쪽»으로 눕는다
+ *
+ * u 가 도로 폭 방향, v 가 건너는 방향이다. 띠는 v 를 따라 길게 서고 u 를 따라
+ * 반복한다 — 그래서 세로 막대를 가로로 네 개 찍는다. 반대로 그리면
+ * 사다리를 눕혀 놓은 그림이 된다.
+ */
+export function buildCrosswalkTexture(): CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 256;
+  const cx = cv.getContext('2d')!;
+
+  // 배경은 칠하지 않는다 — 알파 0 이라 아스팔트가 그대로 보인다
+  const BAR = 32, PITCH = 64, MARGIN = 16;
+  for (let x = MARGIN; x + BAR <= 256; x += PITCH) {
+    cx.fillStyle = '#eceae2';
+    cx.fillRect(x, 0, BAR, 256);
+    // 닳은 자국. 새것처럼 반듯하면 「모형」으로 읽힌다
+    cx.fillStyle = 'rgba(160,158,150,0.45)';
+    for (let i = 0; i < 26; i++) {
+      const k = (i * 6151) % 256;
+      cx.fillRect(x + ((i * 29) % BAR), k, 2, 3);
+    }
+  }
+  return finish(cv);
+}
+
+/** 방 정의(`StageRoom.floorTex`)와 깔개(`CityRug.tex`)가 고르는 이름 → 생성 함수. */
 export const FLOOR_TEX = {
   tatami: buildTatamiTexture,
   rug: buildRugTexture,
@@ -424,6 +617,13 @@ export const FLOOR_TEX = {
   gravel: buildGravelTexture,
   karesansui: buildKaresansuiTexture,
   tile: buildTileTexture,
+  // ── 야외 ── 동네·거리 맵. `crosswalk` 만 `fit` 전용이라 반복하지 않는다
+  asphalt: buildAsphaltTexture,
+  pavement: buildPavementTexture,
+  dirt: buildDirtTexture,
+  grass: buildGrassTexture,
+  sand: buildSandTexture,
+  crosswalk: buildCrosswalkTexture,
 } as const;
 
 export type FloorTex = keyof typeof FLOOR_TEX;
