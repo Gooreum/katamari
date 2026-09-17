@@ -31,8 +31,10 @@ for (const stage of STAGES) {
   try {
     log = execFileSync('node', [
       new URL('shot.mjs', import.meta.url).pathname,
-      `${BASE}/?stage=${stage}`, out, '6000', '900', '600',
-    ], { encoding: 'utf8', env: { ...process.env, WARMUP: '8' } });
+      // **20 초를 기다린다.** 집 판(star4)은 손배치 가구가 많아 이 기계에서 첫 프레임까지
+      // 29~47 초가 걸렸다 — 6 초로 잡았더니 아직 짓는 중에 캡처가 들어가 실패로 찍혔다.
+      `${BASE}/?stage=${stage}`, out, '20000', '900', '600',
+    ], { encoding: 'utf8', env: { ...process.env, WARMUP: '8', SHOT_TIMEOUT_MS: '300000' } });
   } catch (e) {
     console.log(`❌ ${stage} — 촬영 자체가 실패했다\n${String(e.stdout ?? '')}${String(e.stderr ?? '')}`);
     bad++;
