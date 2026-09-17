@@ -152,20 +152,31 @@ const F_HILL = 0x93b85e;
  * 꽃을 먹어 18cm까지 만드는 판이기 때문이고, 공사장·섬이 1.2m까지 가는 건
  * 거기가 목표 50cm를 넘긴 뒤 굴러다니는 구역이기 때문이다.
  */
+/**
+ * **`floorTex` 는 렌더 전용이다.** 크기·개수·개방 문턱에 아무 영향이 없다 —
+ * 이 줄들에서 사다리를 지고 있는 건 `sizeMin`/`sizeMax`/`count`/`openAt` 이고,
+ * 그 넷은 한 글자도 안 건드렸다.
+ *
+ * 열두 구역이 전부 단색 평면이었다. 집 일곱 방은 처음부터 바닥결이 있었는데
+ * (다다미·마루·타일·이끼) 동네는 하나도 없어서, 「호숫가 도로」가 회색 사각형
+ * 한 장이고 「흙길」과 「캠프장」이 색만 다른 같은 판이었다.
+ */
 export const TOWN_ROOMS: readonly StageRoom[] = [
-  { id: 'yard', name: '시작 마당', rect: R_YARD, floor: F_YARD, sizeMin: 0.010, sizeMax: 0.16, count: 520, openAt: 0 },
-  { id: 'path', name: '흙길', rect: R_PATH, floor: F_DIRT, sizeMin: 0.015, sizeMax: 0.24, count: 210, openAt: OPEN_PATH },
-  { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, sizeMin: 0.020, sizeMax: 0.40, count: 430, openAt: OPEN_PLAZA },
-  { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, sizeMin: 0.020, sizeMax: 0.50, count: 380, openAt: OPEN_SHOPS },
-  { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, sizeMin: 0.030, sizeMax: 0.70, count: 350, openAt: OPEN_LAKE },
-  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
-  { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
-  { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
-  { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
+  { id: 'yard', name: '시작 마당', rect: R_YARD, floor: F_YARD, floorTex: 'grass', sizeMin: 0.010, sizeMax: 0.16, count: 520, openAt: 0 },
+  { id: 'path', name: '흙길', rect: R_PATH, floor: F_DIRT, floorTex: 'dirt', sizeMin: 0.015, sizeMax: 0.24, count: 210, openAt: OPEN_PATH },
+  // 광장·상점가는 사람이 걷는 데라 보도블록이다. 차가 다니는 데(호숫가·북 피죤타운)와 갈린다
+  { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, floorTex: 'pavement', sizeMin: 0.020, sizeMax: 0.40, count: 430, openAt: OPEN_PLAZA },
+  { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, floorTex: 'pavement', sizeMin: 0.020, sizeMax: 0.50, count: 380, openAt: OPEN_SHOPS },
+  { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, floorTex: 'asphalt', sizeMin: 0.030, sizeMax: 0.70, count: 350, openAt: OPEN_LAKE },
+  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, floorTex: 'asphalt', sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
+  { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, floorTex: 'grass', sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
+  { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, floorTex: 'sand', sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
+  { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, floorTex: 'grass', sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
   // ── 바깥 세 구역 (8번 전용) ────────────────────────────────
-  { id: 'field', name: '야구장', rect: R_FIELD, floor: F_FIELD, sizeMin: 0.30, sizeMax: 3.00, count: 900, openAt: OPEN_FIELD },
-  { id: 'river', name: '메추라기 강', rect: R_RIVER, floor: F_RIVER, sizeMin: 0.40, sizeMax: 4.50, count: 800, openAt: OPEN_RIVER },
-  { id: 'hill', name: '참새 언덕', rect: R_HILL, floor: F_HILL, sizeMin: 0.50, sizeMax: 6.00, count: 900, openAt: OPEN_HILL },
+  // 야구장 내야가 마사토다. 강변과 언덕은 풀밭이라 마당과 같은 결을 쓴다
+  { id: 'field', name: '야구장', rect: R_FIELD, floor: F_FIELD, floorTex: 'sand', sizeMin: 0.30, sizeMax: 3.00, count: 900, openAt: OPEN_FIELD },
+  { id: 'river', name: '메추라기 강', rect: R_RIVER, floor: F_RIVER, floorTex: 'grass', sizeMin: 0.40, sizeMax: 4.50, count: 800, openAt: OPEN_RIVER },
+  { id: 'hill', name: '참새 언덕', rect: R_HILL, floor: F_HILL, floorTex: 'grass', sizeMin: 0.50, sizeMax: 6.00, count: 900, openAt: OPEN_HILL },
 ];
 
 // ─── 얇은 래퍼 — 계산은 stage.kit.ts 가 한다 ──────────────────
