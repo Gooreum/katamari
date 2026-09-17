@@ -168,7 +168,10 @@ export const TOWN_ROOMS: readonly StageRoom[] = [
   { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, floorTex: 'pavement', sizeMin: 0.020, sizeMax: 0.40, count: 430, openAt: OPEN_PLAZA },
   { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, floorTex: 'pavement', sizeMin: 0.020, sizeMax: 0.50, count: 380, openAt: OPEN_SHOPS },
   { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, floorTex: 'asphalt', sizeMin: 0.030, sizeMax: 0.70, count: 350, openAt: OPEN_LAKE },
-  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, floorTex: 'asphalt', sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
+  // **주택가 바닥은 아스팔트가 아니다.** 구역 전체를 아스팔트로 깔았더니 그 위에
+  // 얹은 도로 리본이 «약간 다른 회색 띠»가 되어 길로 안 읽혔다.
+  // 바닥은 「길이 아닌 데」의 재료여야 하고, 길은 리본이 맡는다
+  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, floorTex: 'pavement', sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
   { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, floorTex: 'grass', sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
   { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, floorTex: 'sand', sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
   { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, floorTex: 'grass', sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
