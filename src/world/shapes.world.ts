@@ -99,12 +99,12 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       [0.492, -0.132], [0.45, -0.145], [RIM, -0.105]].map(([r, y]) => new Vector2(r!, y!));
     return assemble([
       part(new LatheGeometry(prof, 20), RUB),
-      // ③ 접지면 어깨 블록 — 세로 홈 넷을 사이에 두고 다섯 줄
-      ...[-0.072, -0.036, 0, 0.036, 0.072].map((y) =>
-        part(new TorusGeometry(0.502, 0.013, 3, 20), [0.26, 0.26, 0.27], [0, y, 0], LIE_Z)),
-      // ① 휠 — 바깥 지름의 0.71. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다
-      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.20, 18), [0.80, 0.80, 0.82]),
-      part(new CylinderGeometry(0.10, 0.10, 0.22, 12), [0.62, 0.62, 0.64]),
+      // ③ 접지면 어깨 블록 — 가운데 한 줄만. 다섯 줄을 두르면 옆에서 «엮은 바구니 테»로 읽혔다
+      part(new TorusGeometry(0.502, 0.016, 3, 20), [0.26, 0.26, 0.27], [0, 0, 0], LIE_Z),
+      // ① 휠 — 바깥 지름의 0.71. 이게 없으면 도넛 구멍이 뚫린 링이라 타이어로 안 읽힌다.
+      //   높이 0.20 은 옆벽(0.29)보다 얕지만 옆벽이 안으로 기울어 «솟은 고원»으로 보였다 — 0.15 로 낮춘다
+      part(new CylinderGeometry(RIM + 0.005, RIM + 0.005, 0.15, 18), [0.82, 0.82, 0.84]),
+      part(new CylinderGeometry(0.085, 0.085, 0.17, 12), [0.62, 0.62, 0.64]),
     ]);
   },
 
@@ -692,7 +692,9 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       // 유리는 몸통보다 좁게 넣고 지붕이 유리를 «덮게» 한다
       part(new BoxGeometry(0.46, H - yBelt - 0.022, W * 0.97), GLASSY, [-0.055, (H + yBelt) / 2 - 0.011, 0]),
       // ④ 평평한 지붕 — 유리대를 덮는다. 전장의 0.32 는 «평평한 구간»이지 지붕 전체가 아니다
-      part(new BoxGeometry(0.47, 0.026, W * 0.99), BODY, [-0.055, H - 0.013, 0], undefined, TILE.METAL),
+      // 지붕이 유리보다 4mm 넓을 뿐이라 위에서 보면 유리 윗테가 사방으로 둘러 보여
+      // 여전히 «뚜껑 없는 통»이었다. 유리보다 확실히 넓고 두껍게 덮는다
+      part(new BoxGeometry(0.50, 0.050, W * 1.03), BODY, [-0.055, H - 0.025, 0], undefined, TILE.METAL),
       // ② 앞유리 · 뒷유리 기둥 — 거의 곧게 선다
       part(new BoxGeometry(0.10, H - yBelt, W * 0.95), GLASSY, [0.145, (H + yBelt) / 2, 0], [0, 0, -0.40]),
       part(new BoxGeometry(0.09, H - yBelt, W * 0.95), GLASSY, [-0.245, (H + yBelt) / 2, 0], [0, 0, 0.42]),
