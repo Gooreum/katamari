@@ -259,7 +259,13 @@ export const GARDEN_BUILDERS: Record<ShapeIdGarden, () => BufferGeometry> = {
     return assemble([
       // ① 통짜 원기둥 — 옆면 · 윗면
       part(new CylinderGeometry(R, R * 0.98, H, 16, 1, true), STONE, [0, H / 2, 0], undefined, TILE.STONE),
-      part(new CircleGeometry(R, 16), [0.80, 0.78, 0.74], [0, H, 0], [-Math.PI / 2, 0, 0], TILE.TSUKUBAI),
+      // 1회차 트랙 D 가 「윗면이 평평하고 파인 자리가 선만 남았다」고 했다 — 윗면을 **온전한 원판**으로
+      // 덮어서 그 아래 파낸 상자가 통째로 가려졌다. 원판 대신 네모 구멍을 두른 **테 네 장**으로 짠다
+      ...([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).map(([dx, dz]) =>
+        part(new BoxGeometry(dx ? (R - HOLE / 2) : 2 * R, 0.012, dz ? (R - HOLE / 2) : HOLE),
+          [0.80, 0.78, 0.74],
+          [dx * (HOLE / 2 + (R - HOLE / 2) / 2), H - 0.006, dz * (HOLE / 2 + (R - HOLE / 2) / 2)],
+          undefined, TILE.TSUKUBAI)),
       part(new CircleGeometry(R * 0.98, 16), [0.50, 0.48, 0.45], [0, 0.002, 0], [Math.PI / 2, 0, 0]),
       // ② 파낸 네모 구멍 — 뒤집은 상자로 «안»을 만든다
       part(invert(new BoxGeometry(HOLE, H * 0.7, HOLE)), [0.16, 0.19, 0.18], [0, H - H * 0.35 + 0.001, 0]),

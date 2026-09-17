@@ -258,7 +258,9 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       part(new CylinderGeometry(0.010, 0.010, 0.10, 6), SIL, [XF - 0.06, 0.60, 0]),
       // ① 안장 — 지면에서 바퀴 지름의 1.44
       part(new SphereGeometry(1, 8, 5).scale(0.055, 0.020, 0.032), [0.27, 0.29, 0.31], [XR + 0.20, 0.533, 0]),
-      part(new CylinderGeometry(0.009, 0.009, 0.12, 6), SIL, [XR + 0.20, 0.47, 0]),
+      // 1회차 트랙 D 가 「안장이 프레임과 떨어져 공중에 떠 있다」고 했다 — 기둥이 0.41 에서 끊겨
+      // 시트관 꼭대기(0.33)까지 0.08 이 비었다. 기둥을 0.23 으로 늘여 프레임에 박는다
+      part(new CylinderGeometry(0.009, 0.009, 0.23, 6), SIL, [XR + 0.20, 0.415, 0]),
       // ④ 뒤 짐받이 — 안장보다 낮게 거의 수평
       part(new BoxGeometry(0.16, 0.012, 0.09), SIL, [XR + 0.06, 0.44, 0], undefined, TILE.METAL),
       // 크랭크 · 페달
@@ -373,9 +375,11 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       // ③ 가는 기둥
       part(new CylinderGeometry(CIR * 0.065, CIR * 0.065, 1.0, 8), SIL, [0, 0.5, 0], undefined, TILE.METAL),
       // ① 역정삼각형 — 3 면 원기둥을 눕히고 꼭짓점이 아래로 오게 돌린다
+      // 1회차 트랙 D 가 「삼각형이 뒤집히지 않고 위를 향한다」고 했다 — 3 면 원기둥의 첫 꼭짓점은
+      // 눕히면 «아래»를 보는데 거기에 Z 180° 를 더해 위로 돌려놨다. 그 회전을 뺀다
       part(new CylinderGeometry(TRI * 0.577, TRI * 0.577, 0.02, 3), [1.0, 1.0, 1.0],
-        [0, 0.875, 0.02], [Math.PI / 2, 0, Math.PI]),
-      part(new CylinderGeometry(TRI * 0.50, TRI * 0.50, 0.016, 3), RED, [0, 0.875, 0.032], [Math.PI / 2, 0, Math.PI]),
+        [0, 0.875, 0.02], [Math.PI / 2, 0, 0]),
+      part(new CylinderGeometry(TRI * 0.50, TRI * 0.50, 0.016, 3), RED, [0, 0.875, 0.032], [Math.PI / 2, 0, 0]),
       // ② 원판 — 삼각형 꼭짓점 바로 아래. ④ 흰 바탕에 반지름 0.2 두께 빨간 테
       part(new CylinderGeometry(CIR / 2, CIR / 2, 0.02, 16), RED, [0, 0.60, 0.02], LIE_Z),
       part(new CylinderGeometry(CIR * 0.40, CIR * 0.40, 0.016, 16), [1.0, 1.0, 1.0], [0, 0.60, 0.032], LIE_Z),
@@ -471,8 +475,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
     return assemble([
       // ① A 자 다리 — 양 끝에 하나씩, 앞뒤로 벌어진다
       ...([1, -1] as const).flatMap((k) => ([1, -1] as const).map((j) =>
+        // 1회차 트랙 D 가 「왼쪽 버팀 기둥이 윗기둥에서 떨어져 혼자 기울어 서 있다」고 했다 —
+        // 기울기 부호가 반대라 **위가 벌어지고 아래가 모였다**. 부호를 뒤집는다
         part(new CylinderGeometry(T, T, Math.hypot(H, SPREAD / 2), 6), RED,
-          [k * 0.47, H / 2, j * SPREAD / 4], [j * Math.atan2(SPREAD / 2, H), 0, 0]))),
+          [k * 0.47, H / 2, j * SPREAD / 4], [-j * Math.atan2(SPREAD / 2, H), 0, 0]))),
       // 다리 끝 신발
       ...([1, -1] as const).flatMap((k) => ([1, -1] as const).map((j) =>
         part(new CylinderGeometry(T * 1.4, T * 1.4, 0.022, 6), [0.32, 0.32, 0.30], [k * 0.47, 0.011, j * SPREAD / 2]))),
@@ -588,8 +594,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
    * 치수는 가로 = 1 로 쓴다.
    */
   정글짐: () => {
-    const CELL = 0.5, TOP = 0.70, RED: RGB = [0.80, 0.34, 0.36], YEL: RGB = [0.96, 0.86, 0.18];
-    const xs = [-0.5, 0, 0.5], ys = [TOP, TOP - 0.19, TOP - 0.38, TOP - 0.57], zs = [-0.25, 0.25];
+    const TOP = 0.70, RED: RGB = [0.80, 0.34, 0.36], YEL: RGB = [0.96, 0.86, 0.18];
+    // 1회차 트랙 D 가 「폭 2칸·깊이 1칸이라 타고 오르는 격자가 아니라 비계 골조」라 했다.
+    // 깊이도 두 칸으로 준다 — 사진의 칸은 정육면체다
+    const xs = [-0.5, 0, 0.5], ys = [TOP, TOP - 0.19, TOP - 0.38, TOP - 0.57], zs = [-0.5, 0, 0.5];
     const colAt = (y: number): RGB => (Math.abs(y - (TOP - 0.19)) < 0.01 ? YEL : RED);
     return assemble([
       // ① 세로 기둥 — 맨 아래 가로대 밑으로 한 층 더 내려와 땅을 짚는다
@@ -597,8 +605,8 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
         part(new CylinderGeometry(0.014, 0.014, TOP, 6), RED, [x, TOP / 2, z], undefined, TILE.METAL))),
       // ③ 가로대 — 층마다 색이 다르다. 가로 · 세로 두 방향
       ...ys.flatMap((y) => [
-        ...zs.map((z) => part(new CylinderGeometry(0.011, 0.011, 1.0, 6), colAt(y), [0, y, z], LIE_X)),
-        ...xs.map((x) => part(new CylinderGeometry(0.011, 0.011, CELL, 6), colAt(y), [x, y, 0], LIE_Z)),
+        ...zs.map((z) => part(new CylinderGeometry(0.010, 0.010, 1.0, 6), colAt(y), [0, y, z], LIE_X)),
+        ...xs.map((x) => part(new CylinderGeometry(0.010, 0.010, 1.0, 6), colAt(y), [x, y, 0], LIE_Z)),
       ]),
     ]);
   },
