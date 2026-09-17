@@ -219,7 +219,9 @@ function main() {
      * 화면에서 점이 되고 1.2m 짜리는 꽉 찬다. 시트는 «알아볼 수 있는가»를 보는
      * 것이므로 크기 차이가 섞이면 답이 오염된다.
      */
-    const url = `${BASE}${viewer}?only=${encodeURIComponent(target)}&size=0.9&tilt=0.25`;
+    // `bare=1` 로 뷰어가 이름표를 **아예 안 그리게** 한다. `HIDE_HUD` 는 그린 뒤 덮는 방식이라
+    // 촬영 중 개발 서버가 페이지를 다시 띄우면 덮개가 사라진 채 찍혔다 — 둘 다 건다
+    const url = `${BASE}${viewer}?only=${encodeURIComponent(target)}&size=0.9&tilt=0.25&bare=1`;
     console.log(`[${i + 1}/${targets.length}] ${target} 렌더`);
     shoot(url, render, 4500, PHOTO * 2, PHOTO * 2, HIDE_HUD);
     if (!existsSync(render)) throw new Error(`${target} 렌더 실패 — ${url}`);
