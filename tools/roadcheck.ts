@@ -13,19 +13,49 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CityData, CityRoad, RoadKind } from '../src/world/cityData';
 
-const slug = process.argv.includes('--city')
+/**
+ * 검사 대상. 두 갈래다.
+ *
+ *   --city <slug>   OSM 도시 (`src/world/city.<slug>.json`). 기본값 jamsil
+ *   --stage town    **손배치 판.** 코드로 짓는 판이라 JSON 파일이 없다
+ *
+ * `--stage` 가 필요해진 이유: 동네 판이 도로를 갖게 됐는데 이 도구가
+ * JSON 만 읽어서 검사 대상 밖이었다. 손으로 쓴 중심선도 폭 0 이나 NaN 이
+ * 날 수 있고, **그게 하나만 있어도 병합 메시 전체의 bounding sphere 가 NaN 이 되어
+ * 프러스텀 컬링이 조용히 죽는다.** 화면에서는 안 보이는 종류의 고장이다.
+ */
+const stageArg = process.argv.includes('--stage')
+  ? process.argv[process.argv.indexOf('--stage') + 1]!
+  : null;
+const slug = stageArg ?? (process.argv.includes('--city')
   ? process.argv[process.argv.indexOf('--city') + 1]!
-  : 'jamsil';
+  : 'jamsil');
 
-const path = resolve(process.cwd(), `src/world/city.${slug}.json`);
-const city: CityData = JSON.parse(readFileSync(path, 'utf8'));
+const city: CityData = await (async () => {
+  if (stageArg === null) {
+    const path = resolve(process.cwd(), `src/world/city.${slug}.json`);
+    return JSON.parse(readFileSync(path, 'utf8')) as CityData;
+  }
+  // 손배치 판은 코드가 짓는다. three 를 안 끌어오는 모듈이라 그대로 부를 수 있다
+  const mod = { town: './../src/world/stage.town', world: './../src/world/stage.world' }[stageArg];
+  if (mod === undefined) {
+    console.error(`\n❌ --stage 는 town 또는 world 여야 합니다 (받은 값: ${stageArg})\n`);
+    process.exit(1);
+  }
+  const m = await import(mod) as Record<string, () => CityData>;
+  return (stageArg === 'town' ? m['buildTownStage']! : m['buildWorldStage']!)();
+})();
 const roads = city.roads ?? [];
 
 let violations = 0;
 
 if (roads.length === 0) {
   console.error(`\n❌ ${slug} 에 도로가 없습니다.`);
-  console.error('   npm run fetch-city -- --preset ' + slug + ' --only roads\n');
+  if (stageArg === null) {
+    console.error('   npm run fetch-city -- --preset ' + slug + ' --only roads\n');
+  } else {
+    console.error(`   buildStage() 반환에 roads 키가 없습니다 — src/world/stage.${stageArg}.ts\n`);
+  }
   process.exit(1);
 }
 
@@ -131,20 +161,32 @@ for (const [label, list] of checks) {
   }
 }
 
-for (const k of KINDS) {
-  if (stats.get(k)!.count === 0) {
-    violations++;
-    console.log(`❌ ${KIND_LABEL[k]}(${k}) 가 하나도 없습니다 — 태그 매핑이 빠졌을 수 있습니다.`);
+/**
+ * **이 검사는 OSM 전용이다.** 네 종류가 다 나와야 태그 매핑이 온전하다는 뜻인데,
+ * 손배치 판은 사람이 필요한 길만 긋는다 — 골목도 보도도 없는 게 정상이고,
+ * 그걸 위반이라고 부르면 도구가 거짓말을 한다.
+ */
+if (stageArg === null) {
+  for (const k of KINDS) {
+    if (stats.get(k)!.count === 0) {
+      violations++;
+      console.log(`❌ ${KIND_LABEL[k]}(${k}) 가 하나도 없습니다 — 태그 매핑이 빠졌을 수 있습니다.`);
+    }
   }
 }
 
 // ─── 3. 비용 ───────────────────────────────────────────────────
 
-const bytes = readFileSync(path).length;
 const roadBytes = JSON.stringify(roads).length;
 console.log(`\n${'─'.repeat(74)}`);
-console.log(`파일 ${(bytes / 1048576).toFixed(2)}MB — 그중 도로 ${(roadBytes / 1048576).toFixed(2)}MB ` +
-  `(${(roadBytes / bytes * 100).toFixed(0)}%)`);
+if (stageArg === null) {
+  // OSM 도시만 파일이 있다. 손배치 판은 코드가 짓는다
+  const bytes = readFileSync(resolve(process.cwd(), `src/world/city.${slug}.json`)).length;
+  console.log(`파일 ${(bytes / 1048576).toFixed(2)}MB — 그중 도로 ${(roadBytes / 1048576).toFixed(2)}MB ` +
+    `(${(roadBytes / bytes * 100).toFixed(0)}%)`);
+} else {
+  console.log(`손배치 판 — 도로 데이터 ${roadBytes.toLocaleString()}바이트 (코드로 짓는다)`);
+}
 // 종류별 색은 예전에 정점색이었지만 지금은 텍스처 밴드다 (Roads.buildRoadTexture).
 // 드로우콜이 1인 이유가 바뀌었으므로 문구도 같이 바꾼다 — 틀린 설명이 남으면 다음 사람이 속는다.
 console.log(`도로 삼각형 ${totalT.toLocaleString()} · 드로우콜 1 (종류별 색·차선은 텍스처 4밴드)`);

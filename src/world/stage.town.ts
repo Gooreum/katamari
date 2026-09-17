@@ -1,4 +1,4 @@
-import type { CityBuilding, CityData, StageRoom } from './cityData';
+import type { CityBuilding, CityData, CityRoad, CityRug, StageRoom } from './cityData';
 import { TOWN_TABLE } from './generation';
 import {
   block, boundary, dissolveWalls, piece as kitPiece, pillar as kitPillar, ring as kitRing,
@@ -177,6 +177,69 @@ export const TOWN_ROOMS: readonly StageRoom[] = [
   { id: 'field', name: '야구장', rect: R_FIELD, floor: F_FIELD, floorTex: 'sand', sizeMin: 0.30, sizeMax: 3.00, count: 900, openAt: OPEN_FIELD },
   { id: 'river', name: '메추라기 강', rect: R_RIVER, floor: F_RIVER, floorTex: 'grass', sizeMin: 0.40, sizeMax: 4.50, count: 800, openAt: OPEN_RIVER },
   { id: 'hill', name: '참새 언덕', rect: R_HILL, floor: F_HILL, floorTex: 'grass', sizeMin: 0.50, sizeMax: 6.00, count: 900, openAt: OPEN_HILL },
+];
+
+/**
+ * 길. **`Roads.ts` 가 여기서 처음 돈다.**
+ *
+ * `City.buildRoads()` 는 `data.roads` 가 비면 첫 줄에서 빠져나간다. 손배치 판 셋이
+ * 전부 그 키를 안 넘겨서, 차선·파선·보도 줄눈을 그리는 208줄짜리 리본 생성기가
+ * 여덟 판 어디에서도 실행된 적이 없었다. 「호숫가 도로」가 회색 사각형이던 이유다.
+ *
+ * ## 길은 «길이 있는 데»에만 깐다
+ *
+ * 시작 마당은 집 마당이고 흙길은 흙길이라 아스팔트 리본을 얹지 않는다.
+ * 비둘기 광장도 보행 광장이라 바닥결(`pavement`)이 이미 할 말을 한다 —
+ * 그 위에 회색 리본을 더 깔면 광장을 반으로 가르는 것밖에 안 된다.
+ *
+ * ## 폭은 구역 폭에서 낸다
+ *
+ * 상점가가 x −2.5~2.5(5m)이므로 차도를 3m 로 두면 양옆에 1m 씩 남는다.
+ * 그 1m 가 보도이고, 바닥결 `pavement` 가 그 자리에 그대로 드러난다.
+ * 리본으로 또 보도를 깔면 같은 자리를 두 번 그리는 것이다.
+ *
+ * **렌더 전용이다** — 충돌·배치·성장 곡선에 안 쓴다(`cityData.ts:249`).
+ */
+const TOWN_ROADS: readonly CityRoad[] = [
+  // 북 피죤타운 — 주택 앞을 지나는 동서 생활도로. 양끝 실선이 그려진다.
+  // 가로수 줄이 z −16.6~−15.8 이라 그 남쪽으로 비켜 깐다
+  { kind: 'street', line: [[-8.5, -14.2], [8.5, -14.2]], width: 2.6 },
+  // 등뼈 — 북 피죤타운에서 갈라져 상점가를 내려온다.
+  // 마당 앞(z −3.2)에서 끊는다. 마당은 잔디고 그 아래 흙길은 흙길이다
+  { kind: 'street', line: [[0, -14.2], [0, -12], [0, -3.2]], width: 3.0 },
+  // 호숫가 대로 — 호수를 끼고 광장 동문에서 야구장 문까지.
+  // `arterial` 이라 중앙 파선이 8m 주기로 들어간다. 이 판에서 유일하게 큰 길이다
+  { kind: 'arterial', line: [[6, 13.2], [16, 13.2]], width: 3.2 },
+];
+
+/**
+ * 횡단보도. **깔개(`CityRug`)로 놓는다** — 충돌 없는 렌더 전용 평면이고,
+ * 횡단보도가 정확히 그것이다. 새 개념을 만들 이유가 없었다.
+ *
+ * ## `y` 를 주는 이유
+ *
+ * 깔개는 기본이 방바닥 위 6mm(y=0.006)인데 **도로는 2cm(0.020)** 다
+ * (`City.buildRoads`). 그냥 놓으면 횡단보도가 아스팔트 **밑에** 깔려 안 보인다.
+ * `y: 0.02` 를 주면 0.026 이 되어 도로 위 6mm 에 앉는다.
+ *
+ * ## `fit` 이라 타일이 아니다
+ *
+ * 흰 띠는 **도로 폭을 몇 등분하는가**로 정해지므로 위치에 매인 그림이다.
+ * 1.8m 타일을 반복해서는 못 그린다 — 카레산스이가 `fit` 을 만든 것과 같은 이유다.
+ * 그림의 배경이 알파 0 이라 띠 사이로 아스팔트가 그대로 보인다.
+ *
+ * ## `rotY` 가 띠 방향을 정한다
+ *
+ * 그림은 **세로 막대를 가로로 반복**한다. 남북 도로(등뼈)는 그대로 쓰고,
+ * 동서 도로는 `π/2` 로 돌린다. 안 돌리면 사다리를 눕혀 놓은 그림이 된다.
+ */
+const TOWN_CROSSWALKS: readonly CityRug[] = [
+  // 상점가 남쪽 끝 — 마당 쪽문으로 건너가는 자리
+  { cx: 0, cz: -4.4, w: 3.0, d: 1.6, rotY: 0, tex: 'crosswalk', fit: true, y: 0.02 },
+  // 북 피죤타운 — 등뼈가 갈라지는 네거리 서쪽
+  { cx: -3.0, cz: -14.2, w: 2.6, d: 1.6, rotY: Math.PI / 2, tex: 'crosswalk', fit: true, y: 0.02 },
+  // 호숫가 대로 — 광장 동문(x=6, z=11.5)에서 나와 대로를 건너는 자리
+  { cx: 8.0, cz: 13.2, w: 3.2, d: 1.6, rotY: Math.PI / 2, tex: 'crosswalk', fit: true, y: 0.02 },
 ];
 
 // ─── 얇은 래퍼 — 계산은 stage.kit.ts 가 한다 ──────────────────
@@ -474,6 +537,14 @@ export function buildTownStage(): CityData {
       outline: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] as ReadonlyArray<readonly [number, number]>,
     })),
     landmarks: [],
+    /**
+     * **`Roads.ts` 가 처음으로 실행되는 자리다.**
+     * 지금까지 손배치 판 셋이 전부 이 키를 안 넘겨서 `City.buildRoads()` 가
+     * 첫 줄에서 빠져나갔다. 렌더 전용이라 곡선·사다리는 안 흔들린다.
+     */
+    roads: TOWN_ROADS,
+    /** 횡단보도. 도로(y=0.020) 위에 앉도록 `y` 를 줬다 */
+    rugs: TOWN_CROSSWALKS,
     placement: { rooms: TOWN_ROOMS, labels: TOWN_TABLE },
   };
 }
