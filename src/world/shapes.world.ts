@@ -104,6 +104,12 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       part(new LatheGeometry(prof, 20), RUB),
       // ③ 접지면 어깨 블록 — 가운데 한 줄만. 다섯 줄을 두르면 옆에서 «엮은 바구니 테»로 읽혔다
       part(new TorusGeometry(0.502, 0.016, 3, 20), [0.26, 0.26, 0.27], [0, 0, 0], LIE_Z),
+      // **가로 트레드 블록 열여섯.** 휠에 살을 낸 뒤에도 판정이 「살 달린 바퀴가 얹힌 납작한 통」이었다
+      // (2026-09-17) — 고무가 매끈한 띠라서 «통 벽»으로 읽힌 것이다. 접지면을 가로로 끊어
+      // 굴러가는 바닥을 만든다. 이게 타이어와 그릇을 가르는 마지막 단서다
+      ...Array.from({ length: 16 }, (_, k) => (k * Math.PI * 2) / 16).map((a) =>
+        part(new BoxGeometry(0.030, 0.105, 0.055), [0.30, 0.30, 0.31],
+          [Math.cos(a) * 0.494, 0, Math.sin(a) * 0.494], [0, -a, 0])),
       // ① 휠 — 2회차 판정이 「얕은 접시 안에 놓인 밝은 원판」이라며 이름을 못 댔다(2026-09-17).
       //   밝은 원판 하나로 안을 통째로 메우니 고무는 «접시 벽»이, 휠은 «뚜껑»이 됐다.
       //   실물 휠은 **살 사이가 뚫려** 그 너머가 어둡다 — 그 구멍이 타이어와 그릇을 가른다.
@@ -656,11 +662,17 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
         // 옷이 아니라 «그물»로 읽힌다. 인쇄를 뺀다
         [0, (yShoulder + 0.035) / 2, 0]),
       part(new CircleGeometry(HEM / 2, 14).scale(1, 1, 0.66), CLOTH, [0, 0.036, 0], [Math.PI / 2, 0, 0]),
-      // ④ 소매 — 가장 넓은 곳(0.298)을 만든다. 몸에 붙어 실루엣 안에 든다
+      // ④ 소매 — **몸에서 떼어 늘어뜨린다.** 2회차 판정이 「굵은 원통 위에 작은 덩어리,
+      // 양옆에 타원 둘 — 모르겠다」였다(2026-09-17). 소매가 몸통에 붙은 타원이라 팔로 안 읽히고
+      // 몸은 허리 없는 통이었다. 소매를 길게 늘이고 몸에서 떼어 **사이로 배경이 보이게** 한다
       ...([1, -1] as const).map((k) =>
-        part(new SphereGeometry(1, 8, 6).scale(0.055, 0.115, 0.048), CLOTH, [k * 0.098, 0.55, 0])),
+        part(new SphereGeometry(1, 8, 6).scale(0.042, 0.175, 0.042), CLOTH, [k * 0.118, 0.535, 0])),
+      // **오비(허리띠)** — 통을 허리에서 끊는다. 사람과 기둥을 가르는 건 팔보다 이 한 줄이다
+      part(new CylinderGeometry(0.108, 0.108, 0.072, 14).scale(1, 1, 0.68), [0.46, 0.30, 0.22], [0, 0.505, 0]),
+      // 목 — 머리가 어깨에 바로 얹히면 「덩어리 위의 공」이다
+      part(new CylinderGeometry(0.026, 0.030, 0.038, 8), SKIN, [0, yShoulder + 0.012, 0]),
       // ④ 모아 쥔 손 — 배꼽 높이, 몸 앞으로
-      part(new SphereGeometry(1, 6, 5).scale(0.030, 0.022, 0.018), SKIN, [0.01, 0.42, 0.052]),
+      part(new SphereGeometry(1, 6, 5).scale(0.030, 0.022, 0.018), SKIN, [0.01, 0.42, 0.058]),
       // ③ 어깨 — 옷깃이 턱 밑에서 바로 이어진다
       part(new SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2).scale(SH / 2, 0.05, SH / 2 * 0.66), CLOTH,
         [0, yShoulder - 0.01, 0]),
@@ -696,7 +708,10 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
   승용차: () => {
     const H = 0.341, RW = 0.138 / 2, W = 0.40;
     const yRock = H * 0.18, yBelt = H * 0.69, BODY: RGB = [0.86, 0.86, 0.88];
-    const GLASSY: RGB = [0.26, 0.30, 0.34], RUB: RGB = [0.18, 0.18, 0.19];
+    // 2회차 판정이 「픽업트럭 — 앞쪽만 지붕 칸이 솟고 뒤는 낮은 적재함」이었다(2026-09-17).
+    // 유리가 0.26~0.34 라 게임의 밝은 빛에서 **차체와 같은 회색**으로 떠올라, 창이 «뚫린 데»가 아니라
+    // 차체 위에 얹은 또 하나의 상자로 보였다. 유리를 거의 검정까지 내려 구멍으로 만든다
+    const GLASSY: RGB = [0.10, 0.12, 0.15], RUB: RGB = [0.18, 0.18, 0.19];
     return assemble([
       // ⑤ 옆판 — 로커 위에서 벨트라인까지. 전장을 꽉 채운다
       part(new BoxGeometry(1.0, yBelt - yRock, W), BODY, [0, (yBelt + yRock) / 2, 0], undefined, TILE.METAL),
@@ -755,8 +770,13 @@ export const WORLD_BUILDERS: Record<ShapeIdWorld, () => BufferGeometry> = {
       // ③ 줄기 — 밑동에서만 1.4 배로 벌어진다. 수관 속까지 이어 올라간다
       part(new CylinderGeometry(TR, TR * 1.4, 0.92, 8), TRUNK, [0, 0.46, 0], undefined, TILE.WOOD_C),
       // ② ④ 수관 — 전체의 0.72 를 채우는 세로로 긴 덩어리. 층층이 뭉쳐 옆선이 울퉁불퉁하다
+      // **수관이 흰색이었다.** 팔레트를 `[0]`(흰색)으로 옮기면서 정점색까지 `WHITE` 로 두어
+      // 잎이 색을 하나도 안 받았다 — 판정 근거가 두 회차 내리 「흰 나선 덩어리」였고
+      // 2회차에는 「나무 또는 소프트아이스크림」까지 나왔다(2026-09-17).
+      // 팔레트가 흰색이면 **색은 정점색이 져야 한다**. 층마다 조금씩 달리해 뭉친 결을 살린다
       ...([[0.40, 1.00], [0.56, 0.92], [0.70, 0.80], [0.82, 0.60], [0.92, 0.38]] as const).map(([y, w], i) =>
-        part(new SphereGeometry(1, 10, 6).scale(CW / 2 * w, 0.115, CW / 2 * w), WHITE,
+        part(new SphereGeometry(1, 10, 6).scale(CW / 2 * w, 0.115, CW / 2 * w),
+          [0.30 + (i % 2) * 0.06, 0.52 + (i % 2) * 0.08, 0.24],
           [(i % 2 ? 1 : -1) * CW * 0.05, BARE + y * 0.62, (i % 2 ? -1 : 1) * CW * 0.04], undefined, TILE.LEAF)),
       // ⑤ 버팀목 둘 — 사선으로 박힌다
       ...([1, -1] as const).map((k) =>
