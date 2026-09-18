@@ -25,6 +25,8 @@ import type { CityData } from './world/cityData';
  */
 const OSM_DISTRICTS: Record<string, () => Promise<{ default: unknown }>> = {
   jamsil: () => import('./world/city.jamsil.json'),
+  // 문정동 — 서울 편의 첫 무대. 잠실이 2.9MB 인데 이건 0.04MB 다(반경 300m).
+  munjeong: () => import('./world/city.munjeong.json'),
 };
 
 /**
