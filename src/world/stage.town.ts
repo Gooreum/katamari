@@ -89,12 +89,12 @@ const D_INNER = 1.6;
 // **구역끼리 겹치면 안 된다** — 겹친 자리에 물건이 두 번 깔린다.
 
 const R_YARD: Rect = [-3, -3, 3, 3];
-const R_PATH: Rect = [-1.5, 3, 1.5, 8];
+const R_PATH: Rect = [-3, 3, 0, 8];
 const R_PLAZA: Rect = [-6, 8, 6, 15];
-const R_SHOPS: Rect = [-2.5, -12, 2.5, -3];
+const R_SHOPS: Rect = [-1.5, -12, 3.5, -3];
 const R_NORTH: Rect = [-9, -21, 9, -12];
 const R_CAMP: Rect = [-15, 2, -6, 12];
-const R_SITE: Rect = [-15, -9, -2.5, -3];
+const R_SITE: Rect = [-15, -9, -1.5, -3];
 const R_LAKESIDE: Rect = [6, 8, 16, 15];
 const R_ISLAND: Rect = [8.5, 17.5, 13.5, 21.5];
 
@@ -242,7 +242,7 @@ const TOWN_ROADS: readonly CityRoad[] = [
   { kind: 'street', line: [[-8.5, -14.2], [8.5, -14.2]], width: 2.6 },
   // 등뼈 — 북 피죤타운에서 갈라져 상점가를 내려온다.
   // 마당 앞(z −3.2)에서 끊는다. 마당은 잔디고 그 아래 흙길은 흙길이다
-  { kind: 'street', line: [[0, -14.2], [0, -12], [0, -3.2]], width: 3.0 },
+  { kind: 'street', line: [[1.0, -14.2], [1.0, -12], [1.0, -3.2]], width: 3.0 },
   // 호숫가 대로 — 호수를 끼고 광장 동문에서 야구장 문까지.
   // `arterial` 이라 중앙 파선이 8m 주기로 들어간다. 이 판에서 유일하게 큰 길이다
   { kind: 'arterial', line: [[6, 13.2], [16, 13.2]], width: 3.2 },
@@ -271,7 +271,7 @@ const TOWN_ROADS: readonly CityRoad[] = [
  */
 const TOWN_CROSSWALKS: readonly CityRug[] = [
   // 상점가 남쪽 끝 — 마당 쪽문으로 건너가는 자리
-  { cx: 0, cz: -4.4, w: 3.0, d: 1.6, rotY: 0, tex: 'crosswalk', fit: true, y: 0.02 },
+  { cx: 1.0, cz: -4.4, w: 3.0, d: 1.6, rotY: 0, tex: 'crosswalk', fit: true, y: 0.02 },
   // 북 피죤타운 — 등뼈가 갈라지는 네거리 서쪽
   { cx: -3.0, cz: -14.2, w: 2.6, d: 1.6, rotY: Math.PI / 2, tex: 'crosswalk', fit: true, y: 0.02 },
   // 호숫가 대로 — 광장 동문(x=6, z=11.5)에서 나와 대로를 건너는 자리
@@ -354,7 +354,7 @@ const STREET_FURNITURE: ReadonlyArray<readonly [Rect, number, string]> = [
  */
 const TOWN_PROPS: readonly StageProp[] = [
   // ── 시작 마당 ────────────────────────────────────────────
-  { label: '개집', x: 1.8, z: -1.8, size: 1.3, rotY: -0.3 },
+  { label: '개집', x: -1.6, z: -1.6, size: 1.3, rotY: -0.3 },
   // ── 비둘기 광장 ─────────────────────────────────────────
   { label: '우체통', x: -2.7, z: 8.7, size: 1.4 },
   { label: '벤치', x: 1.6, z: 13.2, size: 1.5 },                 // 동서로 길다
@@ -368,8 +368,8 @@ const TOWN_PROPS: readonly StageProp[] = [
   { label: '휴지통', x: 13.6, z: 10.8, size: 1.3 },
   // ── 상점가 ──────────────────────────────────────────────
   // 등뼈 도로가 x −1.5~1.5 를 먹는다. 둘 다 그 바깥이라 안 옮겼다
-  { label: '자판기', x: -1.9, z: -9.9, size: 1.8, rotY: Math.PI / 2 },
-  { label: '자판기', x: 1.9, z: -6.1, size: 1.8, rotY: -Math.PI / 2 },
+  { label: '자판기', x: -0.9, z: -9.9, size: 1.8, rotY: Math.PI / 2 },
+  { label: '자판기', x: 2.9, z: -6.1, size: 1.8, rotY: -Math.PI / 2 },
   // ── 북 피죤타운 ─────────────────────────────────────────
   // 주택 앞 가로수 줄. 도로(z −15.5~−12.9) 북쪽이라 길 위에 안 선다
   ...([-6, -1.5, 3, 7] as const).map((x): StageProp =>
@@ -452,7 +452,7 @@ const TOWN_PROPS: readonly StageProp[] = [
   { label: '오토바이', x: 13.5, z: 12.0, size: 1.9, patrol: [13.5, 12.0, 8.4, 12.0, 2.6] },
   // 상점가 **동쪽** 인도를 걸어 내려온다. 차도(x −1.5~1.5) 밖이고,
   // 서쪽 인도는 자판기가 폭을 거의 다 먹어서 사람이 자판기를 통과했다
-  { label: '사람', x: 2.0, z: -11.0, size: 1.7, patrol: [2.0, -11.0, 2.0, -7.5, 0.9] },
+  { label: '사람', x: 3.0, z: -11.0, size: 1.7, patrol: [3.0, -11.0, 3.0, -7.5, 0.9] },
 ];
 
 /**
@@ -501,16 +501,16 @@ function buildTownWalls(): CityBuilding[] {
   // 나머지는 담장이다 — 상점가 폭(10m)이 마당 폭(12m)보다 좁다.
   b.push(piece(yx0, yz0, yx0, yz1), piece(yx1, yz0, yx1, yz1));
   b.push(piece(yx0, yz0, sx0, yz0), piece(sx1, yz0, yx1, yz0));
-  b.push(...gateWall(sx0, yz0, sx1, yz0, 0, 1.4, OPEN_SHOPS, '상점가 쪽문'));
+  b.push(...gateWall(sx0, yz0, sx1, yz0, 1.0, 1.4, OPEN_SHOPS, '상점가 쪽문'));
   b.push(piece(yx0, yz1, px0, yz1), piece(px1, yz1, yx1, yz1));
-  b.push(...gateWall(px0, yz1, px1, yz1, 0, 1.4, OPEN_PATH, '마당 뒷문'));
+  b.push(...gateWall(px0, yz1, px1, yz1, -1.5, 1.4, OPEN_PATH, '마당 뒷문'));
   b.push(pillar(yx0, yz0), pillar(yx1, yz0), pillar(yx0, yz1), pillar(yx1, yz1));
   // 마당 안 개집 — 원작 동선에 개집이 나온다. 형상은 `TOWN_PROPS` 에 있다
 
   // ── 흙길 ────────────────────────────────────────────────
   // 좌우만 막는다. 북은 마당이 세웠고, 남(z=16)은 광장과 맞닿는다.
   b.push(piece(px0, pz0, px0, pz1), piece(px1, pz0, px1, pz1));
-  b.push(...gateWall(px0, pz1, px1, pz1, 0, 1.4, OPEN_PLAZA, '광장 입구'));
+  b.push(...gateWall(px0, pz1, px1, pz1, -1.5, 1.4, OPEN_PLAZA, '광장 입구'));
 
   // ── 비둘기 광장 ─────────────────────────────────────────
   // 북(z=16)에서 흙길 폭만 빼고 담장. 서(x=-12)는 캠프장, 동(x=12)은 호숫가.
@@ -529,15 +529,16 @@ function buildTownWalls(): CityBuilding[] {
   b.push(piece(sx1, sz0, sx1, sz1));
   b.push(piece(sx0, sz0, sx0, oz0));                 // 서 담장 중 공사장 밖 구간
   b.push(...gateWall(sx0, oz0, sx0, sz1, -6, 1.6, OPEN_SITE, '공사장 가림막'));
-  b.push(...gateWall(sx0, sz0, sx1, sz0, 0, 1.6, OPEN_NORTH, '언덕 위 골목'));
+  b.push(...gateWall(sx0, sz0, sx1, sz0, 1.0, 1.6, OPEN_NORTH, '언덕 위 골목'));
   b.push(
-    // **문 앞을 막지 않게 서쪽으로 1.1m 물려 세운다.** 맵을 45% 줄이면서
-    // 철물점이 공사장 문(x=-2.5, z -6.8~-5.2) 바로 뒤로 밀려와 35cm에서
-    // 공사장이 안 열렸다 — 도달 검사가 잡았다.
-    block([-6.4, -11.5, -3.8, -8.6], 5.0, 'commercial', C_SHOP, '빵집'),
-    block([-6.4, -7.6, -3.8, -4.7], 4.4, 'commercial', C_SHOP, '철물점'),
-    block([2.7, -11.0, 6.0, -8.1], 4.6, 'commercial', C_SHOP, '문구점'),
-    block([2.7, -6.6, 6.0, -3.7], 5.2, 'commercial', C_SHOP, '목욕탕'),
+    // **문 앞을 막지 않게 서쪽으로 물려 세운다.** 두 번 겪은 자리다 —
+    // 처음엔 맵을 45% 줄이면서, 이번엔 상점가를 동쪽으로 어긋내면서
+    // 철물점이 공사장 문 바로 뒤로 밀려왔다. 도달 검사가 「공사장 0% 도달」로 잡았다.
+    // 문(x=-1.5, z -6.8~-5.2)에서 서쪽으로 3.4m 를 비운다.
+    block([-7.5, -11.5, -4.9, -8.6], 5.0, 'commercial', C_SHOP, '빵집'),
+    block([-7.5, -7.6, -4.9, -4.7], 4.4, 'commercial', C_SHOP, '철물점'),
+    block([4.2, -11.0, 7.5, -8.1], 4.6, 'commercial', C_SHOP, '문구점'),
+    block([4.2, -6.6, 7.5, -3.7], 5.2, 'commercial', C_SHOP, '목욕탕'),
   );
   // 자판기 둘 — 1.8m라 끝까지 못 먹는다. 형상은 `TOWN_PROPS` 에 있다
 
