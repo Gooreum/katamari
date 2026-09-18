@@ -224,8 +224,83 @@ export function applyMassing(city: CityData, massing: readonly Massing[]): CityD
   return { ...city, buildings: [...rest, ...made] };
 }
 
+/**
+ * 한국 도시 건물의 **저층부**. 규칙으로 74채 전부에 입힌다.
+ *
+ * **이건 개별 건물에 대한 주장이 아니다.** 「이 건물 상가가 3층까지다」를 안다는 게
+ * 아니라, 「한국 도시 건물은 저층부가 위층과 재질이 다르다」는 일반 사실을 쓰는 것이다.
+ * 정확한 층수를 아는 건물은 `MASSING` 이 덮어쓴다 — **규칙이 기본값이고 손배치가
+ * 예외다.** 이 저장소가 이미 그렇게 한다(OSM 높이가 없으면 종류로 추정하고,
+ * 사다리 꼭대기만 손으로 세운다).
+ *
+ * **왜 저층부가 타워보다 중요한가.** 공이 10cm 일 때 카메라가 46cm 다. 플레이어가
+ * 게임 내내 보는 건 건물 밑동 몇 미터뿐이고, 57m 타워의 윗부분은 거의 안 보인다.
+ * 그러니 화면을 바꾸는 건 타워 형태가 아니라 **눈높이에 걸리는 저층부**다.
+ *
+ * 층고는 한국 기준이다 — 상가 4.2m, 주거·사무 2.9m.
+ * 값은 `displayHeight` 가 흔드는 `12·45·7·5·16` 을 피한다.
+ */
+const PODIUM = {
+  /** 이 높이를 넘으면 상가가 여러 층이다 */
+  TALL: 24,
+  /** 고층 건물의 저층 상가 3개 층 */
+  TALL_H: 12.6,
+  /** 중층 건물의 저층 상가 1개 층 */
+  MID_H: 4.4,
+  /** 이 아래는 건물 자체가 저층이라 띠를 두르지 않는다 — 단층 상가·주택 */
+  MIN: 11,
+} as const;
+
+/**
+ * 저층부 색 — 종류별.
+ *
+ * 괴혼 규칙(저채도·고명도)은 지키되 **몸통보다 한 단 진하게** 잡는다.
+ * 처음에 몸통과 비슷한 밝기로 잡았더니 띠가 있는지 없는지 안 보였다 —
+ * 저층부가 다르다는 걸 보여주는 게 목적인데 그러면 아무 일도 안 한 것이다.
+ * 실제로도 한국 건물 저층부는 화강암·타일이라 위층 도장보다 어둡다.
+ */
+const PODIUM_COLOR: Partial<Record<CityBuilding['kind'], number>> = {
+  apartment: 0xc9bca4,   // 아파트 저층 — 화강암
+  commercial: 0xa4bcc2,  // 상가 유리 — 청록 회색
+  retail: 0xa4bcc2,
+  civic: 0xbdb8ab,       // 관공서 — 짙은 화강암
+  lowrise: 0xc4886a,     // 빌라 1층 — 적벽돌
+};
+
+/**
+ * 손 안 댄 건물에 저층부를 한 겹 깐다.
+ *
+ * **부피가 겹친다.** `extentOf` 의 `volume` 은 상자마다 독립이고 겹친 부분을 빼지
+ * 않으므로(`cityData.ts`), 저층부를 깔면 그 높이만큼 부피가 두 번 세진다.
+ * 고층 건물 기준 20% 안쪽이고, 문정동에서 건물을 실제로 먹는 건 별 8(목표 12m)의
+ * 막바지뿐이라 감당한다. 이 사실은 README 「알려진 한계」에 적는다.
+ */
+function addPodiums(city: CityData): CityData {
+  const out: CityBuilding[] = [];
+  for (const b of city.buildings) {
+    out.push(b);
+    // 손배치는 이미 층이 나뉘어 있다 — 두 번 깔지 않는다
+    if (b.color !== undefined) continue;
+    if (b.height < PODIUM.MIN) continue;
+    const color = PODIUM_COLOR[b.kind];
+    if (color === undefined) continue;
+    const h = b.height >= PODIUM.TALL ? PODIUM.TALL_H : PODIUM.MID_H;
+    if (h >= b.height) continue;
+    out.push({
+      // **안쪽으로 물리면 안 된다** — 밑동이 좁으면 건물이 파인 것처럼 보인다.
+      // 2% 내밀어 얕은 턱을 만든다. 0 이면 본체 벽과 같은 평면이 되어 깜빡인다.
+      outline: insetOutline(b.outline, -0.02),
+      height: h,
+      kind: 'retail',
+      color,
+      ...(b.name !== undefined ? { name: b.name } : {}),
+    });
+  }
+  return { ...city, buildings: out };
+}
+
 export function buildMunjeongCity(): CityData {
-  return applyMassing(raw as unknown as CityData, MASSING);
+  return addPodiums(applyMassing(raw as unknown as CityData, MASSING));
 }
 
 /** 검사 전용 — 표가 실제로 몇 채를 담고 있는지 밖에서 볼 수 있게 한다. */
