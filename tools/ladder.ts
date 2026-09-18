@@ -17,6 +17,7 @@ import { resolve } from 'node:path';
 import { coveredByLandmark, displayHeight, extentOf, type CityData } from '../src/world/cityData';
 import { generateWorld, GENERATION } from '../src/world/generation';
 import { buildHouseStage } from '../src/world/stage.house';
+import { buildMunjeongCity } from '../src/world/stage.munjeong';
 import { buildTownStage } from '../src/world/stage.town';
 import { buildWorldStage } from '../src/world/stage.world';
 import { TUNING } from '../src/game/tuning';
@@ -36,6 +37,10 @@ if (slug === 'house') {
   // 손배치 스테이지는 JSON이 없다 — 집·동네와 같이 코드에서 짓는다.
   // 이 갈래가 없으면 `--city world` 가 city.world.json 을 찾다 죽는다.
   city = buildWorldStage();
+} else if (slug === 'munjeong') {
+  // **수집 JSON 위에 손배치를 얹는 지형.** JSON 을 그대로 읽으면 저층 상가부·타워
+  // 단차가 빠진 월드를 재게 된다 — 게임이 보는 것과 달라진다.
+  city = buildMunjeongCity();
 } else {
   try {
     city = JSON.parse(readFileSync(resolve(process.cwd(), `src/world/city.${slug}.json`), 'utf8'));

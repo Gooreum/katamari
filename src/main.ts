@@ -25,8 +25,21 @@ import type { CityData } from './world/cityData';
  */
 const OSM_DISTRICTS: Record<string, () => Promise<{ default: unknown }>> = {
   jamsil: () => import('./world/city.jamsil.json'),
+};
+
+/**
+ * **수집 위에 손배치를 얹는** 지형. JSON 을 그대로 쓰지 않고 빌더를 한 번 태운다.
+ *
+ * 문정동은 건물의 저층 상가부·타워 단차를 코드에서 얹는다 — OSM 이 외곽선 1개와
+ * 높이 1개만 주기 때문이다. 그 코드가 돌 자리가 여기다.
+ * 잠실은 손댄 게 없으니 위의 JSON 경로 그대로 둔다.
+ *
+ * **도구도 같은 함수를 부른다**(`tools/ladder.ts`). 도구가 게임과 다른 월드를
+ * 재면 사다리 숫자가 거짓말이 된다.
+ */
+const OSM_BUILDERS: Record<string, () => Promise<CityData>> = {
   // 문정동 — 서울 편의 첫 무대. 잠실이 2.9MB 인데 이건 0.04MB 다(반경 300m).
-  munjeong: () => import('./world/city.munjeong.json'),
+  munjeong: async () => (await import('./world/stage.munjeong')).buildMunjeongCity(),
 };
 
 /**
@@ -97,8 +110,12 @@ async function boot(): Promise<void> {
   let city: CityData | null = null;
   if (!params.has('nocity')) {
     try {
+      // 빌더가 먼저다 — 손배치를 얹는 지형은 JSON 을 그대로 쓰면 안 된다.
+      const built = OSM_BUILDERS[slug];
       const osm = OSM_DISTRICTS[slug];
-      city = osm ? (await osm()).default as CityData : await buildArea(rule.area);
+      city = built ? await built()
+        : osm ? (await osm()).default as CityData
+          : await buildArea(rule.area);
       mark(`지형 로드 (건물 ${city.buildings.length}채)`);
     } catch (err) {
       console.warn('[boot] 지형 데이터를 못 읽었습니다.', err);

@@ -36,16 +36,21 @@ interface Massing {
   readonly parts: readonly MassPart[];
 }
 
+/**
+ * 이 상자의 바닥 모양.
+ *
+ * · `'outline'` — 원 OSM 외곽선 그대로. 저층부가 대지를 다 덮을 때.
+ * · `{ inset }` — **같은 모양을 무게중심 쪽으로 물린 것.** 타워가 저층부와 같은
+ *   모양인데 조금 좁을 때. 문정동 건물은 대각선으로 앉은 V자·L자가 많아서
+ *   축에 나란한 사각형으로 타워를 잡으면 건물 밖으로 삐져나온다.
+ *   값은 **줄일 비율**(0.12 = 12% 안쪽). 0.3m 이상 물려야 저층부 벽과 같은 평면이
+ *   되지 않는다 — 같은 평면인 면끼리는 깊이가 같아져 깜빡인다.
+ * · `[x0, z0, x1, z1]` — 축에 나란한 사각형. 모양이 단순한 건물에만.
+ */
+type MassShape = 'outline' | { readonly inset: number } | readonly [number, number, number, number];
+
 interface MassPart {
-  /**
-   * `'outline'` 이면 원 OSM 외곽선을 그대로 쓴다 — 저층부가 대지를 다 덮을 때.
-   * 사각형이면 `[x0, z0, x1, z1]` 월드 좌표(m) — 타워처럼 일부만 덮을 때.
-   *
-   * 타워 사각형은 저층부 외곽선과 **같은 평면을 공유하지 않게** 최소 0.3m 물린다.
-   * 머티리얼이 하나라 정렬 문제는 없지만, 정확히 같은 평면인 면끼리는 깊이가
-   * 같아져 깜빡인다.
-   */
-  readonly shape: 'outline' | readonly [number, number, number, number];
+  readonly shape: MassShape;
   /**
    * **꼭대기** 높이(m). 바닥은 **항상 0** 이다.
    *
@@ -72,14 +77,92 @@ interface MassPart {
   readonly color: number;
 }
 
-/** Phase 3 에서 채운다. 비어 있으면 `buildMunjeongCity()` 가 JSON 을 그대로 돌려준다. */
-const MASSING: readonly Massing[] = [];
+/**
+ * 한국 동네 색.
+ *
+ * 괴혼 팔레트 규칙은 그대로 지킨다 — **채도는 낮고 명도는 높다**(`City.ts` 의
+ * `KIND_COLOR` 주석). 나무 블록에 칠한 페인트처럼 보여야 하고, 공 눈높이(5cm 일 때
+ * 카메라가 23cm)에서 벽 최하단이 검게 죽지 않아야 한다.
+ * 바꾸는 건 **색상뿐**이다 — 일본 동네 파스텔에서 서울 문정동으로.
+ */
+const C_PODIUM_GLASS = 0xbcd2d0;   // 저층 상가 유리 — 청록이 도는 회색
+const C_TOWER_TILE = 0xe9e2d4;     // 주거 타워 외벽 타일 — 미색
+
+/**
+ * 손으로 얹은 건물.
+ *
+ * 비어 있으면 `buildMunjeongCity()` 가 수집 JSON 을 그대로 돌려준다.
+ */
+const MASSING: readonly Massing[] = [
+  {
+    /**
+     * 집. 저층 유리 상가부 위에 주거 타워가 올라선 주상복합이다.
+     *
+     * **층수는 사는 사람에게서 받았다** — 상가 1~3층, 건물 전체 15층(2026-09-18).
+     * 로드뷰로 직접 세려 했으나 길이 좁아 바로 밑에서 올려다보게 되고, 원근 압축과
+     * 한가운데 걸린 햇빛 반사로 위쪽 층이 판독 불가였다. 증언이 더 정확하다.
+     *
+     * 포디움 높이는 **층고를 가중해서** 낸다. 상가는 층고가 높다(4.2m 잡음),
+     * 주거는 오피스텔 기준 2.9m. 3×4.2 / (3×4.2 + 12×2.9) = 0.266 이고
+     * OSM 전체 높이 57m 에 곱해 15.2m. 층수만으로 3/15 을 쓰면 11.4m 가 되는데
+     * 그건 상가 층고를 주거와 같다고 본 것이라 낮게 나온다.
+     *
+     * **OSM 57m 와 15층은 서로 안 맞는다.** 15층을 오피스텔 층고로 되짚으면
+     * 48m 쯤이라 57m 가 9m 크다. 어느 쪽이 맞는지 확인할 자료를 못 찾았다.
+     * 다만 이 건물의 흡수 크기는 `max(가로, 세로, 높이)` = 터 77m 라 높이가
+     * 바뀌어도 게임 수치는 안 움직인다. 그래서 OSM 값을 그대로 두고 비율만 쓴다.
+     */
+    at: [6.6, 3.4], name: '문정아이파크',
+    parts: [
+      { shape: 'outline', height: 15.2, kind: 'retail', color: C_PODIUM_GLASS },
+      /**
+       * 타워는 같은 V자를 **3%(한 변 약 2m)만** 물린 것.
+       *
+       * 처음엔 12% 로 잡았다가 **사는 사람이 「상가가 거의 안 나온다, 타워가 거의
+       * 그대로 내려온다」고 해서 줄였다**(2026-09-18). 있지도 않은 턱을 만들면
+       * 그게 곧 거짓이다. 그래서 이 건물에서 단차를 만드는 건 형태가 아니라
+       * **저층 유리 색 띠**다.
+       *
+       * 0 으로 두지 않는 이유는 따로다 — 두 상자의 벽이 정확히 같은 평면에 놓이면
+       * 깊이가 같아져 면이 깜빡인다.
+       */
+      { shape: { inset: 0.03 }, height: 57, kind: 'apartment', color: C_TOWER_TILE },
+    ],
+  },
+];
 
 /** 외곽선의 외접 사각형 중심 */
 function centerOf(outline: CityBuilding['outline']): [number, number] {
   const xs = outline.map((p) => p[0]);
   const zs = outline.map((p) => p[1]);
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
+}
+
+/**
+ * 같은 모양을 무게중심 쪽으로 `k` 만큼 줄인다.
+ *
+ * 진짜 폴리곤 오프셋(변마다 법선 방향으로 밀기)이 아니라 **중심 기준 축소**다.
+ * 볼록에 가까운 모양에서는 둘이 거의 같고, 여기 쓰이는 건물 외곽선이 그렇다.
+ * V자처럼 오목한 데가 있으면 안쪽 꺾임이 실제보다 덜 물리는데, 타워가
+ * 저층부 안에 들어가기만 하면 되므로 그 오차는 문제가 되지 않는다.
+ */
+function insetOutline(
+  outline: CityBuilding['outline'], k: number,
+): Array<readonly [number, number]> {
+  // 면적 무게중심. 외접 사각형 중심을 쓰면 가늘고 긴 모양에서 한쪽으로 쏠린다.
+  let a = 0; let gx = 0; let gz = 0;
+  for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+    const [xi, zi] = outline[i]!;
+    const [xj, zj] = outline[j]!;
+    const cross = xj * zi - xi * zj;
+    a += cross; gx += (xi + xj) * cross; gz += (zi + zj) * cross;
+  }
+  if (Math.abs(a) < 1e-9) {
+    const [cx, cz] = centerOf(outline);          // 퇴화한 폴리곤 — 외접 중심으로 물러선다
+    return outline.map(([x, z]) => [cx + (x - cx) * (1 - k), cz + (z - cz) * (1 - k)] as const);
+  }
+  gx /= 3 * a; gz /= 3 * a;
+  return outline.map(([x, z]) => [gx + (x - gx) * (1 - k), gz + (z - gz) * (1 - k)] as const);
 }
 
 /** 매칭 허용 거리(m). 이보다 멀면 OSM 쪽이 바뀐 것으로 본다. */
@@ -123,10 +206,12 @@ export function applyMassing(city: CityData, massing: readonly Massing[]): CityD
     const src = city.buildings[best]!;
     for (const p of m.parts) {
       made.push({
-        outline: p.shape === 'outline' ? src.outline : [
-          [p.shape[0], p.shape[1]], [p.shape[2], p.shape[1]],
-          [p.shape[2], p.shape[3]], [p.shape[0], p.shape[3]],
-        ],
+        outline: p.shape === 'outline' ? src.outline
+          : 'inset' in p.shape ? insetOutline(src.outline, p.shape.inset)
+            : [
+              [p.shape[0], p.shape[1]], [p.shape[2], p.shape[1]],
+              [p.shape[2], p.shape[3]], [p.shape[0], p.shape[3]],
+            ],
         height: p.height,
         kind: p.kind,
         color: p.color,
