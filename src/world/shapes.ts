@@ -9,6 +9,7 @@ import { LARGE_BUILDERS } from './shapes.large';
 import { MID_BUILDERS } from './shapes.mid';
 import { SMALL_BUILDERS } from './shapes.small';
 import { TOWN_BUILDERS } from './shapes.town';
+import { STREET_BUILDERS } from './shapes.street';
 import { WORLD_BUILDERS } from './shapes.world';
 
 export { withWhiteColors } from './shapes.kit';
@@ -42,6 +43,7 @@ const BUILDERS: Record<ShapeId, () => BufferGeometry> = {
   ...GARDEN_BUILDERS,
   ...TOWN_BUILDERS,
   ...WORLD_BUILDERS,
+  ...STREET_BUILDERS,
 };
 
 /** SHAPE_IDS 순서 그대로. World가 기본 도형 4개 뒤에 이어붙인다. */

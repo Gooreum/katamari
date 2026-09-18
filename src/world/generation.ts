@@ -58,6 +58,13 @@ export const PALETTE = [
  * tools/shapecheck.ts 가 빠진 형태를 잡아낸다.
  */
 export const SHAPE_COLOR: Record<string, readonly number[]> = {
+  // ── 동네 손배치 설비 ────────────────────────────────────────
+  // 전부 흰 팔레트다 — 색은 형상의 정점색이 진다(노란 텐트, 빨간 컨테이너,
+  // 노란 파이프와 짙은 주황 안쪽). 팔레트로 흔들면 그 색이 지워진다
+  전봇대: [0], 가로등: [0], 게시판: [0], 분수대: [0], 정자: [0],
+  오리배: [0], 보트: [0], '자전거 보관대': [0], '모래 포대': [0],
+  텐트: [0], 장작더미: [0], 캠프파이어: [0], 컨테이너: [0], '파이프 더미': [0],
+
   // ── 버킷 0 (1~2cm) ──────────────────────────────────────────
   개미: [5], 쌀알: [0], 팥: [0], 클립: [6], 압정: [8, 11, 14], 단추: [0, 5, 14], 도장: [7],
   // ── 버킷 1 (2~4cm) ──────────────────────────────────────────
@@ -341,12 +348,32 @@ export const SHAPE_IDS_GARDEN = [
   '석등', '물확', '징검돌', '대나무', '소나무', '게타', '갈퀴',
 ] as const;
 
+/**
+ * **동네 맵의 손배치 설비.** `shapes.street.ts` 가 전부 구현해야 한다.
+ *
+ * 난수 표(`TOWN_ROOM_TABLES`)는 이 목록을 **절대 안 건드린다** — `TOWN_PROPS` 만 쓴다.
+ * 그래서 버킷 경계를 안 흔든다. 거실 가구(`SHAPE_IDS_FURNITURE`)가 갈라진 것과 같은 이유다.
+ *
+ * 크기가 **1.5~2.6m** 라 SMALL/MID/LARGE(1.2m 에서 끝난다)에 안 들어가고,
+ * World 맵 전용(`SHAPE_IDS_WORLD`)도 아니다. 전부 옮기기 전까지 `CityBuilding` 압출
+ * 상자였던 것들이다 — 전봇대도 텐트도 캠프파이어도 단색 직육면체였다.
+ */
+export const SHAPE_IDS_STREET = [
+  // 거리 설비
+  '전봇대', '가로등', '게시판', '분수대', '정자',
+  // 호숫가 · 길가
+  '오리배', '보트', '자전거 보관대', '모래 포대',
+  // 캠프장 · 공사장
+  '텐트', '장작더미', '캠프파이어', '컨테이너', '파이프 더미',
+] as const;
+
 export const SHAPE_IDS = [
   ...SHAPE_IDS_SMALL, ...SHAPE_IDS_MID, ...SHAPE_IDS_LARGE, ...SHAPE_IDS_HOUSE,
   ...SHAPE_IDS_FURNITURE, ...SHAPE_IDS_LIVING, ...SHAPE_IDS_ROOMS,
-  ...SHAPE_IDS_GARDEN, ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD,
+  ...SHAPE_IDS_GARDEN, ...SHAPE_IDS_TOWN, ...SHAPE_IDS_WORLD, ...SHAPE_IDS_STREET,
 ];
 
+export type ShapeIdStreet = (typeof SHAPE_IDS_STREET)[number];
 export type ShapeIdSmall = (typeof SHAPE_IDS_SMALL)[number];
 export type ShapeIdMid = (typeof SHAPE_IDS_MID)[number];
 export type ShapeIdLarge = (typeof SHAPE_IDS_LARGE)[number];
@@ -359,7 +386,8 @@ export type ShapeIdTown = (typeof SHAPE_IDS_TOWN)[number];
 export type ShapeIdWorld = (typeof SHAPE_IDS_WORLD)[number];
 export type ShapeId =
   | ShapeIdSmall | ShapeIdMid | ShapeIdLarge | ShapeIdHouse | ShapeIdFurniture
-  | ShapeIdLiving | ShapeIdRooms | ShapeIdGarden | ShapeIdTown | ShapeIdWorld;
+  | ShapeIdLiving | ShapeIdRooms | ShapeIdGarden | ShapeIdTown | ShapeIdWorld
+  | ShapeIdStreet;
 
 /** 기본 도형 + 전용 형태 = World가 만들어야 할 지오메트리 총 개수 */
 export const TOTAL_GEOMETRY_COUNT = GEOMETRY_COUNT + SHAPE_IDS.length;
