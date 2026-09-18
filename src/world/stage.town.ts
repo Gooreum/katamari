@@ -1,5 +1,5 @@
 import type { CityBuilding, CityData, CityRoad, CityRug, StageProp, StageRoom } from './cityData';
-import { TOWN_TABLE } from './generation';
+import { TOWN_ROOM_TABLES, TOWN_TABLE } from './generation';
 import {
   block, boundary, dissolveWalls, piece as kitPiece, pillar as kitPillar, ring as kitRing,
   wallWithDoor as kitWallWithDoor,
@@ -154,33 +154,64 @@ const F_HILL = 0x93b85e;
  * 거기가 목표 50cm를 넘긴 뒤 굴러다니는 구역이기 때문이다.
  */
 /**
- * **`floorTex` 는 렌더 전용이다.** 크기·개수·개방 문턱에 아무 영향이 없다 —
- * 이 줄들에서 사다리를 지고 있는 건 `sizeMin`/`sizeMax`/`count`/`openAt` 이고,
- * 그 넷은 한 글자도 안 건드렸다.
+ * ## 뒤에 붙은 넷은 **사다리를 안 건드린다**
  *
- * 열두 구역이 전부 단색 평면이었다. 집 일곱 방은 처음부터 바닥결이 있었는데
- * (다다미·마루·타일·이끼) 동네는 하나도 없어서, 「호숫가 도로」가 회색 사각형
- * 한 장이고 「흙길」과 「캠프장」이 색만 다른 같은 판이었다.
+ * 사다리를 지고 있는 건 `sizeMin`/`sizeMax`/`count`/`openAt` 이고 그 넷은
+ * 한 글자도 안 바뀌었다. 뒤에 붙은 것들은 각각:
+ *
+ *   `floorTex`  바닥결. 렌더 전용이다
+ *   `labels`    **어느 칸에 어떤 이름이 들어가는가.** 경계도 개수도 그대로다
+ *   `edge`      뽑은 자리를 가장자리 쪽으로 당긴다
+ *   `align`     벽과 나란히 세운다
+ *
+ * ## 집에는 처음부터 있었고 동네에는 하나도 없었다
+ *
+ * 그래서 「호숫가 도로」가 회색 사각형 한 장이었고, 공사장에 도토리가 깔렸고,
+ * 물건이 **사각형 안 균등 난수**로 흩어졌다. `generation.ts` 가 그 증상을
+ * 적어 뒀다: 「한가운데까지 골고루 뿌려서 «놓여 있다»가 아니라
+ * **«버려져 있다»**로 읽힌다」.
+ *
+ ## `edge` 는 재보고 **뺐다**
+
+ 집 일곱 방은 `edge`(가장자리 쏠림)도 쓴다. 동네에도 주고 재보니:
+
+ | | 별 3 | 별 5 | 별 8 | CV |
+ |---|---|---|---|---|
+ | 기준선 (셋 다 없음) | 88초 | 194초 | 298초 | 0.596 |
+ | `labels` 만 | 88초 | 194초 | 298초 | 0.596 |
+ | `align` 만 | 88초 | 194초 | 298초 | 0.596 |
+ | **`edge` 0.86** | 65초 | 203초 | **245초** | **0.663** |
+
+ **`labels` 와 `align` 은 공짜고 `edge` 만 값을 치른다.** 물건이 벽으로 몰리면
+ 탐욕 플레이어가 덩어리 사이를 짧게 움직여 별 8 이 18% 빨라지고, 곡선 편차까지
+ 나빠진다. 0.86 은 방 한가운데 비중이 16% → 13% 로 바뀔 뿐이라 **화면에서 얻는 건
+ 적고 곡선에서 잃는 건 크다.** 안 쓴다.
+
+ (처음엔 `edge` 가 **낮을수록 세게 미는** 값인 걸 거꾸로 읽어 바깥 40m 벌판에
+ 0.55(가장 센 값)를 줬고, 별 3 이 88초에서 40초로 반 토막 났다.)
  */
 export const TOWN_ROOMS: readonly StageRoom[] = [
-  { id: 'yard', name: '시작 마당', rect: R_YARD, floor: F_YARD, floorTex: 'grass', sizeMin: 0.010, sizeMax: 0.16, count: 520, openAt: 0 },
-  { id: 'path', name: '흙길', rect: R_PATH, floor: F_DIRT, floorTex: 'dirt', sizeMin: 0.015, sizeMax: 0.24, count: 210, openAt: OPEN_PATH },
+  { id: 'yard', name: '시작 마당', rect: R_YARD, floor: F_YARD, floorTex: 'grass', labels: TOWN_ROOM_TABLES['yard']!, sizeMin: 0.010, sizeMax: 0.16, count: 520, openAt: 0 },
+  // **`edge` 는 낮을수록 세게 민다**(1.0 이 균등). 좁은 길만 조금 더 붙인다 —
+  // 한가운데는 지나다니는 자리다
+  { id: 'path', name: '흙길', rect: R_PATH, floor: F_DIRT, floorTex: 'dirt', labels: TOWN_ROOM_TABLES['path']!, sizeMin: 0.015, sizeMax: 0.24, count: 210, openAt: OPEN_PATH },
   // 광장·상점가는 사람이 걷는 데라 보도블록이다. 차가 다니는 데(호숫가·북 피죤타운)와 갈린다
-  { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, floorTex: 'pavement', sizeMin: 0.020, sizeMax: 0.40, count: 430, openAt: OPEN_PLAZA },
-  { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, floorTex: 'pavement', sizeMin: 0.020, sizeMax: 0.50, count: 380, openAt: OPEN_SHOPS },
-  { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, floorTex: 'asphalt', sizeMin: 0.030, sizeMax: 0.70, count: 350, openAt: OPEN_LAKE },
+  { id: 'plaza', name: '비둘기 광장', rect: R_PLAZA, floor: F_PLAZA, floorTex: 'pavement', labels: TOWN_ROOM_TABLES['plaza']!, align: true, sizeMin: 0.020, sizeMax: 0.40, count: 430, openAt: OPEN_PLAZA },
+  { id: 'shops', name: '상점가', rect: R_SHOPS, floor: F_SHOPS, floorTex: 'pavement', labels: TOWN_ROOM_TABLES['shops']!, align: true, sizeMin: 0.020, sizeMax: 0.50, count: 380, openAt: OPEN_SHOPS },
+  { id: 'lakeside', name: '호숫가 도로', rect: R_LAKESIDE, floor: F_ROAD, floorTex: 'asphalt', labels: TOWN_ROOM_TABLES['lakeside']!, align: true, sizeMin: 0.030, sizeMax: 0.70, count: 350, openAt: OPEN_LAKE },
   // **주택가 바닥은 아스팔트가 아니다.** 구역 전체를 아스팔트로 깔았더니 그 위에
   // 얹은 도로 리본이 «약간 다른 회색 띠»가 되어 길로 안 읽혔다.
   // 바닥은 「길이 아닌 데」의 재료여야 하고, 길은 리본이 맡는다
-  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, floorTex: 'pavement', sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
-  { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, floorTex: 'grass', sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
-  { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, floorTex: 'sand', sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
-  { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, floorTex: 'grass', sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
+  { id: 'north', name: '북 피죤타운', rect: R_NORTH, floor: F_NORTH, floorTex: 'pavement', labels: TOWN_ROOM_TABLES['north']!, align: true, sizeMin: 0.030, sizeMax: 0.80, count: 430, openAt: OPEN_NORTH },
+  { id: 'camp', name: '캠프장', rect: R_CAMP, floor: F_CAMP, floorTex: 'grass', labels: TOWN_ROOM_TABLES['camp']!, sizeMin: 0.040, sizeMax: 0.90, count: 290, openAt: OPEN_CAMP },
+  { id: 'site', name: '공사장', rect: R_SITE, floor: F_SITE, floorTex: 'sand', labels: TOWN_ROOM_TABLES['site']!, align: true, sizeMin: 0.050, sizeMax: 1.20, count: 270, openAt: OPEN_SITE },
+  { id: 'island', name: '호수 섬', rect: R_ISLAND, floor: F_ISLAND, floorTex: 'grass', labels: TOWN_ROOM_TABLES['island']!, sizeMin: 0.060, sizeMax: 1.20, count: 160, openAt: OPEN_ISLAND },
   // ── 바깥 세 구역 (8번 전용) ────────────────────────────────
-  // 야구장 내야가 마사토다. 강변과 언덕은 풀밭이라 마당과 같은 결을 쓴다
-  { id: 'field', name: '야구장', rect: R_FIELD, floor: F_FIELD, floorTex: 'sand', sizeMin: 0.30, sizeMax: 3.00, count: 900, openAt: OPEN_FIELD },
-  { id: 'river', name: '메추라기 강', rect: R_RIVER, floor: F_RIVER, floorTex: 'grass', sizeMin: 0.40, sizeMax: 4.50, count: 800, openAt: OPEN_RIVER },
-  { id: 'hill', name: '참새 언덕', rect: R_HILL, floor: F_HILL, floorTex: 'grass', sizeMin: 0.50, sizeMax: 6.00, count: 900, openAt: OPEN_HILL },
+  // 야구장 내야가 마사토다. 강변과 언덕은 풀밭이라 마당과 같은 결을 쓴다.
+  // **거의 균등(0.95)** — 40m 벌판에서 가장자리로 몰면 한가운데가 통째로 빈다
+  { id: 'field', name: '야구장', rect: R_FIELD, floor: F_FIELD, floorTex: 'sand', labels: TOWN_ROOM_TABLES['field']!, sizeMin: 0.30, sizeMax: 3.00, count: 900, openAt: OPEN_FIELD },
+  { id: 'river', name: '메추라기 강', rect: R_RIVER, floor: F_RIVER, floorTex: 'grass', labels: TOWN_ROOM_TABLES['river']!, sizeMin: 0.40, sizeMax: 4.50, count: 800, openAt: OPEN_RIVER },
+  { id: 'hill', name: '참새 언덕', rect: R_HILL, floor: F_HILL, floorTex: 'grass', labels: TOWN_ROOM_TABLES['hill']!, sizeMin: 0.50, sizeMax: 6.00, count: 900, openAt: OPEN_HILL },
 ];
 
 /**
